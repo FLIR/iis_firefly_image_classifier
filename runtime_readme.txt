@@ -87,14 +87,13 @@ mvNCCompile optimized_mobilenet.pb -in=input -on=MobilenetV1/Predictions/Reshape
 #### Inception_V1
 
 python train_image_classifier.py \
-  --train_dir=./train_dir/inception_v1_flowers\
+  --train_dir=./train_dir/inception_v1_flowers/output_3/ \
   --dataset_name=flowers \
   --dataset_split_name=train \
   --dataset_dir=/home/docker/ahmed/datasets/flowers \
   --model_name=inception_v1 \
-  --checkpoint_path=./checkpoint/inception_v1/inception_v1.ckpt \
+  --checkpoint_path=./checkpoints/inception_v1/inception_v1.ckpt \
   --checkpoint_exclude_scopes=InceptionV1/Logits \
-  --trainable_scopes=InceptionV1/Logits \
   --max_number_of_steps=10000 \
   --batch_size=32 \
   --learning_rate=0.01 \
@@ -104,25 +103,35 @@ python train_image_classifier.py \
   --optimizer=rmsprop \
   --weight_decay=0.00004
 
+python eval_image_classifier.py \
+    --alsologtostderr \
+    --checkpoint_path=./train_dir/inception_v1_flowers/output_3/model.ckpt-10000 \
+    --dataset_dir=/home/docker/ahmed/datasets/flowers \
+    --dataset_name=flowers \
+    --dataset_split_name=validation \
+    --model_name=inception_v1 \
+    --eval_image_size=224
+
+
 /tensorflow_src/bazel-bin/tensorflow/tools/graph_transforms/summarize_graph \
   --in_graph=./train_dir/inception_v1_flowers/model.ckpt-10000.meta
 
 
- python export_inference_graph.py   --alsologtostderr   --model_name=inception_v1   --output_file=./train_dir/inception_v1_flowers/inference_graph_incptionv1.pb --dataset_name=flowers
+ python export_inference_graph.py   --alsologtostderr   --model_name=inception_v1   --output_file=./train_dir/inception_v1_flowers/output_3/inference_graph_inception_v1.pb --dataset_name=flowers
 
 
 python /tensorflow_src/tensorflow/python/tools/freeze_graph.py \
-    --input_graph=./train_dir/inception_v1_flowers/inference_graph_incptionv1.pb \
+    --input_graph=./train_dir/inception_v1_flowers/output_3/inference_graph_inception_v1.pb \
     --input_binary=true \
-    --input_checkpoint=./train_dir/inception_v1_flowers/model.ckpt-10000 \
-    --output_graph=./train_dir/inception_v1_flowers/frozen_inceptionv1.pb \
-    --output_node_names=InceptionV1/Logits/Predictions/Reshape
+    --input_checkpoint=./train_dir/inception_v1_flowers/output_3/model.ckpt-10000 \
+    --output_graph=./train_dir/inception_v1_flowers/output_3/frozen_inceptionv1.pb \
+    --output_node_names=InceptionV1/Logits/Predictions/Reshape_1
 
 /tensorflow_src/bazel-bin/tensorflow/tools/graph_transforms/transform_graph \
---in_graph=./train_dir/inception_v1_flowers/frozen_inceptionv1.pb \
---out_graph=./train_dir/inception_v1_flowers/optimized_graph.pb \
+--in_graph=./train_dir/inception_v1_flowers/output_3/frozen_inceptionv1.pb \
+--out_graph=./train_dir/inception_v1_flowers/output_3/optimized_graph.pb \
 --inputs='input' \
---outputs='InceptionV1/Logits/Predictions/Reshape' \
+--outputs='InceptionV1/Logits/Predictions/Reshape_1' \
 --transforms='
  strip_unused_nodes(type=float, shape="1,224,224,3")
  remove_nodes(op=Identity, op=CheckNumerics, op=PlaceholderWithDefault)
@@ -130,4 +139,4 @@ python /tensorflow_src/tensorflow/python/tools/freeze_graph.py \
  fold_old_batch_norms'
 
 
- mvNCCompile optimized_graph.pb -in=input -on=InceptionV1/Logits/Predictions/Reshape -s 12 -o output_inceptionv1_graph
+ mvNCCompile optimized_graph.pb -in=input -on=InceptionV1/Logits/Predictions/Reshape_1 -s 12 -o inference_inceptionv1

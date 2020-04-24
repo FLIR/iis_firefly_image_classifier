@@ -121,6 +121,7 @@ def main(_):
         common_queue_capacity=2 * FLAGS.batch_size,
         common_queue_min=FLAGS.batch_size)
     [image, label] = provider.get(['image', 'label'])
+    print('###########', type(image))
     label -= FLAGS.labels_offset
 
     #####################################
