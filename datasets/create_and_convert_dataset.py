@@ -42,10 +42,10 @@ from datasets import dataset_utils
 
   
 # The URL where the Flowers data can be downloaded.
-_DATA_URL = 'http://download.tensorflow.org/example_images/flower_photos.tgz'
+# _DATA_URL = 'http://download.tensorflow.org/example_images/flower_photos.tgz'
 
 # The number of images in the validation set.
-_NUM_VALIDATION = 350
+# _NUM_VALIDATION = 350
 
 # Seed for repeatability.
 _RANDOM_SEED = 0
@@ -103,13 +103,13 @@ def _get_filenames_and_classes(dataset_dir):
   return photo_filenames, sorted(class_names)
 
 
-def _get_dataset_filename(dataset_dir, split_name, shard_id):
-  output_filename = 'flowers_%s_%05d-of-%05d.tfrecord' % (
-      split_name, shard_id, _NUM_SHARDS)
+def _get_dataset_filename(dataset_dir, split_name, shard_id, dataset_name):
+  output_filename = '%s_%s_%05d-of-%05d.tfrecord' % (
+      dataset_name, split_name, shard_id, _NUM_SHARDS)
   return os.path.join(dataset_dir, output_filename)
 
 
-def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir):
+def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dataset_name):
   """Converts the given filenames to a TFRecord dataset.
 
   Args:
@@ -130,7 +130,7 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir):
 
       for shard_id in range(_NUM_SHARDS):
         output_filename = _get_dataset_filename(
-            dataset_dir, split_name, shard_id)
+            dataset_dir, split_name, shard_id, dataset_name)
 
         with tf.python_io.TFRecordWriter(output_filename) as tfrecord_writer:
           start_ndx = shard_id * num_per_shard
@@ -169,11 +169,11 @@ def _clean_up_temporary_files(dataset_dir):
   tf.gfile.DeleteRecursively(tmp_dir)
 
 
-def _dataset_exists(dataset_dir):
+def _dataset_exists(dataset_dir, dataset_name):
   for split_name in ['train', 'validation']:
     for shard_id in range(_NUM_SHARDS):
       output_filename = _get_dataset_filename(
-          dataset_dir, split_name, shard_id)
+          dataset_dir, split_name, shard_id, dataset_name)
       if not tf.gfile.Exists(output_filename):
         return False
   return True
@@ -195,7 +195,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   if not tf.gfile.Exists(tfrecords_dataset_dir):
     tf.gfile.MakeDirs(tfrecords_dataset_dir)
 
-  if _dataset_exists(tfrecords_dataset_dir):
+  if _dataset_exists(tfrecords_dataset_dir, dataset_name):
     print("""
       Dataset files already exist. Either choose a different dataset name (--dataset_name) or a different directory to store your tfrecord data (--tfrecords_dataset_dir). 
 
@@ -205,6 +205,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
 
   # dataset_utils.download_and_uncompress_tarball(_DATA_URL, dataset_dir)
   photo_filenames, class_names = _get_filenames_and_classes(images_dataset_dir)
+  print('############', class_names)
   class_names_to_ids = dict(zip(class_names, range(len(class_names))))
 
   # Divide into train, validation and test:
@@ -220,15 +221,18 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
 
   # First, convert the training and validation sets.
   _convert_dataset('train', training_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir)
+                   tfrecords_dataset_dir, dataset_name)
   _convert_dataset('validation', validation_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir)
+                   tfrecords_dataset_dir, dataset_name)
   _convert_dataset('test', test_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir)
+                   tfrecords_dataset_dir, dataset_name)
 
   # Finally, write the labels file:
   labels_to_class_names = dict(zip(range(len(class_names)), class_names))
   dataset_utils.write_label_file(labels_to_class_names, tfrecords_dataset_dir)
+  dataset_utils.write_dataset_file(dataset_name,
+                     tfrecords_dataset_dir, class_names,
+                     train_size, validation_size,test_size)
 
   # _clean_up_temporary_files(dataset_dir)
   print('\nFinished converting the ',dataset_name,' dataset! under the following directory', tfrecords_dataset_dir)
