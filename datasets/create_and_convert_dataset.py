@@ -227,7 +227,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   _convert_dataset('test', test_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name)
 
-  # Finally, write the labels file:
+  # Finally, write the label and dataset json files:
   labels_to_class_names = dict(zip(range(len(class_names)), class_names))
   dataset_utils.write_label_file(labels_to_class_names, tfrecords_dataset_dir)
   dataset_utils.write_dataset_file(dataset_name,

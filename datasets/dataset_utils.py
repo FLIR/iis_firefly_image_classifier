@@ -185,9 +185,12 @@ def write_dataset_file(dataset_name,
   """Writes a file with the list of class names.
 
   Args:
-    labels_to_class_names: A map of (integer) labels to class names.
-    dataset_dir: The directory in which the labels file should be written.
-    filename: The filename where the class names are written.
+    dataset_name: name of dataset.
+    dataset_dir: The directory in which the dataset json file should be written..
+    class_names: list of label classes.
+    train_size: number of train samples
+    validation_size: number of validation samples
+    test_size: number of test samples
   """
   # Data to be written 
   dictionary ={ 
