@@ -21,6 +21,7 @@ import os
 import sys
 import tarfile
 import zipfile
+import json
 
 from six.moves import urllib
 import tensorflow as tf
@@ -177,6 +178,36 @@ def write_label_file(labels_to_class_names,
     for label in labels_to_class_names:
       class_name = labels_to_class_names[label]
       f.write('%d:%s\n' % (label, class_name))
+
+def write_dataset_file(dataset_name,
+                     dataset_dir, class_names,
+                     train_size, validation_size,test_size):
+  """Writes a file with the list of class names.
+
+  Args:
+    dataset_name: name of dataset.
+    dataset_dir: The directory in which the dataset json file should be written..
+    class_names: list of label classes.
+    train_size: number of train samples
+    validation_size: number of validation samples
+    test_size: number of test samples
+  """
+  # Data to be written 
+  dictionary ={ 
+      "dataset_name" : dataset_name, 
+      "dataset_dir" : dataset_dir,
+      "class_names" : class_names,
+      "number_of_classes" : len(class_names), 
+      "train_size" : train_size,
+      "validation_size" : validation_size,
+      "test_size" : test_size,
+  } 
+    
+  # Serializing json
+  filename = os.path.join(dataset_dir, dataset_name + "_dataset.json") 
+  with open(filename, "w") as outfile: 
+    json.dump(dictionary, outfile) 
+
 
 
 def has_labels(dataset_dir, filename=LABELS_FILENAME):
