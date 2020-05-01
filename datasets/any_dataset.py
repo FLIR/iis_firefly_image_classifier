@@ -23,6 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import json
 import tensorflow as tf
 from tensorflow.contrib import slim as contrib_slim
 
@@ -30,13 +31,12 @@ from datasets import dataset_utils
 
 slim = contrib_slim
 
-_FILE_PATTERN = 'flowers_%s_*.tfrecord'
+_FILE_PATTERN = '%s_%s_*.tfrecord'
+_JSON_FILE = 'dataset.json'
 
+# SPLITS_TO_SIZES = {'train': 480, 'validation': 120}
 
-SPLITS_TO_SIZES = {'train': 2936, 'validation': 734}
-#480 120
-
-_NUM_CLASSES = 5
+# _NUM_CLASSES = 5
 
 _ITEMS_TO_DESCRIPTIONS = {
     'image': 'A color image of varying size.',
@@ -61,12 +61,23 @@ def get_split(split_name, dataset_dir, file_pattern=None, reader=None):
   Raises:
     ValueError: if `split_name` is not a valid train/validation split.
   """
+
+  json_file = _JSON_FILE
+  json_file = os.path.join(dataset_dir, json_file)
+
+  with open(json_file) as file:
+    data = json.load(file)
+    dataset_name = data['dataset_name']
+    _NUM_CLASSES = data['number_of_classes']
+    SPLITS_TO_SIZES = {'train': data['train_size'], 'validation': data['validation_size'], 'test':data['test_size']}
+
+
   if split_name not in SPLITS_TO_SIZES:
     raise ValueError('split name %s was not recognized.' % split_name)
 
   if not file_pattern:
     file_pattern = _FILE_PATTERN
-  file_pattern = os.path.join(dataset_dir, file_pattern % split_name)
+  file_pattern = os.path.join(dataset_dir, file_pattern.format(dataset_name, split_name))
 
   # Allowing None in the signature so that dataset_factory can use the default.
   if reader is None:
