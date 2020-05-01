@@ -32,7 +32,7 @@ slim = contrib_slim
 
 _FILE_PATTERN = 'flowers_%s_*.tfrecord'
 
-SPLITS_TO_SIZES = {'train': 3320, 'validation': 350}
+SPLITS_TO_SIZES = {'train': 2935, 'validation': 735}
 
 _NUM_CLASSES = 5
 
