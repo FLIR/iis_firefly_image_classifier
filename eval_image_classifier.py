@@ -30,7 +30,7 @@ from preprocessing import preprocessing_factory
 slim = contrib_slim
 
 tf.app.flags.DEFINE_integer(
-    'batch_size', 100, 'The number of samples in each batch.')
+    'batch_size', 120, 'The number of samples in each batch.')
 
 tf.app.flags.DEFINE_integer(
     'max_num_batches', None,
@@ -118,10 +118,11 @@ def main(_):
     provider = slim.dataset_data_provider.DatasetDataProvider(
         dataset,
         shuffle=False,
+        num_epochs=1,
         common_queue_capacity=2 * FLAGS.batch_size,
         common_queue_min=FLAGS.batch_size)
     [image, label] = provider.get(['image', 'label'])
-    print('###########', type(image))
+    print('###########', image)
     label -= FLAGS.labels_offset
 
     #####################################

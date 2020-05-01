@@ -211,21 +211,33 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   # Divide into train, validation and test:
   random.seed(_RANDOM_SEED)
   random.shuffle(photo_filenames)
+  print("##################", test_percentage)
+  if test_percentage > 0:
+    training_filenames, test_filenames = train_test_split(photo_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED)
+    test_size = len(test_filenames)
+    _convert_dataset('test', test_filenames, class_names_to_ids,
+                   tfrecords_dataset_dir, dataset_name)
+  else:
+    test_size = 0
+    training_filenames = photo_filenames
 
-  training_filenames, test_filenames = train_test_split(photo_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED)
-  training_filenames, validation_filenames = train_test_split(training_filenames, test_size=validation_percentage/100, random_state=_RANDOM_SEED)
+  if validation_percentage > 0:
+    training_filenames, validation_filenames = train_test_split(training_filenames, test_size=validation_percentage/100, random_state=_RANDOM_SEED)
+    validation_size = len(validation_filenames)
+    _convert_dataset('validation', validation_filenames, class_names_to_ids,
+                   tfrecords_dataset_dir, dataset_name)
+  else:
+    validation_size = 0
   train_size = len(training_filenames)
-  validation_size = len(validation_filenames)
-  test_size = len(test_filenames)
-  # print('############################ train_size, validation_size, test_size', train_size, validation_size, test_size)
+  
+  
+  print('############################ train_size, validation_size, test_size', train_size, validation_size, test_size)
 
   # First, convert the training and validation sets.
   _convert_dataset('train', training_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name)
-  _convert_dataset('validation', validation_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir, dataset_name)
-  _convert_dataset('test', test_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir, dataset_name)
+
+  
 
   # Finally, write the label and dataset json files:
   labels_to_class_names = dict(zip(range(len(class_names)), class_names))

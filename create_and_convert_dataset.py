@@ -17,7 +17,7 @@ r"""Create and converts a particular dataset.
 Usage:
 ```shell
 
-$ python create_and_convert_data.py \
+$ python create_and_convert_dataset.py \
     --dataset_name=flowers \
     --images_dataset_dir=/tmp/flower_photes
     --tfrecords_dataset_dir=/tmp/flowers
@@ -63,12 +63,12 @@ tf.compat.v1.app.flags.DEFINE_string(
 
 tf.compat.v1.app.flags.DEFINE_integer(
     'validation_percentage',
-    10,
+    20,
     'What percentage of images to use as a test set.'
     )
 tf.compat.v1.app.flags.DEFINE_integer(
     'testing_percentage',
-    10,
+    0,
     'What percentage of images to use as a validation set.'
     )
 
