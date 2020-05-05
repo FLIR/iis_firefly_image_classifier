@@ -23,13 +23,14 @@ from datasets import flowers
 from datasets import imagenet
 from datasets import mnist
 from datasets import visualwakewords
-from datasets import any_dataset
+from datasets import tylenol
 
 datasets_map = {
     'cifar10': cifar10,
     'flowers': flowers,
     'imagenet': imagenet,
     'mnist': mnist,
+    'tylenol': tylenol,
     'visualwakewords': visualwakewords,
 }
 

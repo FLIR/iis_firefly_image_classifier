@@ -67,7 +67,7 @@ tf.compat.v1.app.flags.DEFINE_integer(
     'What percentage of images to use as a test set.'
     )
 tf.compat.v1.app.flags.DEFINE_integer(
-    'testing_percentage',
+    'test_percentage',
     0,
     'What percentage of images to use as a validation set.'
     )
@@ -82,7 +82,8 @@ def main(_):
     raise ValueError('You must supply a dataset directory to store the convert tfrecord dataset with --tfrecords_dataset_dir')
 
   if len(os.listdir(FLAGS.images_dataset_dir)):
-    convert_dataset.run(FLAGS.dataset_name, FLAGS.images_dataset_dir, FLAGS.tfrecords_dataset_dir, FLAGS.validation_percentage, FLAGS.testing_percentage)
+    # print('#############',FLAGS.validation_percentage, FLAGS.test_percentage)
+    convert_dataset.run(FLAGS.dataset_name, FLAGS.images_dataset_dir, FLAGS.tfrecords_dataset_dir, FLAGS.validation_percentage, FLAGS.test_percentage)
 
   else:
     raise ValueError(
