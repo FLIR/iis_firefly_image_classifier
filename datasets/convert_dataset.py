@@ -211,40 +211,47 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   # Divide into train, validation and test:
   random.seed(_RANDOM_SEED)
   random.shuffle(photo_filenames)
-  print("##################", test_percentage)
+  dataset_split = dict()
+  training_filenames = photo_filenames[:]
+
   if test_percentage > 0:
-    training_filenames, test_filenames = train_test_split(photo_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED)
+    training_filenames, test_filenames = train_test_split(training_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED)
     test_size = len(test_filenames)
+    print('###############', test_size)
     _convert_dataset('test', test_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name)
-  else:
-    test_size = 0
-    training_filenames = photo_filenames
+    dataset_split['test'] = test_size
+  # else:
+  #   test_size = 0
+
 
   if validation_percentage > 0:
     training_filenames, validation_filenames = train_test_split(training_filenames, test_size=validation_percentage/100, random_state=_RANDOM_SEED)
     validation_size = len(validation_filenames)
     _convert_dataset('validation', validation_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name)
-  else:
-    validation_size = 0
+    dataset_split['validation'] = validation_size
+  # else:
+  #   validation_size = 0
+
+  dataset_size = len(photo_filenames)
   train_size = len(training_filenames)
+  dataset_split['train'] = train_size
   
-  
-  print('############################ train_size, validation_size, test_size', train_size, validation_size, test_size)
+  print('############################ dataset_size {}, train_size {}, validation_size {}, test_size {}'.format(dataset_size, train_size, validation_size, test_size))
 
   # First, convert the training and validation sets.
   _convert_dataset('train', training_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name)
-
   
+
 
   # Finally, write the label and dataset json files:
   labels_to_class_names = dict(zip(range(len(class_names)), class_names))
   dataset_utils.write_label_file(labels_to_class_names, tfrecords_dataset_dir)
-  dataset_utils.write_dataset_file(dataset_name,
+  dataset_utils.write_dataset_config_json(dataset_name,
                      tfrecords_dataset_dir, class_names,
-                     train_size, validation_size,test_size)
+                     dataset_split)
 
   # _clean_up_temporary_files(dataset_dir)
   print('\nFinished converting the ',dataset_name,' dataset! under the following directory', tfrecords_dataset_dir)

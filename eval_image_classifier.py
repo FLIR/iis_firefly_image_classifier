@@ -30,7 +30,7 @@ from preprocessing import preprocessing_factory
 slim = contrib_slim
 
 tf.app.flags.DEFINE_integer(
-    'batch_size', 120, 'The number of samples in each batch.')
+    'batch_size', 20, 'The number of samples in each batch.')
 
 tf.app.flags.DEFINE_integer(
     'max_num_batches', None,
@@ -96,7 +96,8 @@ def main(_):
 
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
-    tf_global_step = slim.get_or_create_global_step()
+    # tf_global_step = slim.get_or_create_global_step()
+    tf_global_step = tf.train.get_or_create_global_step()
 
     ######################
     # Select the dataset #
@@ -122,7 +123,6 @@ def main(_):
         common_queue_capacity=2 * FLAGS.batch_size,
         common_queue_min=FLAGS.batch_size)
     [image, label] = provider.get(['image', 'label'])
-    print('###########', image)
     label -= FLAGS.labels_offset
 
     #####################################
@@ -177,7 +177,7 @@ def main(_):
       op = tf.summary.scalar(summary_name, value, collections=[])
       op = tf.Print(op, [value], summary_name)
       tf.add_to_collection(tf.GraphKeys.SUMMARIES, op)
-
+    
     # TODO(sguada) use num_epochs=1
     if FLAGS.max_num_batches:
       num_batches = FLAGS.max_num_batches
@@ -190,15 +190,32 @@ def main(_):
     else:
       checkpoint_path = FLAGS.checkpoint_path
 
-    tf.logging.info('Evaluating %s' % checkpoint_path)
+    tf.logging.info('#####Evaluating %s' % checkpoint_path)
+    # evaluate for 1000 batches:
+    num_evals = 10
+    summaries = set(tf.get_collection(tf.GraphKeys.SUMMARIES))
+    summary_op = tf.summary.merge(list(summaries), name='summary_op')
+    session_config = tf.ConfigProto()
+    session_config.gpu_options.allow_growth = True
 
-    slim.evaluation.evaluate_once(
+# Evaluate every 10 minutes:
+    slim.evaluation.evaluation_loop(
         master=FLAGS.master,
-        checkpoint_path=checkpoint_path,
-        logdir=FLAGS.eval_dir,
-        num_evals=num_batches,
+        checkpoint_dir=FLAGS.checkpoint_path,
+        logdir=FLAGS.checkpoint_path,
+        num_evals=num_evals, # number of batches to evaluate
         eval_op=list(names_to_updates.values()),
-        variables_to_restore=variables_to_restore)
+        summary_op=summary_op,
+        eval_interval_secs=60,
+        session_config=session_config) 
+    # How often to run the evaluation
+    # slim.evaluation.evaluate_once(
+    #     master=FLAGS.master,
+    #     checkpoint_path=checkpoint_path,
+    #     logdir=FLAGS.eval_dir,
+    #     num_evals=num_batches,
+    #     eval_op=list(names_to_updates.values()),
+    #     variables_to_restore=variables_to_restore)
 
 
 if __name__ == '__main__':

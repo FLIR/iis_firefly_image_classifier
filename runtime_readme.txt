@@ -45,40 +45,105 @@ python3 /tensorflow_src/tensorflow/python/tools/optimize_for_inference.py \
     --output_names=MobilenetV1/Predictions/Reshape_1
 
 ###################
+python create_and_convert_dataset.py
+    --dataset_name=flowers     
+    --images_dataset_dir=/home/docker/ahmed/datasets/flower_photos     
+    --tfrecords_dataset_dir=/home/docker/ahmed/datasets/flower_photos_tfrecord     
+    --validation_percentage=20     
+    --test_percentage=0
+
 
 
 python train_image_classifier.py \
-    --train_dir=./train_dir/logits \
-    --dataset_dir=/home/docker/ahmed/datasets/flowers \
+    --train_dir=./train_dir/mobilenet_v1_flowers/output \
+    --dataset_dir=/home/docker/ahmed/datasets/flower_photos_tfrecord/flowers  \
     --dataset_name=flowers \
+    --batch_size=64 \
     --dataset_split_name=train \
     --model_name=mobilenet_v1 \
     --train_image_size=224 \
-    --checkpoint_path=./checkpoint/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt \
+    --checkpoint_path=./checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt \
+    --max_number_of_steps=10000 \
+    --checkpoint_exclude_scopes=MobilenetV1/Logits \
+    --trainable_scopes=MobilenetV1/Logits, MobilenetV1/MobilenetV1/Conv2d_13
+
+
+
+python eval_image_classifier.py \
+    --alsologtostderr \
+    --checkpoint_path=./train_dir/mobilenet_v1_flowers/test/model.ckpt-10000 \
+    --dataset_dir=/home/docker/ahmed/datasets/flower_photos_tfrecord/flowers \
+    --dataset_name=flowers \
+    --dataset_split_name=validation \
+    --model_name=mobilenet_v1 \
+    --eval_image_size=224
+
+
+
+
+#################################
+
+python create_and_convert_dataset.py \
+    --dataset_name=tylenol    \
+    --images_dataset_dir=/home/docker/ahmed/datasets/pills/centredPills_Tylenol    \
+    --tfrecords_dataset_dir=/home/docker/ahmed/datasets/tylenol_photos_tfrecord  \   
+    --validation_percentage=20     
+    --test_percentage=0 
+
+
+python train_image_classifier.py \
+    --train_dir=./train_dir/mobilenet_v1_tylenol/output_5 \
+    --dataset_dir=/home/docker/ahmed/datasets/tylenol_photos_tfrecord/tylenol  \
+    --dataset_name=tylenol \
+    --batch_size=32 \
+    --dataset_split_name=train \
+    --model_name=mobilenet_v1 \
+    --train_image_size=224 \
+    --checkpoint_path=./checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt \
     --max_number_of_steps=10000 \
     --checkpoint_exclude_scopes=MobilenetV1/Logits \
     --trainable_scopes=MobilenetV1/Logits
 
-
-python eval_image_classifier.py \
+python3 eval_image_classifier.py \
     --alsologtostderr \
-    --checkpoint_path=./train_dir/model.ckpt-30000 \
-    --dataset_dir=/home/docker/ahmed/datasets/flowers \
-    --dataset_name=flowers \
+    --checkpoint_path=./train_dir/mobilenet_v1_tylenol/output_5/ \
+    --dataset_dir=/home/docker/ahmed/datasets/tylenol_photos_tfrecord/tylenol \
+    --dataset_name=tylenol \
+    --dataset_split_name=validation \
+    --model_name=mobilenet_v1 \
+    --eval_image_size=224
+
+######################################
+
+python create_and_convert_dataset.py \
+    --dataset_name=blocks_20_10    \
+    --images_dataset_dir=/home/docker/ahmed/datasets/blocks_cleaned   \
+    --tfrecords_dataset_dir=/home/docker/ahmed/datasets/blocks_photos_tfrecord --validation_percentage=20 --test_percentage=10 
+
+python train_image_classifier.py \
+    --train_dir=./train_dir/mobilenet_v1_blocks/output_7 \
+    --dataset_dir=/home/docker/ahmed/datasets/blocks_photos_tfrecord/blocks_20_10  \
+    --dataset_name=blocks_20_10 \
+    --batch_size=32 \
+    --dataset_split_name=train \
+    --model_name=mobilenet_v1 \
+    --train_image_size=224 \
+    --checkpoint_path=./checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt \
+    --max_number_of_steps=10000 \
+    --checkpoint_exclude_scopes=MobilenetV1/Logits \
+    --trainable_scopes=MobilenetV1/Logits, MobilenetV1/MobilenetV1/Conv2d_13
+
+python3 eval_image_classifier.py \
+    --alsologtostderr \
+    --checkpoint_path=./train_dir/mobilenet_v1_blocks/test \
+    --dataset_dir=/home/docker/ahmed/datasets/blocks_photos_tfrecord/test_blocks \
+    --dataset_name=test_blocks \
     --dataset_split_name=validation \
     --model_name=mobilenet_v1 \
     --eval_image_size=224
 
 
-python eval_image_classifier.py \
-    --alsologtostderr \
-    --checkpoint_path=./train_dir/logits/model.ckpt-10000 \
-    --dataset_dir=/home/docker/ahmed/datasets/flowers \
-    --dataset_name=flowers \
-    --dataset_split_name=validation \
-    --model_name=mobilenet_v1 \
-    --eval_image_size=224
-
+    #########################################
 mvNCCompile optimized_mobilenet.pb -in=input -on=MobilenetV1/Predictions/Reshape_1 -s 12 -o output_graph
 
 
