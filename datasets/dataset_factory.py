@@ -24,6 +24,8 @@ from datasets import imagenet
 from datasets import mnist
 from datasets import visualwakewords
 from datasets import tylenol
+# from datasets import blocks
+from datasets import create_dataset
 
 datasets_map = {
     'cifar10': cifar10,
@@ -31,6 +33,7 @@ datasets_map = {
     'imagenet': imagenet,
     'mnist': mnist,
     'tylenol': tylenol,
+    # 'blocks':blocks,
     'visualwakewords': visualwakewords,
 }
 
@@ -54,14 +57,16 @@ def get_dataset(name, split_name, dataset_dir, file_pattern=None, reader=None):
   """
   if name not in datasets_map:
     # raise ValueError('Name of dataset unknown %s' % name)
-    return any_dataset.get_split(
+    return create_dataset.get_split(
+      name,
       split_name,
       dataset_dir,
       file_pattern,
       reader)
 
-  return datasets_map[name].get_split(
-      split_name,
-      dataset_dir,
-      file_pattern,
-      reader)
+  else:
+    return datasets_map[name].get_split(
+        split_name,
+        dataset_dir,
+        file_pattern,
+        reader)

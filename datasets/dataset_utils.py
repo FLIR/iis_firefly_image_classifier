@@ -179,9 +179,9 @@ def write_label_file(labels_to_class_names,
       class_name = labels_to_class_names[label]
       f.write('%d:%s\n' % (label, class_name))
 
-def write_dataset_file(dataset_name,
+def write_dataset_config_json(dataset_name,
                      dataset_dir, class_names,
-                     train_size, validation_size,test_size):
+                     dataset_split):
   """Writes a file with the list of class names.
 
   Args:
@@ -198,16 +198,33 @@ def write_dataset_file(dataset_name,
       "dataset_dir" : dataset_dir,
       "class_names" : class_names,
       "number_of_classes" : len(class_names), 
-      "train_size" : train_size,
-      "validation_size" : validation_size,
-      "test_size" : test_size,
+      "dataset_split" : dataset_split
   } 
     
   # Serializing json
-  filename = os.path.join(dataset_dir, dataset_name + "_dataset.json") 
+  filename = os.path.join(dataset_dir, "dataset_config.json") 
   with open(filename, "w") as outfile: 
     json.dump(dictionary, outfile) 
 
+def read_dataset_config_json(dataset_name, dataset_dir):
+  
+  json_file = os.path.join(dataset_dir, 'dataset_config.json')
+
+  with open(json_file) as file:
+    data = json.load(file)
+  if dataset_name != data['dataset_name']:
+    raise ValueError('Given dataset name %s does not match dataset name %s in %s.' % (dataset_name, data['dataset_name'], json_file))
+  # dataset_name = data['dataset_name']
+  num_classes = data['number_of_classes']
+  split_to_sizes = data['dataset_split']
+  label_str = 'A single integer between 0 and %s' % (num_classes -1)
+  items_to_descriptions= {
+    'image': 'A color image of varying size.',
+    'label': label_str
+    }
+  # SPLITS_TO_SIZES = {'train': data['train_size'], 'validation': data['validation_size'], 'test':data['test_size']}
+
+  return num_classes, split_to_sizes, items_to_descriptions
 
 
 def has_labels(dataset_dir, filename=LABELS_FILENAME):

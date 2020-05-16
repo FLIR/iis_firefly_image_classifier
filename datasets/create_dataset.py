@@ -32,19 +32,35 @@ from datasets import dataset_utils
 slim = contrib_slim
 
 _FILE_PATTERN = '%s_%s_*.tfrecord'
-_JSON_FILE = 'dataset.json'
-
-# SPLITS_TO_SIZES = {'train': 480, 'validation': 120}
-
-# _NUM_CLASSES = 5
-
-_ITEMS_TO_DESCRIPTIONS = {
-    'image': 'A color image of varying size.',
-    'label': 'A single integer between 0 and 4',
-}
+# _JSON_FILE = 'dataset_config.json'
 
 
-def get_split(split_name, dataset_dir, file_pattern=None, reader=None):
+# splits_to_sizes = {'train': 480, 'validation': 120}
+
+# num_classes = 5
+
+# _ITEMS_TO_DESCRIPTIONS = {
+#     'image': 'A color image of varying size.',
+#     'label': 'A single integer between 0 and 4',
+# }
+
+# def read_json(dataset_name, dataset_dir):
+  
+#   json_file = os.path.join(dataset_dir, 'dataset_config.json')
+
+#   with open(json_file) as file:
+#     data = json.load(file)
+#   if dataset_name != data['dataset_name']:
+#     raise ValueError('Given dataset name %s does not match dataset name %s in %s.' % (dataset_name, data['dataset_name'], json_file))
+#   # dataset_name = data['dataset_name']
+#   num_classes = data['number_of_classes']
+#   split_to_sizes = data['dataset_split']
+#   # splits_to_sizes = {'train': data['train_size'], 'validation': data['validation_size'], 'test':data['test_size']}
+
+#   return num_classes, split_to_sizes
+
+
+def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=None):
   """Gets a dataset tuple with instructions for reading flowers.
 
   Args:
@@ -62,22 +78,15 @@ def get_split(split_name, dataset_dir, file_pattern=None, reader=None):
     ValueError: if `split_name` is not a valid train/validation split.
   """
 
-  json_file = _JSON_FILE
-  json_file = os.path.join(dataset_dir, json_file)
+  num_classes, splits_to_sizes, items_to_descriptions = dataset_utils.read_dataset_config_json(dataset_name, dataset_dir)
 
-  with open(json_file) as file:
-    data = json.load(file)
-    dataset_name = data['dataset_name']
-    _NUM_CLASSES = data['number_of_classes']
-    SPLITS_TO_SIZES = {'train': data['train_size'], 'validation': data['validation_size'], 'test':data['test_size']}
-
-
-  if split_name not in SPLITS_TO_SIZES:
+  if split_name not in splits_to_sizes:
     raise ValueError('split name %s was not recognized.' % split_name)
 
   if not file_pattern:
-    file_pattern = _FILE_PATTERN
-  file_pattern = os.path.join(dataset_dir, file_pattern.format(dataset_name, split_name))
+    
+    file_pattern = _FILE_PATTERN % (dataset_name, split_name)
+  file_pattern = os.path.join(dataset_dir, file_pattern)
 
   # Allowing None in the signature so that dataset_factory can use the default.
   if reader is None:
@@ -106,7 +115,7 @@ def get_split(split_name, dataset_dir, file_pattern=None, reader=None):
       data_sources=file_pattern,
       reader=reader,
       decoder=decoder,
-      num_samples=SPLITS_TO_SIZES[split_name],
-      items_to_descriptions=_ITEMS_TO_DESCRIPTIONS,
-      num_classes=_NUM_CLASSES,
+      num_samples=splits_to_sizes[split_name],
+      items_to_descriptions=items_to_descriptions,
+      num_classes=num_classes,
       labels_to_names=labels_to_names)

@@ -293,6 +293,7 @@ def preprocess_for_eval(image,
       image = tf.image.rgb_to_grayscale(image)
     # Crop the central region of the image with an area containing 87.5% of
     # the original image.
+
     if central_crop and central_fraction:
       image = tf.image.central_crop(image, central_fraction=central_fraction)
 
