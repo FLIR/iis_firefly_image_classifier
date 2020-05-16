@@ -116,14 +116,14 @@ python3 eval_image_classifier.py \
 ######################################
 
 python create_and_convert_dataset.py \
-    --dataset_name=test_blocks    \
+    --dataset_name=blocks_20_10    \
     --images_dataset_dir=/home/docker/ahmed/datasets/blocks_cleaned   \
-    --tfrecords_dataset_dir=/home/docker/ahmed/datasets/blocks_photos_tfrecord --validation_percentage=20 --test_percentage=20 
+    --tfrecords_dataset_dir=/home/docker/ahmed/datasets/blocks_photos_tfrecord --validation_percentage=20 --test_percentage=10 
 
 python train_image_classifier.py \
-    --train_dir=./train_dir/mobilenet_v1_blocks/test \
-    --dataset_dir=/home/docker/ahmed/datasets/blocks_photos_tfrecord/test_blocks  \
-    --dataset_name=test_blocks \
+    --train_dir=./train_dir/mobilenet_v1_blocks/output_7 \
+    --dataset_dir=/home/docker/ahmed/datasets/blocks_photos_tfrecord/blocks_20_10  \
+    --dataset_name=blocks_20_10 \
     --batch_size=32 \
     --dataset_split_name=train \
     --model_name=mobilenet_v1 \
