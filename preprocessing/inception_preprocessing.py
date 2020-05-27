@@ -288,6 +288,7 @@ def preprocess_for_eval(image,
   """
   with tf.name_scope(scope, 'eval_image', [image, height, width]):
     if image.dtype != tf.float32:
+      # cast to float type and normalizes value (0,1] range 1/255 no mean subtraction
       image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     if use_grayscale:
       image = tf.image.rgb_to_grayscale(image)

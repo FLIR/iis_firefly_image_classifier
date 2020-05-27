@@ -238,7 +238,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   train_size = len(training_filenames)
   dataset_split['train'] = train_size
   
-  print('############################ dataset_size {}, train_size {}, validation_size {}, test_size {}'.format(dataset_size, train_size, validation_size, test_size))
+  # print('############################ dataset_size {}, train_size {}, validation_size {}, test_size {}'.format(dataset_size, train_size, validation_size, test_size))
 
   # First, convert the training and validation sets.
   _convert_dataset('train', training_filenames, class_names_to_ids,

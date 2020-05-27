@@ -38,7 +38,7 @@ datasets_map = {
 }
 
 
-def get_dataset(name, split_name, dataset_dir, file_pattern=None, reader=None):
+def get_dataset(dataset_name, split_name, dataset_dir, file_pattern=None, reader=None):
   """Given a dataset name and a split_name returns a Dataset.
 
   Args:
@@ -55,10 +55,10 @@ def get_dataset(name, split_name, dataset_dir, file_pattern=None, reader=None):
   Raises:
     ValueError: If the dataset `name` is unknown.
   """
-  if name not in datasets_map:
+  if dataset_name not in datasets_map:
     # raise ValueError('Name of dataset unknown %s' % name)
     return create_dataset.get_split(
-      name,
+      dataset_name,
       split_name,
       dataset_dir,
       file_pattern,

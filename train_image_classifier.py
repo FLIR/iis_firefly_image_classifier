@@ -230,7 +230,7 @@ tf.app.flags.DEFINE_string(
     'By default, None would train all the variables.')
 
 tf.app.flags.DEFINE_boolean(
-    'ignore_missing_vars', False,
+    'ignore_missing_vars', True,
     'When restoring a checkpoint would ignore missing variables.')
 
 FLAGS = tf.app.flags.FLAGS
@@ -394,6 +394,7 @@ def _get_variables_to_train():
   for scope in scopes:
     variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
     variables_to_train.extend(variables)
+    print('######## trainable_variables ########### \n', variables)
   return variables_to_train
 
 
