@@ -97,7 +97,7 @@ tf.app.flags.DEFINE_string(
     'output_file', '', 'Where to save the resulting file to.')
 
 tf.app.flags.DEFINE_string(
-    'dataset_dir', '', 'Directory to save intermediate dataset files to')
+    'dataset_dir', '/home/docker/ahmed/datasets/blocks_cleaned_photos_tfrecord/blocks_20', 'Directory to save intermediate dataset files to')
 
 tf.app.flags.DEFINE_bool(
     'quantize', False, 'whether to use quantized graph or not.')
@@ -116,18 +116,20 @@ tf.app.flags.DEFINE_bool('use_grayscale', False,
                          'Whether to convert input images to grayscale.')
 
 FLAGS = tf.app.flags.FLAGS
-
+# _IMAGE_DIR = '/home/docker/ahmed/datasets/blocks_cleaned_photos_tfrecord/blocks_20'
 
 def main(_):
+
+  print('#################### dataset Directory', FLAGS.dataset_dir)
   if not FLAGS.output_file:
     raise ValueError('You must supply the path to save to with --output_file')
   if FLAGS.is_video_model and not FLAGS.num_frames:
     raise ValueError(
         'Number of frames must be specified for video models with --num_frames')
+
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default() as graph:
-    dataset = dataset_factory.get_dataset(FLAGS.dataset_name, 'train',
-                                          FLAGS.dataset_dir)
+    dataset = dataset_factory.get_dataset(FLAGS.dataset_name, 'train', FLAGS.dataset_dir)
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
@@ -161,4 +163,9 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+	# FLAGS = tf.app.flags.FLAGS
+	# _IMAGE_DIR = FLAGS.
+	# _IMAGE_DIR = "/home/docker/ahmed/datasets/blocks_cleaned_photos_tfrecord/blocks_20"
+	# print('###########', _IMAGE_DIR)
+	tf.app.run(main=main)
+	# main()

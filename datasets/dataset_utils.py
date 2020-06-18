@@ -208,8 +208,9 @@ def write_dataset_config_json(dataset_name,
 
 def read_dataset_config_json(dataset_name, dataset_dir):
   
+  # print('image directory', dataset_dir)
   json_file = os.path.join(dataset_dir, 'dataset_config.json')
-
+  
   with open(json_file) as file:
     data = json.load(file)
   if dataset_name != data['dataset_name']:

@@ -1,4 +1,4 @@
-# TensorFlow-Slim image classification model library
+# This repository was forked from the TensorFlow-Slim image classification model library
 
 [TF-slim](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim)
 is a new lightweight high-level API of TensorFlow (`tensorflow.contrib.slim`)
@@ -98,7 +98,7 @@ Flowers|2500 | 2500 | 5 | Various sizes (source: Flickr)
 [ImageNet](http://www.image-net.org/challenges/LSVRC/2012/)|1.2M| 50k | 1000 | Various sizes
 VisualWakeWords|82783 | 40504 | 2 | Various sizes (source: MS COCO)
 
-## Downloading and converting to TFRecord format
+## Downloading and converting flower dataset to TFRecord format
 
 For each dataset, we'll need to download the raw data and convert it to
 TensorFlow's native
@@ -137,89 +137,61 @@ datasets. However, for ImageNet, you have to follow the instructions
 Note that you first have to sign up for an account at image-net.org. Also, the
 download can take several hours, and could use up to 500GB.
 
-## Creating a TF-Slim Dataset Descriptor.
+## create and convert custom dataset to TFRecord format
 
-Once the TFRecord files have been created, you can easily define a Slim
-[Dataset](https://github.com/tensorflow/tensorflow/blob/r0.10/tensorflow/contrib/slim/python/slim/data/dataset.py),
-which stores pointers to the data file, as well as various other pieces of
-metadata, such as the class labels, the train/test split, and how to parse the
-TFExample protos. We have included the TF-Slim Dataset descriptors
-for
-[Flowers](https://github.com/tensorflow/models/blob/master/research/slim/datasets/flowers.py),
-[Cifar10](https://github.com/tensorflow/models/blob/master/research/slim/datasets/cifar10.py),
-[MNIST](https://github.com/tensorflow/models/blob/master/research/slim/datasets/mnist.py),
-[ImageNet](https://github.com/tensorflow/models/blob/master/research/slim/datasets/imagenet.py)
-and
-[VisualWakeWords](https://github.com/tensorflow/models/blob/master/research/slim/datasets/visualwakewords.py),
-An example of how to load data using a TF-Slim dataset descriptor using a
-TF-Slim
-[DatasetDataProvider](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/slim/python/slim/data/dataset_data_provider.py)
-is found below:
-
-```python
-import tensorflow as tf
-from datasets import flowers
-
-slim = tf.contrib.slim
-
-# Selects the 'validation' dataset.
-dataset = flowers.get_split('validation', DATA_DIR)
-
-# Creates a TF-Slim DataProvider which reads the dataset in the background
-# during both training and testing.
-provider = slim.dataset_data_provider.DatasetDataProvider(dataset)
-[image, label] = provider.get(['image', 'label'])
-```
-## An automated script for processing ImageNet data.
-
-Training a model with the ImageNet dataset is a common request. To facilitate
-working with the ImageNet dataset, we provide an automated script for
-downloading and processing the ImageNet dataset into the native TFRecord
-format.
-
-The TFRecord format consists of a set of sharded files where each entry is a serialized `tf.Example` proto. Each `tf.Example` proto contains the ImageNet image (JPEG encoded) as well as metadata such as label and bounding box information.
-
-We provide a single [script](datasets/download_and_preprocess_imagenet.sh) for
-downloading and converting ImageNet data to TFRecord format. Downloading and
-preprocessing the data may take several hours (up to half a day) depending on
-your network and computer speed. Please be patient.
-
-To begin, you will need to sign up for an account with [ImageNet]
-(http://image-net.org) to gain access to the data. Look for the sign up page,
-create an account and request an access key to download the data.
-
-After you have `USERNAME` and `PASSWORD`, you are ready to run our script. Make
-sure that your hard disk has at least 500 GB of free space for downloading and
-storing the data. Here we select `DATA_DIR=$HOME/imagenet-data` as such a
-location but feel free to edit accordingly.
-
-When you run the below script, please enter *USERNAME* and *PASSWORD* when
-prompted. This will occur at the very beginning. Once these values are entered,
-you will not need to interact with the script again.
+For each dataset, we'll need to label the dataset into classes by placing the raw image file into directory with matching class name.
+Below we demonstrate how to do this for the blocks dataset.
 
 ```shell
-# location of where to place the ImageNet data
-DATA_DIR=$HOME/imagenet-data
-
-# build the preprocessing script.
-bazel build slim/download_and_preprocess_imagenet
-
-# run it
-bazel-bin/slim/download_and_preprocess_imagenet "${DATA_DIR}"
+$ IMAGE_INPUT_DIR=/path/to/folder/image_dir
+$ TFRECORD_OUTPUT_DIR=/path/to/folder/tfrecord_dir
+$ python create_and_convert_dataset.py \
+    --dataset_name=blocks \
+    --images_dataset_dir="${IMAGE_INPUT_DIRR}" \    
+    --tfrecords_dataset_dir="${TFRECORD_OUTPUT_DIR}" \     
+    --validation_percentage=10 \
+    --test_percentage=10
 ```
 
-The final line of the output script should read:
+When the script finishes you will find several TFRecord files created:
 
 ```shell
-2016-02-17 14:30:17.287989: Finished writing all 1281167 images in data set.
+$ ls ${DATA_DIR}
+blocks_train-00000-of-00005.tfrecord
+...
+blocks_train-00004-of-00005.tfrecord
+blocks_validation-00000-of-00005.tfrecord
+...
+blocks_validation-00004-of-00005.tfrecord
+blocks_test-00000-of-00005.tfrecord
+...
+blocks_test-00004-of-00005.tfrecord
+labels.txt
+dataset_config.json
 ```
 
-When the script finishes you will find 1024 and 128 training and validation
-files in the `DATA_DIR`. The files will match the patterns `train-????-of-1024`
-and `validation-?????-of-00128`, respectively.
+These represent the training, validation and test data, sharded over 5 files each.
+You will also find the `$DATA_DIR/labels.txt` file which contains the mapping
+from integer labels to class names. In addition, you will find the dataset_config.json file which stores some of the dataset attribues.
 
-[Congratulations!](https://www.youtube.com/watch?v=9bZkp7q19f0) You are now
-ready to train or evaluate with the ImageNet data set.
+```shell
+$ cat dataset_config.json
+{"dataset_name": "blocks", 
+"dataset_dir": "path/to/this/directory", 
+"class_names": ['A', 'B'], 
+"number_of_classes": 16, 
+"dataset_split": {
+	"validation": 100, 
+	"train": 1000,
+	"test": 100
+	}
+}
+```
+
+You can use the same script to create any other custom dataset. 
+
+Note: add comment about file structure.
+
 
 # Pre-trained Models
 <a id='Pretrained'></a>
@@ -290,12 +262,12 @@ All 16 float MobileNet V1 models reported in the [MobileNet Paper](https://arxiv
 Here is an example of how to download the Inception V3 checkpoint:
 
 ```shell
-$ CHECKPOINT_DIR=/tmp/checkpoints
+$ CHECKPOINT_DIR=./checkpoints
 $ mkdir ${CHECKPOINT_DIR}
-$ wget http://download.tensorflow.org/models/inception_v3_2016_08_28.tar.gz
-$ tar -xvf inception_v3_2016_08_28.tar.gz
-$ mv inception_v3.ckpt ${CHECKPOINT_DIR}
-$ rm inception_v3_2016_08_28.tar.gz
+$ cd ${CHECKPOINT_DIR}
+$ wget http://download.tensorflow.org/models/mobilenet_v1_1.0_224.tgz
+$ tar -xvf mobilenet_v1_1.0_224.tgz
+$ rm mobilenet_v1_1.0_224.tgz
 ```
 
 
@@ -308,14 +280,17 @@ The following example demonstrates how to train Inception V3 using the default
 parameters on the ImageNet dataset.
 
 ```shell
-DATASET_DIR=/tmp/imagenet
-TRAIN_DIR=/tmp/train_logs
+TFRECORD_OUTPUT_DIR=/path/to/folder/tfrecord_dir
+TRAIN_DIR=/output/train_dir  
 python train_image_classifier.py \
     --train_dir=${TRAIN_DIR} \
-    --dataset_name=imagenet \
+    --dataset_name=blocks \
+    --dataset_dir=${TFRECORD_OUTPUT_DIR} \
+    --batch_size=64 \
     --dataset_split_name=train \
-    --dataset_dir=${DATASET_DIR} \
-    --model_name=inception_v3
+    --model_name=mobilenet_v1 \
+    --train_image_size=224 \
+    --max_number_of_steps=1000 \
 ```
 
 This process may take several days, depending on your hardware setup.
@@ -367,26 +342,26 @@ during the `0-`th global step (model initialization). Typically for fine-tuning
 one only want train a sub-set of layers, so the flag `--trainable_scopes` allows
 to specify which subsets of layers should trained, the rest would remain frozen.
 
-Below we give an example of
-[fine-tuning inception-v3 on flowers](https://github.com/tensorflow/models/blob/master/research/slim/scripts/finetune_inception_v3_on_flowers.sh),
-inception_v3  was trained on ImageNet with 1000 class labels, but the flowers
-dataset only have 5 classes. Since the dataset is quite small we will only train
+Below we give an example of mobilenet_v1 that was trained on ImageNet with 1000 class labels, however, now we have our custom dataset (blocks) with different number of classes. Since the dataset is quite small we will only train
 the new layers.
 
 
 ```shell
-$ DATASET_DIR=/tmp/flowers
-$ TRAIN_DIR=/tmp/flowers-models/inception_v3
-$ CHECKPOINT_PATH=/tmp/my_checkpoints/inception_v3.ckpt
+
+$ CHECKPOINT_PATH=./checkpoints/mobilenet_v1_0.25_224/mobilenet_v1_0.25_224.ckpt
 $ python train_image_classifier.py \
     --train_dir=${TRAIN_DIR} \
     --dataset_dir=${DATASET_DIR} \
-    --dataset_name=flowers \
+    --dataset_name=blocks \
+    --batch_size=64 \
     --dataset_split_name=train \
-    --model_name=inception_v3 \
+    --model_name=mobilenet_v1_025 \
+    --preprocessing_name=mobilenet_v1 \
+    --train_image_size=224 \
+    --max_number_of_steps=1000 \
     --checkpoint_path=${CHECKPOINT_PATH} \
-    --checkpoint_exclude_scopes=InceptionV3/Logits,InceptionV3/AuxLogits \
-    --trainable_scopes=InceptionV3/Logits,InceptionV3/AuxLogits
+    --checkpoint_exclude_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits \
+    --trainable_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits
 ```
 
 
@@ -397,18 +372,19 @@ $ python train_image_classifier.py \
 To evaluate the performance of a model (whether pretrained or your own),
 you can use the eval_image_classifier.py script, as shown below.
 
-Below we give an example of downloading the pretrained inception model and
-evaluating it on the imagenet dataset.
+The script should be run while training and `--checkpoint_path`  should point to the directory where the training job checkpoints are stored.
 
 ```shell
-CHECKPOINT_FILE = ${CHECKPOINT_DIR}/inception_v3.ckpt  # Example
+
 $ python eval_image_classifier.py \
     --alsologtostderr \
-    --checkpoint_path=${CHECKPOINT_FILE} \
-    --dataset_dir=${DATASET_DIR} \
-    --dataset_name=imagenet \
+    --checkpoint_path=${TRAIN_DIR} \
+    --dataset_dir=${TFRECORD_OUTPUT_DIR} \
+    --dataset_name=blocks \
     --dataset_split_name=validation \
-    --model_name=inception_v3
+    --model_name=mobilenet_v1 \
+    --preprocessing_name=mobilenet_v1 \
+    --eval_image_size=224
 ```
 
 See the [evaluation module example](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim#evaluation-loop)
@@ -422,16 +398,13 @@ Saves out a GraphDef containing the architecture of the model.
 To use it with a model name defined by slim, run:
 
 ```shell
-$ python export_inference_graph.py \
-  --alsologtostderr \
-  --model_name=inception_v3 \
-  --output_file=/tmp/inception_v3_inf_graph.pb
 
 $ python export_inference_graph.py \
   --alsologtostderr \
-  --model_name=mobilenet_v1 \
-  --image_size=224 \
-  --output_file=/tmp/mobilenet_v1_224.pb
+  --model_name=mobilenet_v1 
+  --dataset_dir=${TFRECORD_OUTPUT_DIR}  
+  --output_file=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb --dataset_name=blocks
+
 ```
 
 ## Freezing the exported Graph
@@ -443,38 +416,14 @@ def with the variables inlined as constants using:
 bazel build tensorflow/python/tools:freeze_graph
 
 bazel-bin/tensorflow/python/tools/freeze_graph \
-  --input_graph=/tmp/inception_v3_inf_graph.pb \
-  --input_checkpoint=/tmp/checkpoints/inception_v3.ckpt \
-  --input_binary=true --output_graph=/tmp/frozen_inception_v3.pb \
-  --output_node_names=InceptionV3/Predictions/Reshape_1
+  --input_graph=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb \
+  --input_checkpoint=${TRAIN_DIR}/model.ckpt-1000 \ # change to match your target checkpoint
+  --input_binary=true --output_graph=${TRAIN_DIR}/frozen_mobilenet_v1.pb \
+  --output_node_names=MobilenetV1/Predictions/Reshape_1
 ```
 
 The output node names will vary depending on the model, but you can inspect and
 estimate them using the summarize_graph tool:
-
-```shell
-bazel build tensorflow/tools/graph_transforms:summarize_graph
-
-bazel-bin/tensorflow/tools/graph_transforms/summarize_graph \
-  --in_graph=/tmp/inception_v3_inf_graph.pb
-```
-
-## Run label image in C++
-
-To run the resulting graph in C++, you can look at the label_image sample code:
-
-```shell
-bazel build tensorflow/examples/label_image:label_image
-
-bazel-bin/tensorflow/examples/label_image/label_image \
-  --image=${HOME}/Pictures/flowers.jpg \
-  --input_layer=input \
-  --output_layer=InceptionV3/Predictions/Reshape_1 \
-  --graph=/tmp/frozen_inception_v3.pb \
-  --labels=/tmp/imagenet_slim_labels.txt \
-  --input_mean=0 \
-  --input_std=255
-```
 
 
 # Troubleshooting
