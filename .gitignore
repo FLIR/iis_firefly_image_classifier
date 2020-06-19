@@ -3,3 +3,5 @@
 train_dir/
 checkpoints/
 graph_transform.py
+TFRecord/
+*.pyc
