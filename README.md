@@ -147,7 +147,7 @@ $ IMAGE_INPUT_DIR=/path/to/folder/image_dir
 $ TFRECORD_OUTPUT_DIR=/path/to/folder/tfrecord_dir
 $ python create_and_convert_dataset.py \
     --dataset_name=blocks \
-    --images_dataset_dir="${IMAGE_INPUT_DIRR}" \    
+    --images_dataset_dir="${IMAGE_INPUT_DIR}" \    
     --tfrecords_dataset_dir="${TFRECORD_OUTPUT_DIR}" \     
     --validation_percentage=10 \
     --test_percentage=10
