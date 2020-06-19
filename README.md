@@ -147,8 +147,8 @@ $ IMAGE_INPUT_DIR=/path/to/folder/image_dir
 $ TFRECORD_OUTPUT_DIR=/path/to/folder/tfrecord_dir
 $ python create_and_convert_dataset.py \
     --dataset_name=blocks \
-    --images_dataset_dir="${IMAGE_INPUT_DIR}" \    
-    --tfrecords_dataset_dir="${TFRECORD_OUTPUT_DIR}" \     
+    --images_dataset_dir="${IMAGE_INPUT_DIR}" \
+    --tfrecords_dataset_dir="${TFRECORD_OUTPUT_DIR}" \
     --validation_percentage=10 \
     --test_percentage=10
 ```
@@ -265,7 +265,7 @@ Here is an example of how to download the Inception V3 checkpoint:
 $ CHECKPOINT_DIR=./checkpoints
 $ mkdir ${CHECKPOINT_DIR}
 $ cd ${CHECKPOINT_DIR}
-$ wget http://download.tensorflow.org/models/mobilenet_v1_1.0_224.tgz
+$ wget http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz
 $ tar -xvf mobilenet_v1_1.0_224.tgz
 $ rm mobilenet_v1_1.0_224.tgz
 ```
