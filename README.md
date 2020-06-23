@@ -83,6 +83,16 @@ cd $HOME/workspace/models/research/slim
 python -c "from nets import cifarnet; mynet = cifarnet.cifarnet"
 ```
 
+## Setting up other python libraries
+```bash
+# Install tensorflow. 
+# If you have GPU,
+pip install tensorflow-gpu==1.13.2  
+# or, for training on CPU
+pip install tensorflow
+
+pip install sklearn
+```
 
 # Preparing the datasets
 <a id='Data'></a>
@@ -361,9 +371,10 @@ $ python train_image_classifier.py \
     --max_number_of_steps=1000 \
     --checkpoint_path=${CHECKPOINT_PATH} \
     --checkpoint_exclude_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits \
-    --trainable_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits
+    --trainable_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits \
+    --clone_on_cpu=True
 ```
-
+For training on cpu (using tensorflow, instead of tensorflow-gpu), set flag `--clone_on_cpu` to `True`. 
 
 
 # Evaluating performance of a model

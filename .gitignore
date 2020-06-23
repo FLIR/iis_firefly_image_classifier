@@ -5,3 +5,4 @@ checkpoints/
 graph_transform.py
 TFRecord/
 *.pyc
+env/
