@@ -15,7 +15,7 @@ data reading and queueing utilities. You can easily train any model on any of
 these datasets, as we demonstrate below. We've also included a
 [jupyter notebook](https://github.com/tensorflow/models/blob/master/research/slim/slim_walkthrough.ipynb),
 which provides working examples of how to use TF-Slim for image classification.
-For developing or modifying your own models, see also the [main TF-Slim page](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim).
+For developing or modifying your own models, see also the [main TF-Slim page](https://github.com/tensorflow/tensorflow/tree/r1.13/tensorflow/contrib/slim).
 
 ## Contacts
 
@@ -28,7 +28,7 @@ Maintainers of TF-slim:
 ## Citation
 "TensorFlow-Slim image classification model library"
 N. Silberman and S. Guadarrama, 2016.
-https://github.com/tensorflow/models/tree/master/research/slim
+https://github.com/tensorflow/models/tree/r1.13/research/slim
 
 ## Table of contents
 
@@ -60,7 +60,7 @@ python -c "import tensorflow.contrib.slim as slim; eval = slim.evaluation.evalua
 ## Installing the TF-slim image models library
 
 To use TF-Slim for image classification, you also have to install
-the [TF-Slim image models library](https://github.com/tensorflow/models/tree/master/research/slim),
+the [TF-Slim image models library](https://github.com/tensorflow/models/tree/r1.13/research/slim),
 which is not part of the core TF library.
 To do this, check out the
 [tensorflow/models](https://github.com/tensorflow/models/) repository as follows:
@@ -72,7 +72,7 @@ git clone https://github.com/tensorflow/models/
 
 This will put the TF-Slim image models library in `$HOME/workspace/models/research/slim`.
 (It will also create a directory called
-[models/inception](https://github.com/tensorflow/models/tree/master/research/inception),
+[models/inception](https://github.com/tensorflow/models/tree/r1.13/research/inception),
 which contains an older version of slim; you can safely ignore this.)
 
 To verify that this has worked, execute the following commands; it should run
@@ -263,7 +263,7 @@ reported on the ImageNet validation set.
 
 All 16 float MobileNet V1 models reported in the [MobileNet Paper](https://arxiv.org/abs/1704.04861) and all
 16 quantized [TensorFlow Lite](https://www.tensorflow.org/mobile/tflite/) compatible MobileNet V1 models can be found
-[here](https://github.com/tensorflow/models/tree/master/research/slim/nets/mobilenet_v1.md).
+[here](https://github.com/tensorflow/models/tree/r1.13/research/slim/nets/mobilenet_v1.md).
 
 (^#) More details on MobileNetV2 models can be found [here](nets/mobilenet/README.md).
 
@@ -398,7 +398,7 @@ $ python eval_image_classifier.py \
     --eval_image_size=224
 ```
 
-See the [evaluation module example](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim#evaluation-loop)
+See the [evaluation module example](https://github.com/tensorflow/tensorflow/tree/r1.13/tensorflow/contrib/slim#evaluation-loop)
 for an example of how to evaluate a model at multiple checkpoints during or after the training.
 
 # Exporting the Inference Graph
@@ -443,17 +443,17 @@ estimate them using the summarize_graph tool:
 #### The model runs out of CPU memory.
 
 See
-[Model Runs out of CPU memory](https://github.com/tensorflow/models/tree/master/research/inception#the-model-runs-out-of-cpu-memory).
+[Model Runs out of CPU memory](https://github.com/tensorflow/models/tree/r1.13/research/inception#the-model-runs-out-of-cpu-memory).
 
 #### The model runs out of GPU memory.
 
 See
-[Adjusting Memory Demands](https://github.com/tensorflow/models/tree/master/research/inception#adjusting-memory-demands).
+[Adjusting Memory Demands](https://github.com/tensorflow/models/tree/r1.13/research/inception#adjusting-memory-demands).
 
 #### The model training results in NaN's.
 
 See
-[Model Resulting in NaNs](https://github.com/tensorflow/models/tree/master/research/inception#the-model-training-results-in-nans).
+[Model Resulting in NaNs](https://github.com/tensorflow/models/tree/r1.13/research/inception#the-model-training-results-in-nans).
 
 #### The ResNet and VGG Models have 1000 classes but the ImageNet dataset has 1001
 
