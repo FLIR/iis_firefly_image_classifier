@@ -166,9 +166,12 @@ def main(_):
 
     # Define the metrics:
     names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-        'Accuracy': slim.metrics.streaming_accuracy(predictions, labels),
-        'Recall_5': slim.metrics.streaming_recall_at_k(
-            logits, labels, 5),
+        # 'Accuracy': slim.metrics.streaming_accuracy(predictions, labels),
+        'Accuracy': tf.metrics.accuracy(labels, predictions),
+        'Precision': tf.metrics.precision(labels, predictions),
+        # 'Recall_1': slim.metrics.streaming_recall_at_k(
+        #     logits, labels, 1),
+        'Recall': tf.metrics.recall(labels, predictions),
     })
 
     # Print the summaries to screen.
@@ -198,7 +201,7 @@ def main(_):
     session_config = tf.ConfigProto()
     session_config.gpu_options.allow_growth = True
 
-# Evaluate every 10 minutes:
+# Evaluate every 1 minute:
     slim.evaluation.evaluation_loop(
         master=FLAGS.master,
         checkpoint_dir=FLAGS.checkpoint_path,

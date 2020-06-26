@@ -28,7 +28,7 @@ Maintainers of TF-slim:
 ## Citation
 "TensorFlow-Slim image classification model library"
 N. Silberman and S. Guadarrama, 2016.
-https://github.com/tensorflow/models/tree/r1.13/research/slim
+https://github.com/tensorflow/models/tree/master/research/slim
 
 ## Table of contents
 
@@ -47,6 +47,18 @@ https://github.com/tensorflow/models/tree/r1.13/research/slim
 In this section, we describe the steps required to install the appropriate
 prerequisite packages.
 
+## Setting up python libraries
+This repository uses tensorflow framework for training. Necessary packages need to be intalled.
+```bash
+# Install tensorflow. 
+# If you have GPU,
+pip install tensorflow-gpu==1.13.2  
+# or, for training on CPU
+pip install tensorflow
+
+pip install sklearn
+```
+
 ## Installing latest version of TF-slim
 
 TF-Slim is available as `tf.contrib.slim` via TensorFlow 1.0. To test that your
@@ -60,7 +72,7 @@ python -c "import tensorflow.contrib.slim as slim; eval = slim.evaluation.evalua
 ## Installing the TF-slim image models library
 
 To use TF-Slim for image classification, you also have to install
-the [TF-Slim image models library](https://github.com/tensorflow/models/tree/r1.13/research/slim),
+the [TF-Slim image models library](https://github.com/tensorflow/models/tree/master/research/slim),
 which is not part of the core TF library.
 To do this, check out the
 [tensorflow/models](https://github.com/tensorflow/models/) repository as follows:
@@ -81,17 +93,6 @@ without raising any errors.
 ```
 cd $HOME/workspace/models/research/slim
 python -c "from nets import cifarnet; mynet = cifarnet.cifarnet"
-```
-
-## Setting up other python libraries
-```bash
-# Install tensorflow. 
-# If you have GPU,
-pip install tensorflow-gpu==1.13.2  
-# or, for training on CPU
-pip install tensorflow
-
-pip install sklearn
 ```
 
 # Preparing the datasets
@@ -374,7 +375,7 @@ $ python train_image_classifier.py \
     --trainable_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits \
     --clone_on_cpu=True
 ```
-For training on cpu (using tensorflow, instead of tensorflow-gpu), set flag `--clone_on_cpu` to `True`. 
+For training on cpu (with tensorflow package, instead of tensorflow-gpu), set flag `--clone_on_cpu` to `True`. For training on gpu, this flag can be ignored or set to `False`.  
 
 
 # Evaluating performance of a model
