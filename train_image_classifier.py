@@ -233,6 +233,11 @@ tf.app.flags.DEFINE_boolean(
     'ignore_missing_vars', True,
     'When restoring a checkpoint would ignore missing variables.')
 
+tf.app.flags.DEFINE_string(
+    'final_endpoint', None,
+    'Specifies the endpoint to construct the network up to.'
+    'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -431,7 +436,8 @@ def main(_):
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
         weight_decay=FLAGS.weight_decay,
-        is_training=True)
+        is_training=True,
+        final_endpoint=FLAGS.final_endpoint)
 
     #####################################
     # Select the preprocessing function #

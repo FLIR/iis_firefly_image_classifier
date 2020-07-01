@@ -168,7 +168,7 @@ def _fixed_padding(inputs, kernel_size, rate=1):
 
 
 def mobilenet_v1_base(inputs,
-                      final_endpoint='Conv2d_13_pointwise',
+                      final_endpoint=None,
                       min_depth=8,
                       depth_multiplier=1.0,
                       conv_defs=None,
@@ -183,7 +183,7 @@ def mobilenet_v1_base(inputs,
     inputs: a tensor of shape [batch_size, height, width, channels].
     final_endpoint: specifies the endpoint to construct the network up to. It
       can be one of ['Conv2d_0', 'Conv2d_1_pointwise', 'Conv2d_2_pointwise',
-      'Conv2d_3_pointwise', 'Conv2d_4_pointwise', 'Conv2d_5'_pointwise,
+      'Conv2d_3_pointwise', 'Conv2d_4_pointwise', 'Conv2d_5_pointwise',
       'Conv2d_6_pointwise', 'Conv2d_7_pointwise', 'Conv2d_8_pointwise',
       'Conv2d_9_pointwise', 'Conv2d_10_pointwise', 'Conv2d_11_pointwise',
       'Conv2d_12_pointwise', 'Conv2d_13_pointwise'].
@@ -215,6 +215,10 @@ def mobilenet_v1_base(inputs,
                 or depth_multiplier <= 0, or the target output_stride is not
                 allowed.
   """
+  if final_endpoint is None:  # set default final_endpoint
+    final_endpoint = 'Conv2d_13_pointwise'
+  print('############################### 3.  final_endpoint: ', final_endpoint)
+
   depth = lambda d: max(int(d * depth_multiplier), min_depth)
   end_points = {}
 
@@ -313,7 +317,8 @@ def mobilenet_v1(inputs,
                  spatial_squeeze=True,
                  reuse=None,
                  scope='MobilenetV1',
-                 global_pool=False):
+                 global_pool=False,
+                 final_endpoint=None):
   """Mobilenet v1 model for classification.
 
   Args:
@@ -363,15 +368,19 @@ def mobilenet_v1(inputs,
       net, end_points = mobilenet_v1_base(inputs, scope=scope,
                                           min_depth=min_depth,
                                           depth_multiplier=depth_multiplier,
-                                          conv_defs=conv_defs)
+                                          conv_defs=conv_defs,
+                                          final_endpoint=final_endpoint)
       with tf.variable_scope('Logits'):
         if global_pool:
           # Global average pooling.
           net = tf.reduce_mean(net, [1, 2], keep_dims=True, name='global_pool')
           end_points['global_pool'] = net
         else:
-          # Pooling with a fixed kernel size.
-          kernel_size = _reduced_kernel_size_for_small_input(net, [7, 7])
+          # # Pooling with a fixed kernel size.
+          # kernel_size = _reduced_kernel_size_for_small_input(net, [7, 7])
+          # Pooling based on the tensor dimension, pool dim1 & dim2
+          tensor_dim = net.shape[1]
+          kernel_size = _reduced_kernel_size_for_small_input(net, [tensor_dim, tensor_dim])
           net = slim.avg_pool2d(net, kernel_size, padding='VALID',
                                 scope='AvgPool_1a')
           end_points['AvgPool_1a'] = net
