@@ -238,8 +238,27 @@ tf.app.flags.DEFINE_string(
     'Specifies the endpoint to construct the network up to.'
     'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
 
+#######################
+# Preprocessing Flags #
+#######################
+
+tf.app.flags.DEFINE_string(
+    'roi', None, 
+    'Specifies the coordinates of an ROI for cropping the input images.'
+    'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
+
 FLAGS = tf.app.flags.FLAGS
 
+def _parse_roi():
+    # parse roi
+    # roi="650,950,224,224"
+    print("##################################### roi", FLAGS.roi)
+    roi_array_string = FLAGS.roi.split(',')
+    roi_array = []
+    for i in roi_array_string:
+      roi_array.append(int(i))
+    print("##################################### roi parsed", roi_array)
+    return roi_array
 
 def _configure_learning_rate(num_samples_per_epoch, global_step):
   """Configures the learning rate.
@@ -446,7 +465,8 @@ def main(_):
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
         is_training=True,
-        use_grayscale=FLAGS.use_grayscale)
+        use_grayscale=FLAGS.use_grayscale,
+        roi=_parse_roi())
 
     ##############################################################
     # Create a dataset provider that loads data from the dataset #
