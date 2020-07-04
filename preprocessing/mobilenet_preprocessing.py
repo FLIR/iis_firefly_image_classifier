@@ -22,7 +22,7 @@ import tensorflow as tf
 
 from tensorflow.python.ops import control_flow_ops
 import numpy as np
-
+from .augmentation import *
 
 def apply_with_random_selector(x, func, num_cases):
   """Computes func(x, sel), with sel sampled from [0...num_cases-1].
@@ -245,7 +245,6 @@ def preprocess_for_train(image,
       distorted_image.set_shape([None, None, 3])
       image_with_distorted_box = tf.image.draw_bounding_boxes(
           tf.expand_dims(image, 0), distorted_bbox)
-      print("##################################### distorted_bbox 0", distorted_bbox)
       if add_image_summaries:
         tf.summary.image('images_with_distorted_bounding_box',
                          image_with_distorted_box)
@@ -262,6 +261,14 @@ def preprocess_for_train(image,
         tf.summary.image('image_with_roi_box',
                          image_with_roi_box)
 
+    # augmentation
+    distorted_image = aug(distorted_image)
+    distorted_image.set_shape([None, None, 3])
+    image_with_roi_box = tf.image.draw_bounding_boxes(
+        tf.expand_dims(image, 0), roi_bbox)
+    if add_image_summaries:
+      tf.summary.image('image_with_roi_box',
+                        image_with_roi_box)
 
     # This resizing operation may distort the images because the aspect
     # ratio is not respected. We select a resize method in a round robin

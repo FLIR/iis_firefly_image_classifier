@@ -217,7 +217,6 @@ def mobilenet_v1_base(inputs,
   """
   if final_endpoint is None:  # set default final_endpoint
     final_endpoint = 'Conv2d_13_pointwise'
-  print('############################### 3.  final_endpoint: ', final_endpoint)
 
   depth = lambda d: max(int(d * depth_multiplier), min_depth)
   end_points = {}
