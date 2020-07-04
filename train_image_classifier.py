@@ -252,13 +252,17 @@ FLAGS = tf.app.flags.FLAGS
 def _parse_roi():
     # parse roi
     # roi="650,950,224,224"
-    print("##################################### roi", FLAGS.roi)
-    roi_array_string = FLAGS.roi.split(',')
-    roi_array = []
-    for i in roi_array_string:
-      roi_array.append(int(i))
-    print("##################################### roi parsed", roi_array)
-    return roi_array
+    if FLAGS.roi is None:
+      return FLAGS.roi
+    else: 
+      print("##################################### roi", FLAGS.roi)
+      roi_array_string = FLAGS.roi.split(',')
+      roi_array = []
+      for i in roi_array_string:
+        roi_array.append(int(i))
+      print("##################################### roi parsed", roi_array)
+      return roi_array
+    
 
 def _configure_learning_rate(num_samples_per_epoch, global_step):
   """Configures the learning rate.

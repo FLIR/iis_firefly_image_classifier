@@ -222,38 +222,39 @@ def preprocess_for_train(image,
     3-D float Tensor of distorted image used for training with range [-1, 1].
   """
   with tf.name_scope(scope, 'distort_image', [image, height, width, bbox]):
+    if image.dtype != tf.float32:
+      image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     if bbox is None:
       bbox = tf.constant([0.0, 0.0, 1.0, 1.0],
                          dtype=tf.float32,
                          shape=[1, 1, 4])
-    if image.dtype != tf.float32:
-      image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    # # Each bounding box has shape [1, num_boxes, box coords] and
-    # # the coordinates are ordered [ymin, xmin, ymax, xmax].
-    # image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
-    #                                               bbox)
-    # if add_image_summaries:
-    #   tf.summary.image('image_with_bounding_boxes', image_with_box)
+    else:
+      # Each bounding box has shape [1, num_boxes, box coords] and
+      # the coordinates are ordered [ymin, xmin, ymax, xmax].
+      image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
+                                                    bbox)
+      if add_image_summaries:
+        tf.summary.image('image_with_bounding_boxes', image_with_box)
 
-    # if not random_crop:
-    #   distorted_image = image
-    # else:
-    #   distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
-    #   # Restore the shape since the dynamic slice based upon the bbox_size loses
-    #   # the third dimension.
-    #   distorted_image.set_shape([None, None, 3])
-    #   image_with_distorted_box = tf.image.draw_bounding_boxes(
-    #       tf.expand_dims(image, 0), distorted_bbox)
-    #   print("##################################### distorted_bbox 0", distorted_bbox)
-    #   if add_image_summaries:
-    #     tf.summary.image('images_with_distorted_bounding_box',
-    #                      image_with_distorted_box)
-
-    if not any(roi):
+    if not random_crop:
       distorted_image = image
     else:
+      distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
+      # Restore the shape since the dynamic slice based upon the bbox_size loses
+      # the third dimension.
+      distorted_image.set_shape([None, None, 3])
+      image_with_distorted_box = tf.image.draw_bounding_boxes(
+          tf.expand_dims(image, 0), distorted_bbox)
+      print("##################################### distorted_bbox 0", distorted_bbox)
+      if add_image_summaries:
+        tf.summary.image('images_with_distorted_bounding_box',
+                         image_with_distorted_box)
+
+    if roi is None:
+      distorted_image = distorted_image
+    else:
       # crop a fixed ROI
-      distorted_image, roi_bbox = roi_crop(image, roi)
+      distorted_image, roi_bbox = roi_crop(distorted_image, roi)
       distorted_image.set_shape([None, None, 3])
       image_with_roi_box = tf.image.draw_bounding_boxes(
           tf.expand_dims(image, 0), roi_bbox)
