@@ -236,19 +236,29 @@ def preprocess_for_train(image,
       if add_image_summaries:
         tf.summary.image('image_with_bounding_boxes', image_with_box)
 
-    if not random_crop:
-      distorted_image = image
-    else:
-      distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
-      # Restore the shape since the dynamic slice based upon the bbox_size loses
-      # the third dimension.
-      distorted_image.set_shape([None, None, 3])
-      image_with_distorted_box = tf.image.draw_bounding_boxes(
-          tf.expand_dims(image, 0), distorted_bbox)
-      if add_image_summaries:
-        tf.summary.image('images_with_distorted_bounding_box',
-                         image_with_distorted_box)
+    # if not random_crop:
+    #   distorted_image = image
+    # else:
+    #   distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
+    #   # Restore the shape since the dynamic slice based upon the bbox_size loses
+    #   # the third dimension.
+    #   distorted_image.set_shape([None, None, 3])
+    #   image_with_distorted_box = tf.image.draw_bounding_boxes(
+    #       tf.expand_dims(image, 0), distorted_bbox)
+    #   if add_image_summaries:
+    #     tf.summary.image('images_with_distorted_bounding_box',
+    #                      image_with_distorted_box)
 
+    # Augmentation
+    distorted_image = aug(image)
+    # distorted_image.set_shape([None, None, 3])
+    # image_with_roi_box = tf.image.draw_bounding_boxes(
+    #     tf.expand_dims(image, 0), roi_bbox)
+    # if add_image_summaries:
+    #   tf.summary.image('image_with_roi_box',
+    #                     image_with_roi_box)
+
+    # Extract region of interest (roi)  
     if roi is None:
       distorted_image = distorted_image
     else:
@@ -261,14 +271,7 @@ def preprocess_for_train(image,
         tf.summary.image('image_with_roi_box',
                          image_with_roi_box)
 
-    # augmentation
-    distorted_image = aug(distorted_image)
-    distorted_image.set_shape([None, None, 3])
-    image_with_roi_box = tf.image.draw_bounding_boxes(
-        tf.expand_dims(image, 0), roi_bbox)
-    if add_image_summaries:
-      tf.summary.image('image_with_roi_box',
-                        image_with_roi_box)
+
 
     # This resizing operation may distort the images because the aspect
     # ratio is not respected. We select a resize method in a round robin
@@ -314,7 +317,8 @@ def preprocess_for_eval(image,
                         central_fraction=0.875,
                         scope=None,
                         central_crop=True,
-                        use_grayscale=False):
+                        use_grayscale=False,
+                        roi=None):
   """Prepare one image for evaluation.
 
   If height and width are specified it would output an image with that size by
@@ -344,6 +348,19 @@ def preprocess_for_eval(image,
       image = tf.image.convert_image_dtype(image, dtype=tf.float32)
     if use_grayscale:
       image = tf.image.rgb_to_grayscale(image)
+
+    if roi is None:
+      distorted_image = image
+    else:
+      # crop a fixed ROI
+      distorted_image, roi_bbox = roi_crop(image, roi)
+      distorted_image.set_shape([None, None, 3])
+      image_with_roi_box = tf.image.draw_bounding_boxes(
+          tf.expand_dims(image, 0), roi_bbox)
+      if add_image_summaries:
+        tf.summary.image('image_with_roi_box',
+                         image_with_roi_box)
+
     # Crop the central region of the image with an area containing 87.5% of
     # the original image.
 

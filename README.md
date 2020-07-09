@@ -375,10 +375,12 @@ $ python train_image_classifier.py \
     --trainable_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits \
     --clone_on_cpu=True
 ```
-For training on cpu (with tensorflow package, instead of tensorflow-gpu), set flag `--clone_on_cpu` to `True`. For training on gpu, this flag can be ignored or set to `False`.  
+For training on cpu (with tensorflow package, instead of tensorflow-gpu), set flag `--clone_on_cpu` to `True`. For training on gpu, this flag can be ignored or set to `False`.
+
+We suggest to use a different directory `TRAIN_DIR` is suggested to be in a different directory each time  
 
 
-# Evaluating performance of a model
+# Evaluating performance of a model while training
 <a id='Eval'></a>
 
 To evaluate the performance of a model (whether pretrained or your own),
