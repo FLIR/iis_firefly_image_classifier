@@ -427,15 +427,13 @@ checkpoints as part of a mobile model, you can run freeze_graph to get a graph
 def with the variables inlined as constants using:
 
 ```shell
-bazel build tensorflow/python/tools:freeze_graph
-
-bazel-bin/tensorflow/python/tools/freeze_graph \
-  --input_graph=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb \
-  --input_checkpoint=${TRAIN_DIR}/model.ckpt-1000 \ # change to match your target checkpoint
+python freeze_graph.py \
+  --input_graph=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb  \
+  --input_checkpoint=${TRAIN_DIR}/model.ckpt-1000 \
   --input_binary=true --output_graph=${TRAIN_DIR}/frozen_mobilenet_v1.pb \
   --output_node_names=MobilenetV1/Predictions/Reshape_1
 ```
-
+[Note: The bazel commands were replaced with a python file. Same arguments were used.]
 The output node names will vary depending on the model, but you can inspect and
 estimate them using the summarize_graph tool:
 

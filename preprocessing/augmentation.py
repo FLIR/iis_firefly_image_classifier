@@ -50,26 +50,42 @@ def augment_random_shift(image, image_width, image_height, max_x, max_y):
     )
     return image_shifted
 
-def extract_roi(image, roi_param):
+# def extract_roi(image, roi_param):
+#   """
+#   This op cuts a rectangular part out of image. The top-left corner of the returned image is at offset_height, offset_width in image, and its lower-right corner is at offset_height + target_height, offset_width + target_width
+#   Input: 
+#      image: 4-D Tensor of shape [batch, height, width, channels] 
+#          or 3-D Tensor of shape [height, width, channels]"""
+
+#   # Handel the case when cropping is not needed --> skip cropping  
+#   if roi_param['roi_height'] == -1 and roi_param['roi_width'] == -1:
+#     print('No need to extract ROI, when roi_height and roi_width are -1!')
+#     return image  
+
+#   roi = tf.image.crop_to_bounding_box(
+#     image,
+#     roi_param['roi_offset_y'],
+#     roi_param['roi_offset_x'],
+#     roi_param['roi_height'],
+#     roi_param['roi_width']
+#   )
+#   return roi
+
+def extract_roi(image, roi):
   """
   This op cuts a rectangular part out of image. The top-left corner of the returned image is at offset_height, offset_width in image, and its lower-right corner is at offset_height + target_height, offset_width + target_width
   Input: 
      image: 4-D Tensor of shape [batch, height, width, channels] 
          or 3-D Tensor of shape [height, width, channels]"""
 
-  # Handel the case when cropping is not needed --> skip cropping  
-  if roi_param['roi_height'] == -1 and roi_param['roi_width'] == -1:
-    print('No need to extract ROI, when roi_height and roi_width are -1!')
-    return image  
-
-  roi = tf.image.crop_to_bounding_box(
+  extracted_roi = tf.image.crop_to_bounding_box(
     image,
-    roi_param['roi_offset_y'],
-    roi_param['roi_offset_x'],
-    roi_param['roi_height'],
-    roi_param['roi_width']
+    roi[0],
+    roi[1],
+    roi[2],
+    roi[3]
   )
-  return roi
+  return extracted_roi
 
 
 def augment_random_rotate(image, random_rotate):
@@ -309,7 +325,7 @@ def aug(image):
   #   'roi_height':224
   # }
   # augmented_image = extract_roi(augmented_image, roi_param)
-  
+
   # random_shift_delta = 50 #7
   # augmented_image = random_shift_and_crop(augmented_image, roi_param, random_shift_delta)
 

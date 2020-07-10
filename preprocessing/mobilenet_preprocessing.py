@@ -154,33 +154,35 @@ def distorted_bounding_box_crop(image,
     return cropped_image, distort_bbox
 
 
-def roi_crop(image, roi, scope=None):
-  """Generates cropped_image using the roi coordinates.
+def get_roi_bbox(roi):
+  """Generates roi_bbox based o the roi coordinates.
 
   Args:
-    image: 3-D Tensor of image (it will be converted to floats in [0, 1]).
-    roi: coordinates are arranged as [ymin, xmin, roi_height, roi_width, image_height, image_width].
-    scope: Optional scope for name_scope.
+     roi: coordinates are arranged as [ymin, xmin, roi_height, roi_width, image_height, image_width].
   Returns:
-    A tuple, a 3-D Tensor cropped_image and the roi bbox
+    The roi bbox
   """
-  with tf.name_scope(scope, 'roi_crop', [image, roi]):
-    
-    # Convert roi information to 3 dimensions
-    roi_begin = roi[0:2]+[0] 
-    roi_size = roi[2:4]+[3]
-    # Crop the image to the specified ROI.
-    cropped_image = tf.slice(image, roi_begin, roi_size)
 
-    # Define bbox for the ROI
-    image_height = roi[4] #1080
-    image_width = roi[5] #1440
-    # roi_bbox is a shape (1,1,4) tensor, that contains [y_min, x_min, y_max, x_max]. The values are normalize to [0,1]
-    roi_bbox = tf.constant([roi[0]/image_height, roi[1]/image_width, (roi[0]+roi[2])/image_height, (roi[1]+roi[3])/image_width]) 
-    roi_bbox = tf.expand_dims(roi_bbox, 0)  # convert a rank 1 tensor to rank 3. Shape (1,1,4)
-    roi_bbox = tf.expand_dims(roi_bbox, 0)
-    return cropped_image, roi_bbox
+  # Define bbox for the ROI
+  image_height = roi[4] 
+  image_width = roi[5] 
+  
+  # roi_bbox is a shape (1,1,4) tensor, that contains [y_min, x_min, y_max, x_max]. The values are normalize to [0,1]
+  roi_bbox = tf.constant([roi[0]/image_height, roi[1]/image_width, (roi[0]+roi[2])/image_height, (roi[1]+roi[3])/image_width]) 
+  roi_bbox = tf.expand_dims(roi_bbox, 0)  # convert a rank 1 tensor to rank 3. Shape (1,1,4)
+  roi_bbox = tf.expand_dims(roi_bbox, 0)
+  return roi_bbox
 
+def draw_roi_bbox(image, roi_bbox, add_image_summaries, scope=None):
+  """ Draw roi_bbox, overlay on image """
+  
+  with tf.name_scope(scope):
+    image.set_shape([None, None, 3])
+    image_with_roi_box = tf.image.draw_bounding_boxes(
+        tf.expand_dims(image, 0), roi_bbox)
+    if add_image_summaries:
+      tf.summary.image('image_with_roi_box',
+                       image_with_roi_box)
 
 def preprocess_for_train(image,
                          height,
@@ -189,7 +191,7 @@ def preprocess_for_train(image,
                          fast_mode=True,
                          scope=None,
                          add_image_summaries=True,
-                         random_crop=True,
+                         random_crop=False,
                          use_grayscale=False,
                          roi=None):
   """Distort one image for training a network.
@@ -224,53 +226,59 @@ def preprocess_for_train(image,
   with tf.name_scope(scope, 'distort_image', [image, height, width, bbox]):
     if image.dtype != tf.float32:
       image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    if bbox is None:
-      bbox = tf.constant([0.0, 0.0, 1.0, 1.0],
-                         dtype=tf.float32,
-                         shape=[1, 1, 4])
-    else:
-      # Each bounding box has shape [1, num_boxes, box coords] and
-      # the coordinates are ordered [ymin, xmin, ymax, xmax].
-      image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
-                                                    bbox)
-      if add_image_summaries:
-        tf.summary.image('image_with_bounding_boxes', image_with_box)
+    # if bbox is None:
+    #   bbox = tf.constant([0.0, 0.0, 1.0, 1.0],
+    #                      dtype=tf.float32,
+    #                      shape=[1, 1, 4])
+    # # Each bounding box has shape [1, num_boxes, box coords] and
+    # # the coordinates are ordered [ymin, xmin, ymax, xmax].
+    # image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
+    #                                               bbox)
+    # if add_image_summaries:
+    #   tf.summary.image('image_with_bounding_boxes', image_with_box)
 
-    # if not random_crop:
-    #   distorted_image = image
-    # else:
-    #   distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
-    #   # Restore the shape since the dynamic slice based upon the bbox_size loses
-    #   # the third dimension.
-    #   distorted_image.set_shape([None, None, 3])
-    #   image_with_distorted_box = tf.image.draw_bounding_boxes(
-    #       tf.expand_dims(image, 0), distorted_bbox)
-    #   if add_image_summaries:
-    #     tf.summary.image('images_with_distorted_bounding_box',
-    #                      image_with_distorted_box)
+    if not random_crop:
+      distorted_image = image
+    else:
+      distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
+      # Restore the shape since the dynamic slice based upon the bbox_size loses
+      # the third dimension.
+      distorted_image.set_shape([None, None, 3])
+      image_with_distorted_box = tf.image.draw_bounding_boxes(
+          tf.expand_dims(image, 0), distorted_bbox)
+      if add_image_summaries:
+        tf.summary.image('images_with_distorted_bounding_box',
+                         image_with_distorted_box)
 
     # Augmentation
-    distorted_image = aug(image)
-    # distorted_image.set_shape([None, None, 3])
-    # image_with_roi_box = tf.image.draw_bounding_boxes(
-    #     tf.expand_dims(image, 0), roi_bbox)
-    # if add_image_summaries:
-    #   tf.summary.image('image_with_roi_box',
-    #                     image_with_roi_box)
+    distorted_image = aug(distorted_image)
+    if roi is None:
+      roi_bbox = tf.constant([0.0, 0.0, 1.0, 1.0],
+             dtype=tf.float32,
+             shape=[1, 1, 4])
+    else:
+      roi_bbox = get_roi_bbox(roi)
+
+    draw_roi_bbox(image, roi_bbox, add_image_summaries, 'original')
+    draw_roi_bbox(distorted_image, roi_bbox, add_image_summaries, 'augmented')
 
     # Extract region of interest (roi)  
     if roi is None:
       distorted_image = distorted_image
     else:
-      # crop a fixed ROI
-      distorted_image, roi_bbox = roi_crop(distorted_image, roi)
-      distorted_image.set_shape([None, None, 3])
-      image_with_roi_box = tf.image.draw_bounding_boxes(
-          tf.expand_dims(image, 0), roi_bbox)
+      # crop a fixed ROI from original image - for visualization only
+      original_roi = extract_roi(image, roi)
+      # draw bounding box over the ROI
       if add_image_summaries:
-        tf.summary.image('image_with_roi_box',
-                         image_with_roi_box)
+        tf.summary.image('original_roi',
+                         tf.expand_dims(original_roi, 0))
 
+      # crop a fixed ROI from the augmented image
+      distorted_image = extract_roi(distorted_image, roi)
+      # draw bounding box over the ROI
+      if add_image_summaries:
+        tf.summary.image('augmented_roi',
+                         tf.expand_dims(distorted_image, 0))
 
 
     # This resizing operation may distort the images because the aspect
@@ -293,19 +301,19 @@ def preprocess_for_train(image,
     if use_grayscale:
       distorted_image = tf.image.random_flip_left_right(distorted_image)
 
-    # Randomly distort the colors. There are 1 or 4 ways to do it.
-    num_distort_cases = 1 if fast_mode else 4
-    distorted_image = apply_with_random_selector(
-        distorted_image,
-        lambda x, ordering: distort_color(x, ordering, fast_mode),
-        num_cases=num_distort_cases)
+    # # Randomly distort the colors. There are 1 or 4 ways to do it.
+    # num_distort_cases = 1 if fast_mode else 4
+    # distorted_image = apply_with_random_selector(
+    #     distorted_image,
+    #     lambda x, ordering: distort_color(x, ordering, fast_mode),
+    #     num_cases=num_distort_cases)
 
     if use_grayscale:
       distorted_image = tf.image.rgb_to_grayscale(distorted_image)
 
-    if add_image_summaries:
-      tf.summary.image('final_distorted_image',
-                       tf.expand_dims(distorted_image, 0))
+    # if add_image_summaries:
+    #   tf.summary.image('final_distorted_image',
+    #                    tf.expand_dims(distorted_image, 0))
     distorted_image = tf.subtract(distorted_image, 0.5)
     distorted_image = tf.multiply(distorted_image, 2.0)
     return distorted_image
@@ -316,7 +324,7 @@ def preprocess_for_eval(image,
                         width,
                         central_fraction=0.875,
                         scope=None,
-                        central_crop=True,
+                        central_crop=False,
                         use_grayscale=False,
                         roi=None):
   """Prepare one image for evaluation.
@@ -352,14 +360,8 @@ def preprocess_for_eval(image,
     if roi is None:
       distorted_image = image
     else:
-      # crop a fixed ROI
-      distorted_image, roi_bbox = roi_crop(image, roi)
-      distorted_image.set_shape([None, None, 3])
-      image_with_roi_box = tf.image.draw_bounding_boxes(
-          tf.expand_dims(image, 0), roi_bbox)
-      if add_image_summaries:
-        tf.summary.image('image_with_roi_box',
-                         image_with_roi_box)
+      # crop a fixed ROI from the augmented image
+      distorted_image = extract_roi(image, roi)
 
     # Crop the central region of the image with an area containing 87.5% of
     # the original image.

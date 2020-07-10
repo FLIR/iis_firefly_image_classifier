@@ -255,12 +255,12 @@ def _parse_roi():
     if FLAGS.roi is None:
       return FLAGS.roi
     else: 
-      print("##################################### roi", FLAGS.roi)
+      # print("##################################### roi", FLAGS.roi)
       roi_array_string = FLAGS.roi.split(',')
       roi_array = []
       for i in roi_array_string:
         roi_array.append(int(i))
-      print("##################################### roi parsed", roi_array)
+      # print("##################################### roi parsed", roi_array)
       return roi_array
     
 
