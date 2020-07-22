@@ -87,8 +87,32 @@ tf.app.flags.DEFINE_bool(
 tf.app.flags.DEFINE_bool('use_grayscale', False,
                          'Whether to convert input images to grayscale.')
 
+tf.app.flags.DEFINE_string(
+    'final_endpoint', None,
+    'Specifies the endpoint to construct the network up to.'
+    'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
+
+#######################
+# Preprocessing Flags #
+#######################
+
+tf.app.flags.DEFINE_string(
+    'roi', None, 
+    'Specifies the coordinates of an ROI for cropping the input images.'
+    'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
+
 FLAGS = tf.app.flags.FLAGS
 
+def _parse_roi():
+    # parse roi
+    if FLAGS.roi is None:
+      return FLAGS.roi
+    else: 
+      roi_array_string = FLAGS.roi.split(',')
+      roi_array = []
+      for i in roi_array_string:
+        roi_array.append(int(i))
+      return roi_array
 
 def main(_):
   if not FLAGS.dataset_dir:
@@ -111,7 +135,8 @@ def main(_):
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
-        is_training=False)
+        is_training=False,
+        final_endpoint=FLAGS.final_endpoint)
 
     ##############################################################
     # Create a dataset provider that loads data from the dataset #
@@ -132,7 +157,8 @@ def main(_):
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
         is_training=False,
-        use_grayscale=FLAGS.use_grayscale)
+        use_grayscale=FLAGS.use_grayscale,
+        roi=_parse_roi())
 
     eval_image_size = FLAGS.eval_image_size or network_fn.default_image_size
 
@@ -166,9 +192,12 @@ def main(_):
 
     # Define the metrics:
     names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
-        'Accuracy': slim.metrics.streaming_accuracy(predictions, labels),
-        'Recall_5': slim.metrics.streaming_recall_at_k(
-            logits, labels, 5),
+        # 'Accuracy': slim.metrics.streaming_accuracy(predictions, labels),
+        'Accuracy': tf.metrics.accuracy(labels, predictions),
+        'Precision': tf.metrics.precision(labels, predictions),
+        # 'Recall_1': slim.metrics.streaming_recall_at_k(
+        #     logits, labels, 1),
+        'Recall': tf.metrics.recall(labels, predictions),
     })
 
     # Print the summaries to screen.
@@ -198,7 +227,7 @@ def main(_):
     session_config = tf.ConfigProto()
     session_config.gpu_options.allow_growth = True
 
-# Evaluate every 10 minutes:
+# Evaluate every 1 minute:
     slim.evaluation.evaluation_loop(
         master=FLAGS.master,
         checkpoint_dir=FLAGS.checkpoint_path,

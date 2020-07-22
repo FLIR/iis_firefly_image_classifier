@@ -23,11 +23,12 @@ from preprocessing import cifarnet_preprocessing
 from preprocessing import inception_preprocessing
 from preprocessing import lenet_preprocessing
 from preprocessing import vgg_preprocessing
+from preprocessing import mobilenet_preprocessing
 
 slim = contrib_slim
 
 
-def get_preprocessing(name, is_training=False, use_grayscale=False):
+def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
   """Returns preprocessing_fn(image, height, width, **kwargs).
 
   Args:
@@ -53,7 +54,7 @@ def get_preprocessing(name, is_training=False, use_grayscale=False):
       'inception_v4': inception_preprocessing,
       'inception_resnet_v2': inception_preprocessing,
       'lenet': lenet_preprocessing,
-      'mobilenet_v1': inception_preprocessing,
+      'mobilenet_v1': mobilenet_preprocessing, #inception_preprocessing,
       'mobilenet_v2': inception_preprocessing,
       'mobilenet_v2_035': inception_preprocessing,
       'mobilenet_v2_140': inception_preprocessing,
@@ -85,6 +86,7 @@ def get_preprocessing(name, is_training=False, use_grayscale=False):
         output_width,
         is_training=is_training,
         use_grayscale=use_grayscale,
+        roi=roi,
         **kwargs)
 
   return preprocessing_fn

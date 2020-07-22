@@ -15,7 +15,7 @@ data reading and queueing utilities. You can easily train any model on any of
 these datasets, as we demonstrate below. We've also included a
 [jupyter notebook](https://github.com/tensorflow/models/blob/master/research/slim/slim_walkthrough.ipynb),
 which provides working examples of how to use TF-Slim for image classification.
-For developing or modifying your own models, see also the [main TF-Slim page](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim).
+For developing or modifying your own models, see also the [main TF-Slim page](https://github.com/tensorflow/tensorflow/tree/r1.13/tensorflow/contrib/slim).
 
 ## Contacts
 
@@ -47,6 +47,18 @@ https://github.com/tensorflow/models/tree/master/research/slim
 In this section, we describe the steps required to install the appropriate
 prerequisite packages.
 
+## Setting up python libraries
+This repository uses tensorflow framework for training. Necessary packages need to be intalled.
+```bash
+# Install tensorflow. 
+# If you have GPU,
+pip install tensorflow-gpu==1.13.2  
+# or, for training on CPU
+pip install tensorflow
+
+pip install sklearn
+```
+
 ## Installing latest version of TF-slim
 
 TF-Slim is available as `tf.contrib.slim` via TensorFlow 1.0. To test that your
@@ -72,7 +84,7 @@ git clone https://github.com/tensorflow/models/
 
 This will put the TF-Slim image models library in `$HOME/workspace/models/research/slim`.
 (It will also create a directory called
-[models/inception](https://github.com/tensorflow/models/tree/master/research/inception),
+[models/inception](https://github.com/tensorflow/models/tree/r1.13/research/inception),
 which contains an older version of slim; you can safely ignore this.)
 
 To verify that this has worked, execute the following commands; it should run
@@ -82,7 +94,6 @@ without raising any errors.
 cd $HOME/workspace/models/research/slim
 python -c "from nets import cifarnet; mynet = cifarnet.cifarnet"
 ```
-
 
 # Preparing the datasets
 <a id='Data'></a>
@@ -147,8 +158,8 @@ $ IMAGE_INPUT_DIR=/path/to/folder/image_dir
 $ TFRECORD_OUTPUT_DIR=/path/to/folder/tfrecord_dir
 $ python create_and_convert_dataset.py \
     --dataset_name=blocks \
-    --images_dataset_dir="${IMAGE_INPUT_DIRR}" \    
-    --tfrecords_dataset_dir="${TFRECORD_OUTPUT_DIR}" \     
+    --images_dataset_dir="${IMAGE_INPUT_DIR}" \
+    --tfrecords_dataset_dir="${TFRECORD_OUTPUT_DIR}" \
     --validation_percentage=10 \
     --test_percentage=10
 ```
@@ -253,7 +264,7 @@ reported on the ImageNet validation set.
 
 All 16 float MobileNet V1 models reported in the [MobileNet Paper](https://arxiv.org/abs/1704.04861) and all
 16 quantized [TensorFlow Lite](https://www.tensorflow.org/mobile/tflite/) compatible MobileNet V1 models can be found
-[here](https://github.com/tensorflow/models/tree/master/research/slim/nets/mobilenet_v1.md).
+[here](https://github.com/tensorflow/models/tree/r1.13/research/slim/nets/mobilenet_v1.md).
 
 (^#) More details on MobileNetV2 models can be found [here](nets/mobilenet/README.md).
 
@@ -265,7 +276,7 @@ Here is an example of how to download the Inception V3 checkpoint:
 $ CHECKPOINT_DIR=./checkpoints
 $ mkdir ${CHECKPOINT_DIR}
 $ cd ${CHECKPOINT_DIR}
-$ wget http://download.tensorflow.org/models/mobilenet_v1_1.0_224.tgz
+$ wget http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz
 $ tar -xvf mobilenet_v1_1.0_224.tgz
 $ rm mobilenet_v1_1.0_224.tgz
 ```
@@ -361,12 +372,15 @@ $ python train_image_classifier.py \
     --max_number_of_steps=1000 \
     --checkpoint_path=${CHECKPOINT_PATH} \
     --checkpoint_exclude_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits \
-    --trainable_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits
+    --trainable_scopes=MobilenetV1/Logits,MobilenetV1/AuxLogits \
+    --clone_on_cpu=True
 ```
+For training on cpu (with tensorflow package, instead of tensorflow-gpu), set flag `--clone_on_cpu` to `True`. For training on gpu, this flag can be ignored or set to `False`.
+
+We suggest to use a different directory `TRAIN_DIR` is suggested to be in a different directory each time  
 
 
-
-# Evaluating performance of a model
+# Evaluating performance of a model while training
 <a id='Eval'></a>
 
 To evaluate the performance of a model (whether pretrained or your own),
@@ -387,7 +401,7 @@ $ python eval_image_classifier.py \
     --eval_image_size=224
 ```
 
-See the [evaluation module example](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim#evaluation-loop)
+See the [evaluation module example](https://github.com/tensorflow/tensorflow/tree/r1.13/tensorflow/contrib/slim#evaluation-loop)
 for an example of how to evaluate a model at multiple checkpoints during or after the training.
 
 # Exporting the Inference Graph
@@ -413,15 +427,13 @@ checkpoints as part of a mobile model, you can run freeze_graph to get a graph
 def with the variables inlined as constants using:
 
 ```shell
-bazel build tensorflow/python/tools:freeze_graph
-
-bazel-bin/tensorflow/python/tools/freeze_graph \
-  --input_graph=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb \
-  --input_checkpoint=${TRAIN_DIR}/model.ckpt-1000 \ # change to match your target checkpoint
+python freeze_graph.py \
+  --input_graph=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb  \
+  --input_checkpoint=${TRAIN_DIR}/model.ckpt-1000 \
   --input_binary=true --output_graph=${TRAIN_DIR}/frozen_mobilenet_v1.pb \
   --output_node_names=MobilenetV1/Predictions/Reshape_1
 ```
-
+[Note: The bazel commands were replaced with a python file. Same arguments were used.]
 The output node names will vary depending on the model, but you can inspect and
 estimate them using the summarize_graph tool:
 
@@ -432,17 +444,17 @@ estimate them using the summarize_graph tool:
 #### The model runs out of CPU memory.
 
 See
-[Model Runs out of CPU memory](https://github.com/tensorflow/models/tree/master/research/inception#the-model-runs-out-of-cpu-memory).
+[Model Runs out of CPU memory](https://github.com/tensorflow/models/tree/r1.13/research/inception#the-model-runs-out-of-cpu-memory).
 
 #### The model runs out of GPU memory.
 
 See
-[Adjusting Memory Demands](https://github.com/tensorflow/models/tree/master/research/inception#adjusting-memory-demands).
+[Adjusting Memory Demands](https://github.com/tensorflow/models/tree/r1.13/research/inception#adjusting-memory-demands).
 
 #### The model training results in NaN's.
 
 See
-[Model Resulting in NaNs](https://github.com/tensorflow/models/tree/master/research/inception#the-model-training-results-in-nans).
+[Model Resulting in NaNs](https://github.com/tensorflow/models/tree/r1.13/research/inception#the-model-training-results-in-nans).
 
 #### The ResNet and VGG Models have 1000 classes but the ImageNet dataset has 1001
 

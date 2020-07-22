@@ -123,7 +123,8 @@ def build_model():
           inputs,
           is_training=False,
           depth_multiplier=FLAGS.depth_multiplier,
-          num_classes=FLAGS.num_classes)
+          num_classes=FLAGS.num_classes,
+          final_endpoint=FLAGS.final_endpoint)
 
     if FLAGS.quantize:
       contrib_quantize.create_eval_graph()

@@ -115,6 +115,11 @@ tf.app.flags.DEFINE_bool('write_text_graphdef', False,
 tf.app.flags.DEFINE_bool('use_grayscale', False,
                          'Whether to convert input images to grayscale.')
 
+tf.app.flags.DEFINE_string(
+    'final_endpoint', None,
+    'Specifies the endpoint to construct the network up to.'
+    'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
+
 FLAGS = tf.app.flags.FLAGS
 # _IMAGE_DIR = '/home/docker/ahmed/datasets/blocks_cleaned_photos_tfrecord/blocks_20'
 
@@ -133,7 +138,8 @@ def main(_):
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
-        is_training=FLAGS.is_training)
+        is_training=FLAGS.is_training,
+        final_endpoint=FLAGS.final_endpoint)
     image_size = FLAGS.image_size or network_fn.default_image_size
     num_channels = 1 if FLAGS.use_grayscale else 3
     if FLAGS.is_video_model:
