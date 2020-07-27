@@ -45,6 +45,10 @@ def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
   Raises:
     ValueError: If Preprocessing `name` is not recognized.
   """
+  custom_preprocessing_fn_map = {
+  'mobilenet_v1_pcb': mobilenet_preprocessing, #inception_preprocessing,
+  }
+
   preprocessing_fn_map = {
       'cifarnet': cifarnet_preprocessing,
       'inception': inception_preprocessing,
@@ -54,7 +58,7 @@ def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
       'inception_v4': inception_preprocessing,
       'inception_resnet_v2': inception_preprocessing,
       'lenet': lenet_preprocessing,
-      'mobilenet_v1': mobilenet_preprocessing, #inception_preprocessing,
+      'mobilenet_v1': inception_preprocessing,
       'mobilenet_v2': inception_preprocessing,
       'mobilenet_v2_035': inception_preprocessing,
       'mobilenet_v2_140': inception_preprocessing,
@@ -76,17 +80,28 @@ def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
       'vgg_19': vgg_preprocessing,
   }
 
-  if name not in preprocessing_fn_map:
+  if name not in preprocessing_fn_map and name not in custom_preprocessing_fn_map:
     raise ValueError('Preprocessing name [%s] was not recognized' % name)
 
-  def preprocessing_fn(image, output_height, output_width, **kwargs):
-    return preprocessing_fn_map[name].preprocess_image(
-        image,
-        output_height,
-        output_width,
-        is_training=is_training,
-        use_grayscale=use_grayscale,
-        roi=roi,
-        **kwargs)
+  if name in preprocessing_fn_map:
+    def preprocessing_fn(image, output_height, output_width, **kwargs):
+      return preprocessing_fn_map[name].preprocess_image(
+          image,
+          output_height,
+          output_width,
+          is_training=is_training,
+          use_grayscale=use_grayscale,
+          **kwargs)
+      
+  elif name in custom_preprocessing_fn_map:
+    def preprocessing_fn(image, output_height, output_width, **kwargs):
+      return custom_preprocessing_fn_map[name].preprocess_image(
+          image,
+          output_height,
+          output_width,
+          is_training=is_training,
+          use_grayscale=use_grayscale,
+          roi=roi,
+          **kwargs)
 
   return preprocessing_fn

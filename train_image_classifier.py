@@ -422,7 +422,8 @@ def _get_variables_to_train():
   for scope in scopes:
     variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
     variables_to_train.extend(variables)
-    print('######## trainable_variables ########### \n', variables)
+    print('######## Trainable variables from name scope', scope, '\n', variables)
+  print('######## List of all Trainable Variables ########### \n', variables_to_train)
   return variables_to_train
 
 
