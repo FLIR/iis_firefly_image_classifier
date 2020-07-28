@@ -50,8 +50,11 @@ https://github.com/tensorflow/models/tree/master/research/slim
 
 In this section, we describe the steps required to install the appropriate Tensorflow prerequisite packages.
 This repository uses Tensorflow framework for training (with GPU and CPU support), and was tested on Tensorflow version 1.13.
+
 We provide two options for instaling Tensorflow on your system.
+
 <a href="#Host">Setting up python libraries on a Linux machine</a><br>
+
 <a href="#Docker">Insall Tensorflow using Docker</a><br>
 
 ## Setting up python libraries on a Linux machine
@@ -413,29 +416,28 @@ Typically for fine-tuning you only wants to train a sub-set of layers. The flag 
 
 
 ```shell
-
 --trainable_scopes=MobilenetV1/Logits,MobilenetV1/Conv2d_13,MobilenetV1/Conv2d_12
-
 ```
 The training script (`train_image_classifier.py`) will print out a list of all the trainable variable that are defined in the selected model graph `--model_name=mobilenet_v1` . Note that if the specified variable name(s) do not match the name(s) defined in the select model graph, that variable will be ignored with no error messages. Hence it is important to check that the provided variable names are correct, and that all the desired trainable variable have be selected. For the above example where we wanted to train the last three layers of the model (logits, Conv2d_13, and Conv2d_12 layers) you should get the follow trainable variable list as a screen print out when you run the (`train_image_classifier.py`) script.
 
 ```shell
-
 ######## List of all Trainable Variables ###########
- [<tf.Variable 'MobilenetV1/Logits/Conv2d_1c_1x1/weights:0' shape=(1, 1, 256, 16) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Logits/Conv2d_1c_1x1/biases:0' shape=(16,) dtype=float32_ref>
-, <tf.Variable 'MobilenetV1/Conv2d_13_depthwise/depthwise_weights:0' shape=(3, 3, 256, 1) dtype=float32_ref>, <tf.Variable MobilenetV1/Conv2d_13_depthwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_depthwise/BatchNorm/beta:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_pointwise/weights:0' shape=(1, 1, 256, 256) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_pointwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_pointwise/BatchNorm/beta:0'
-shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_depthwise/depthwise_weights:0' shape=(3, 3, 128, 1) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_depthwise/BatchNorm/gamma:0' shape=(128,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_depthwise/BatchNorm/beta:0' shape=(128,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/weights:0' shape=(1, 1, 128, 256) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/beta:0' shape=(256,) dtype=float32_ref>]
-
-
-
+ [<tf.Variable 'MobilenetV1/Logits/Conv2d_1c_1x1/weights:0' shape=(1, 1, 256, 16) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Logits/Conv2d_1c_1x1/biases:0' shape=(16,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_13_depthwise/depthwise_weights:0' shape=(3, 3, 256, 1) dtype=float32_ref>, <tf.Variable MobilenetV1/Conv2d_13_depthwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_13_depthwise/BatchNorm/beta:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_pointwise/weights:0' shape=(1, 1, 256, 256) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_13_pointwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_pointwise/BatchNorm/beta:0'
+shape=(256,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_12_depthwise/depthwise_weights:0' shape=(3, 3, 128, 1) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_depthwise/BatchNorm/gamma:0' shape=(128,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_12_depthwise/BatchNorm/beta:0' shape=(128,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/weights:0' shape=(1, 1, 128, 256) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/beta:0' shape=(256,) dtype=float32_ref>]
 ```
 
 Below we give an example of mobilenet_v1 that was trained on ImageNet with 1000 class labels, however, now we set `--datasetdir=${DATASET_DIR}`  to point to our custom dataset. Since the dataset is quite small we will only train the last two layers.
 
 
 ```shell
-
 $ CHECKPOINT_PATH=./checkpoints/mobilenet_v1_0.25_224/mobilenet_v1_0.25_224.ckpt
+
 $ python train_image_classifier.py \
     --train_dir=${TRAIN_DIR} \
     --dataset_dir=${DATASET_DIR} \
@@ -488,7 +490,6 @@ Saves out a GraphDef containing the architecture of the model.
 To use it with a model name defined by slim, run:
 
 ```shell
-
 $ python export_inference_graph.py \
   --alsologtostderr \
   --model_name=mobilenet_v1 
@@ -517,7 +518,7 @@ estimate them using the summarize_graph tool:
 # Troubleshooting and Current Known Issues
 <a id='Troubleshooting'></a>
 
-## Known issues that need tobe addressed;
+#### Known issues that need to be adressed:
 
 * Tensorboard stops updating after `eval_image_classifier.py` script while training script is running.
 
