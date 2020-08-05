@@ -1,5 +1,6 @@
-# This repository was forked from the TensorFlow-Slim image classification model library
+# Image classification model library
 
+This repository is based on the TensorFlow-Slim image classification repository
 [TF-slim](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim)
 is a new lightweight high-level API of TensorFlow (`tensorflow.contrib.slim`)
 for defining, training and evaluating complex
@@ -19,11 +20,14 @@ For developing or modifying your own models, see also the [main TF-Slim page](ht
 
 ## Contacts
 
-Maintainers of TF-slim:
+Maintainers of this repository:
+This repository is maintained by FLIR-IIS R&D team. 
 
-* Nathan Silberman,
-  github: [nathansilberman](https://github.com/nathansilberman)
-* Sergio Guadarrama, github: [sguada](https://github.com/sguada)
+* Ahmed Sigiuk, Ahmed.Sigiuk@flir.com
+* Di Xu, Di.Xu@flir.com
+* Douglas Chong, Douglas.Chong@flir.com
+
+
 
 ## Citation
 "TensorFlow-Slim image classification model library"
@@ -39,16 +43,27 @@ https://github.com/tensorflow/models/tree/master/research/slim
 <a href='#Tuning'>Fine tuning to a new task</a><br>
 <a href='#Eval'>Evaluating performance</a><br>
 <a href='#Export'>Exporting Inference Graph</a><br>
-<a href='#Troubleshooting'>Troubleshooting</a><br>
+<a href='#Troubleshooting'>Troubleshooting and Current Known Issues</a><br>
 
-# Installation
+#Installation
 <a id='Install'></a>
 
-In this section, we describe the steps required to install the appropriate
-prerequisite packages.
+In this section, we describe the steps required to install the appropriate Tensorflow prerequisite packages.
+This repository uses Tensorflow framework for training (with GPU and CPU support), and was tested on Tensorflow version 1.13.
 
-## Setting up python libraries
-This repository uses tensorflow framework for training. Necessary packages need to be intalled.
+We provide two options for instaling Tensorflow on your system.
+
+<a href="#Host">Setting up python libraries on a Linux machine</a><br>
+
+<a href="#Docker">Insall Tensorflow using Docker</a><br>
+
+## Setting up python libraries on a Linux machine
+<a id='Host'></a>
+This section guides you through the steps required to install Tensorflow- 1.13 and Tensorflow-slim libraries on your Linux host machine. 
+
+### Insall Tensorflow using pip
+You can use `pip` python package manager to install Tensorflow library on your host machine.
+
 ```bash
 # Install tensorflow. 
 # If you have GPU,
@@ -59,7 +74,7 @@ pip install tensorflow
 pip install sklearn
 ```
 
-## Installing latest version of TF-slim
+### Installing latest version of TF-slim
 
 TF-Slim is available as `tf.contrib.slim` via TensorFlow 1.0. To test that your
 installation is working, execute the following command; it should run without
@@ -69,10 +84,9 @@ raising any errors.
 python -c "import tensorflow.contrib.slim as slim; eval = slim.evaluation.evaluate_once"
 ```
 
-## Installing the TF-slim image models library
+### Installing the TF-slim image models library
 
-To use TF-Slim for image classification, you also have to install
-the [TF-Slim image models library](https://github.com/tensorflow/models/tree/master/research/slim),
+To use TF-Slim for image classification, you also have to install the [TF-Slim image models library](https://github.com/tensorflow/models/tree/master/research/slim),
 which is not part of the core TF library.
 To do this, check out the
 [tensorflow/models](https://github.com/tensorflow/models/) repository as follows:
@@ -93,6 +107,18 @@ without raising any errors.
 ```
 cd $HOME/workspace/models/research/slim
 python -c "from nets import cifarnet; mynet = cifarnet.cifarnet"
+```
+
+## Insall Tensorflow using Docker
+<a id='Docker'></a>
+To be added
+
+```bash
+# Install tensorflow. 
+docker build ...
+
+docker run ...
+
 ```
 
 # Preparing the datasets
@@ -148,7 +174,48 @@ datasets. However, for ImageNet, you have to follow the instructions
 Note that you first have to sign up for an account at image-net.org. Also, the
 download can take several hours, and could use up to 500GB.
 
-## create and convert custom dataset to TFRecord format
+## Collect and convert your own dataset
+
+First, you must collect and label a sample of images that you would like to train the model to classify. Then use the `create_and_convert_dataset.py` to convert this dataset to TFRecord format.
+
+### Collect training images.
+
+For each dataset, we'll need to label the dataset into classes by placing the raw image file into directory with matching class name. Please note the following;
+
+* The `train_image_classifier.py` script only supports the following image formats 'jpg', 'jpeg', 'png', and 'bmp'.
+* Label the images into classes using the parent directory name.
+* Each image most be save into only one folder (representing the class)
+* The ground-truth label for each image is taken from the parent directory name.
+
+The diagram below shows the expected folder structure.
+
+```
+
+    dataset-name
+    |
+    |-- class_1
+    |   |
+    |   |--image_1.jpg
+    |   |--image_2.jpg
+    |           :
+    |           :
+    |-- class_2
+    |   |
+    |   |--image_1.jpg
+    |   |--image_2.jpg
+    |           :
+    |           :
+    |-- class_3
+    |   |
+    |   |--image_1.jpg
+    |   |--image_2.jpg
+    |           :
+                :
+```
+
+​
+
+### Convert custom dataset to TFRecord format
 
 For each dataset, we'll need to label the dataset into classes by placing the raw image file into directory with matching class name.
 Below we demonstrate how to do this for the blocks dataset.
@@ -200,9 +267,6 @@ $ cat dataset_config.json
 ```
 
 You can use the same script to create any other custom dataset. 
-
-Note: add comment about file structure.
-
 
 # Pre-trained Models
 <a id='Pretrained'></a>
@@ -346,20 +410,34 @@ flag indicates to TF-Slim to avoid loading these weights from the checkpoint.
 Keep in mind that warm-starting from a checkpoint affects the model's weights
 only during the initialization of the model. Once a model has started training,
 a new checkpoint will be created in `${TRAIN_DIR}`. If the fine-tuning
-training is stopped and restarted, this new checkpoint will be the one from
-which weights are restored and not the `${checkpoint_path}$`. Consequently,
-the flags `--checkpoint_path` and `--checkpoint_exclude_scopes` are only used
-during the `0-`th global step (model initialization). Typically for fine-tuning
-one only want train a sub-set of layers, so the flag `--trainable_scopes` allows
-to specify which subsets of layers should trained, the rest would remain frozen.
+training is stopped and restarted, this new checkpoint will be the one from which weights are restored and not the `${checkpoint_path}$`. Consequently, the flags `--checkpoint_path` and `--checkpoint_exclude_scopes` are only used during the `0-`th global step (model initialization). 
 
-Below we give an example of mobilenet_v1 that was trained on ImageNet with 1000 class labels, however, now we have our custom dataset (blocks) with different number of classes. Since the dataset is quite small we will only train
-the new layers.
+Typically for fine-tuning you only wants to train a sub-set of layers. The flag `--trainable_scopes` allows you to specify which subset of layers should be trained, and the rest would remain frozen. Where the `--trainable_scopes`  flag expects a string of comma separated variable names with no spaces. In addition you can specify all the trainable variables in a specific layer by only specifying the common name (name_scope) of the variables in that layer, as defined in the graph. For example, if you only want to train all the variables in the logits, Conv2d_13, and Conv2d_12 layers. You would set the `--trainable_scopes` argument as such
 
 
 ```shell
+--trainable_scopes=MobilenetV1/Logits,MobilenetV1/Conv2d_13,MobilenetV1/Conv2d_12
+```
+The training script (`train_image_classifier.py`) will print out a list of all the trainable variable that are defined in the selected model graph `--model_name=mobilenet_v1` . Note that if the specified variable name(s) do not match the name(s) defined in the select model graph, that variable will be ignored with no error messages. Hence it is important to check that the provided variable names are correct, and that all the desired trainable variable have be selected. For the above example where we wanted to train the last three layers of the model (logits, Conv2d_13, and Conv2d_12 layers) you should get the follow trainable variable list as a screen print out when you run the (`train_image_classifier.py`) script.
 
+```shell
+######## List of all Trainable Variables ###########
+ [<tf.Variable 'MobilenetV1/Logits/Conv2d_1c_1x1/weights:0' shape=(1, 1, 256, 16) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Logits/Conv2d_1c_1x1/biases:0' shape=(16,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_13_depthwise/depthwise_weights:0' shape=(3, 3, 256, 1) dtype=float32_ref>, <tf.Variable MobilenetV1/Conv2d_13_depthwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_13_depthwise/BatchNorm/beta:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_pointwise/weights:0' shape=(1, 1, 256, 256) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_13_pointwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_13_pointwise/BatchNorm/beta:0'
+shape=(256,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_12_depthwise/depthwise_weights:0' shape=(3, 3, 128, 1) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_depthwise/BatchNorm/gamma:0' shape=(128,) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_12_depthwise/BatchNorm/beta:0' shape=(128,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/weights:0' shape=(1, 1, 128, 256) dtype=float32_ref>, 
+<tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/beta:0' shape=(256,) dtype=float32_ref>]
+```
+
+Below we give an example of mobilenet_v1 that was trained on ImageNet with 1000 class labels, however, now we set `--datasetdir=${DATASET_DIR}`  to point to our custom dataset. Since the dataset is quite small we will only train the last two layers.
+
+
+```shell
 $ CHECKPOINT_PATH=./checkpoints/mobilenet_v1_0.25_224/mobilenet_v1_0.25_224.ckpt
+
 $ python train_image_classifier.py \
     --train_dir=${TRAIN_DIR} \
     --dataset_dir=${DATASET_DIR} \
@@ -412,7 +490,6 @@ Saves out a GraphDef containing the architecture of the model.
 To use it with a model name defined by slim, run:
 
 ```shell
-
 $ python export_inference_graph.py \
   --alsologtostderr \
   --model_name=mobilenet_v1 
@@ -438,8 +515,17 @@ The output node names will vary depending on the model, but you can inspect and
 estimate them using the summarize_graph tool:
 
 
-# Troubleshooting
+# Troubleshooting and Current Known Issues
 <a id='Troubleshooting'></a>
+
+#### Known issues that need to be adressed:
+
+* Tensorboard stops updating after `eval_image_classifier.py` script while training script is running.
+
+* Add to readme;
+    * Section on custom preprocessing scripts
+    * Section on custom model scripts. 
+
 
 #### The model runs out of CPU memory.
 
