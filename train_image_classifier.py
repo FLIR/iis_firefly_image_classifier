@@ -21,11 +21,14 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.contrib import quantize as contrib_quantize
 from tensorflow.contrib import slim as contrib_slim
+from tensorflow.python.training import saver as tf_saver
 
 from datasets import dataset_factory
 from deployment import model_deploy
 from nets import nets_factory
 from preprocessing import preprocessing_factory
+
+import os
 
 slim = contrib_slim
 
@@ -238,6 +241,8 @@ tf.app.flags.DEFINE_string(
     'Specifies the endpoint to construct the network up to.'
     'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
 
+
+
 #######################
 # Preprocessing Flags #
 #######################
@@ -248,6 +253,8 @@ tf.app.flags.DEFINE_string(
     'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
 
 FLAGS = tf.app.flags.FLAGS
+TRAIN_DIR = os.path.join(FLAGS.train_dir, FLAGS.dataset_split_name)
+
 
 def _parse_roi():
     # parse roi
@@ -374,11 +381,11 @@ def _get_init_fn():
 
   # Warn the user if a checkpoint exists in the train_dir. Then we'll be
   # ignoring the checkpoint anyway.
-  if tf.train.latest_checkpoint(FLAGS.train_dir):
-    tf.logging.info(
-        'Ignoring --checkpoint_path because a checkpoint already exists in %s'
-        % FLAGS.train_dir)
-    return None
+  # if tf.train.latest_checkpoint(TRAIN_DIR):
+  #   tf.logging.info(
+  #       'Ignoring --checkpoint_path because a checkpoint already exists in %s'
+  #       % TRAIN_DIR)
+  #   return None
 
   exclusions = []
   if FLAGS.checkpoint_exclude_scopes:
@@ -402,9 +409,9 @@ def _get_init_fn():
   tf.logging.info('Fine-tuning from %s' % checkpoint_path)
 
   return slim.assign_from_checkpoint_fn(
-      checkpoint_path,
-      variables_to_restore,
-      ignore_missing_vars=FLAGS.ignore_missing_vars)
+     checkpoint_path,
+     variables_to_restore,
+     ignore_missing_vars=FLAGS.ignore_missing_vars)
 
 
 def _get_variables_to_train():
@@ -517,6 +524,26 @@ def main(_):
             scope='aux_loss')
       slim.losses.softmax_cross_entropy(
           logits, labels, label_smoothing=FLAGS.label_smoothing, weights=1.0)
+
+      #############################
+      ## Calculation of accuracy ##
+      #############################
+      
+      # print('###########1',logits, labels)
+      accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(labels, 1), tf.argmax(logits, 1))
+
+      with tf.device('/device:CPU:0'):
+        for class_id in range(dataset.num_classes):
+          precision_at_k, precision_at_k_op = tf.metrics.precision_at_k(tf.cast(labels, tf.int64), logits, k=1, class_id=class_id)
+          tf.add_to_collection(f'precision_at_{class_id}', precision_at_k)
+          tf.add_to_collection(f'precision_at_{class_id}_op', precision_at_k_op)
+
+      # print('###########',precision, recall)
+
+      tf.add_to_collection('accuracy', accuracy)
+      tf.add_to_collection('accuracy_op', accuracy_op)
+
+
       return end_points
 
     # Gather initial summaries.
@@ -543,6 +570,35 @@ def main(_):
     # Add summaries for variables.
     for variable in slim.get_model_variables():
       summaries.add(tf.summary.histogram(variable.op.name, variable))
+
+    #########################################################
+    ## Calculation of the averaged accuracy for all clones ##
+    #########################################################
+
+    # Accuracy for all clones.
+    accuracy = tf.get_collection('accuracy')
+    accuracy_op = tf.get_collection('accuracy_op')
+    # accuracy_op = tf.reshape(accuracy_op, [])
+    
+
+    # Stack and take the mean.
+    accuracy = tf.reduce_mean(tf.stack(accuracy, axis=0))
+    accuracy_op = tf.reduce_mean(tf.stack(accuracy_op, axis=0))
+
+    # Add summaries for accuracy.
+    summaries.add(tf.summary.scalar('Metrics/accuracy', accuracy))
+    summaries.add(tf.summary.scalar('training_op/accuracy_op', accuracy_op))
+
+    # add precision at each class to summary 
+    for class_id in range(dataset.num_classes):
+      precision_at_k = tf.get_collection(f'precision_at_{class_id}')
+      precision_at_k_op = tf.get_collection(f'precision_at_{class_id}_op')
+      precision_at_k = tf.reduce_mean(tf.stack(precision_at_k, axis=0))
+      # precision_at_k = tf.reshape(precision_at_k, [])
+      precision_at_k_op = tf.reduce_mean(tf.stack(precision_at_k_op, axis=0))
+      # precision_at_k_op = tf.reshape(precision_at_k_op, [])
+      summaries.add(tf.summary.scalar(f'Metrics/precision_at_{class_id}', precision_at_k))
+      summaries.add(tf.summary.scalar(f'training_op/precision_at_{class_id}_op', precision_at_k_op))
 
     #################################
     # Configure the moving averages #
@@ -613,7 +669,7 @@ def main(_):
     ###########################
     slim.learning.train(
         train_tensor,
-        logdir=FLAGS.train_dir,
+        logdir=TRAIN_DIR,
         master=FLAGS.master,
         is_chief=(FLAGS.task == 0),
         init_fn=_get_init_fn(),
