@@ -464,13 +464,15 @@ We suggest to use a different directory `TRAIN_DIR` is suggested to be in a diff
 To evaluate the performance of a model (whether pretrained or your own),
 you can use the eval_image_classifier.py script, as shown below.
 
-The script should be run while training and `--checkpoint_path`  should point to the directory where the training job checkpoints are stored.
+The script should be run while training and the `--eval_dir` flag should point to the same directory as your training script `--train_dir` flag. In addition, the script will create a new directory inside the `--eval_dir` directory. The assigned name to this new directory is taken from the `--dataset_split_name` flag.
+
+By defualt the `--checkpoint_path` flag will point to the following directory `eval_dir/dataset_split_name` . Optinally, you call also specify the `--checkpoint_path` flag,  which should point to the directory where the training job checkpoints are stored.
 
 ```shell
 
 $ python eval_image_classifier.py \
     --alsologtostderr \
-    --checkpoint_path=${TRAIN_DIR} \
+    --eval_dir=${TRAIN_DIR} \
     --dataset_dir=${TFRECORD_OUTPUT_DIR} \
     --dataset_name=blocks \
     --dataset_split_name=validation \
