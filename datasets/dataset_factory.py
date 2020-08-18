@@ -65,7 +65,7 @@ def get_dataset(dataset_name, split_name, dataset_dir, file_pattern=None, reader
       reader)
 
   else:
-    return datasets_map[name].get_split(
+    return datasets_map[dataset_name].get_split(
         split_name,
         dataset_dir,
         file_pattern,
