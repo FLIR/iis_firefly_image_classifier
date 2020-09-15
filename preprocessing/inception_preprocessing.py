@@ -261,7 +261,7 @@ def preprocess_for_eval(image,
                         width,
                         central_fraction=0.875,
                         scope=None,
-                        central_crop=True,
+                        central_crop=False,
                         use_grayscale=False):
   """Prepare one image for evaluation.
 
@@ -360,5 +360,5 @@ def preprocess_image(image,
         image,
         height,
         width,
-        central_crop=crop_image,
+        central_crop=False,
         use_grayscale=use_grayscale)

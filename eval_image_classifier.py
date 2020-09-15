@@ -161,7 +161,7 @@ def main(_):
     provider = slim.dataset_data_provider.DatasetDataProvider(
         dataset,
         shuffle=False,
-        num_epochs=1,
+        num_epochs=None,
         common_queue_capacity=2 * FLAGS.batch_size,
         common_queue_min=FLAGS.batch_size)
     [image, label] = provider.get(['image', 'label'])
@@ -271,18 +271,20 @@ def main(_):
       num_batches = FLAGS.max_num_batches
     else:
       # This ensures that we make a single pass over all of the data.
-      num_batches = math.floor(dataset.num_samples / float(FLAGS.batch_size)) - 1
+      num_batches = math.ceil(dataset.num_samples / float(FLAGS.batch_size))
+      # print('############', FLAGS.batch_size, dataset.num_samples, num_batches)
 
     # print('####################2', FLAGS.batch_size, num_batches, dataset.num_samples)
 
     # if checkpoint_path flag not set, look for checkpoint in train
     if FLAGS.checkpoint_path is None:
         checkpoint_path = os.path.join(FLAGS.eval_dir, 'train')
+        # checkpoint_path = FLAGS.eval_dir
+
+    # elif tf.gfile.IsDirectory(FLAGS.checkpoint_path):
+    #     checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
     else:
-        if tf.gfile.IsDirectory(FLAGS.checkpoint_path):
-          checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
-        else:
-          checkpoint_path = FLAGS.checkpoint_path
+        checkpoint_path = FLAGS.checkpoint_path
         
 
     tf.logging.info('#####Evaluating %s' % checkpoint_path)
@@ -316,7 +318,7 @@ def main(_):
         num_evals=num_batches,
         eval_op=update_ops,
         summary_op=summary_op,
-        eval_interval_secs=60,
+        eval_interval_secs=20,
         session_config=session_config) 
     # How often to run the evaluation
     # slim.evaluation.evaluate_once(
