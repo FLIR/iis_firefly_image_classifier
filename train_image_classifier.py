@@ -102,7 +102,7 @@ tf.app.flags.DEFINE_float(
     'weight_decay', 0.00004, 'The weight decay on the model weights.')
 
 tf.app.flags.DEFINE_string(
-    'optimizer', 'rmsprop',
+    'optimizer', 'adam',
     'The name of the optimizer, one of "adadelta", "adagrad", "adam",'
     '"ftrl", "momentum", "sgd" or "rmsprop".')
 
@@ -122,7 +122,7 @@ tf.app.flags.DEFINE_float(
     'adam_beta2', 0.999,
     'The exponential decay rate for the 2nd moment estimates.')
 
-tf.app.flags.DEFINE_float('opt_epsilon', 1.0, 'Epsilon term for the optimizer.')
+tf.app.flags.DEFINE_float('opt_epsilon', 1e-08, 'Epsilon term for the optimizer.')
 
 tf.app.flags.DEFINE_float('ftrl_learning_rate_power', -0.5,
                           'The learning rate power.')
@@ -465,6 +465,11 @@ def _get_variables_to_train():
 
   variables_to_train = []
   # print('######## All avaialable Trainable variables from name scope \n', tf.trainable_variables())
+  # fine-tune setting will add all batchnorm layers to variables to train, if no batchnorm layer is included in the trainable_scope flag.
+  if not FLAGS.feature_extraction:
+    if 'BatchNorm' not in FLAGS.trainable_scopes:
+      scopes.append('BatchNorm')
+
   for scope in scopes:
   	variables = []
   	for variable in tf.trainable_variables():
@@ -474,7 +479,7 @@ def _get_variables_to_train():
   	# variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
 
   	print('######## Trainable variables from name scope', scope, '\n', variables)
-  print('######## List of all Trainable Variables ########### \n', list(set(variables_to_train)))
+  # print('######## List of all Trainable Variables ########### \n', list(set(variables_to_train)))
   return list(set(variables_to_train))
 
 
@@ -511,7 +516,7 @@ def main(_):
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
         weight_decay=FLAGS.weight_decay,
-        is_training=FLAGS.feature_extraction,
+        is_training=not FLAGS.feature_extraction,
         final_endpoint=FLAGS.final_endpoint)
 
     #####################################
@@ -681,7 +686,7 @@ def main(_):
     with tf.device(deploy_config.optimizer_device()):
       learning_rate = _configure_learning_rate(dataset.num_samples, global_step)
       optimizer = _configure_optimizer(learning_rate)
-      summaries.add(tf.summary.scalar('learning_rate', learning_rate))
+      summaries.add(tf.summary.scalar('Losses/learning_rate', learning_rate))
 
     if FLAGS.sync_replicas:
       # If sync_replicas is enabled, the averaging will be done in the chief
@@ -713,6 +718,7 @@ def main(_):
     update_ops.append(grad_updates)
 
     update_op = tf.group(*update_ops)
+    print('############# operations', update_op)
     with tf.control_dependencies([update_op]):
       train_tensor = tf.identity(total_loss, name='train_op')
 
