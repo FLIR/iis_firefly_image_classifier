@@ -718,7 +718,7 @@ def main(_):
     update_ops.append(grad_updates)
 
     update_op = tf.group(*update_ops)
-    print('############# operations', update_op)
+    # print('############# operations', update_op)
     with tf.control_dependencies([update_op]):
       train_tensor = tf.identity(total_loss, name='train_op')
 
