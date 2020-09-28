@@ -1,4 +1,4 @@
-q# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ def distort_color(image, color_ordering=0, fast_mode=True, scope=None):
 
 def distorted_bounding_box_crop(image,
                                 bbox,
-                                min_object_covered=0.8,
+                                min_object_covered=0.1,
                                 aspect_ratio_range=(0.75, 1.33),
                                 area_range=(0.05, 1.0),
                                 max_attempts=100,
@@ -152,26 +152,19 @@ def distorted_bounding_box_crop(image,
     cropped_image = tf.slice(image, bbox_begin, bbox_size)
     return cropped_image, distort_bbox
 
-
-import random
-
-def rotate_tensor(image):
-    # seed_num += 1
-    # random.seed(seed_num)
-    # k = random.randint(1, 10)
-    image = tf.image.rot90(image, k=tf.random.uniform(shape=[], minval=1, 
-                                                      maxval=4, dtype=tf.int32))
-    return image
-    
+import random   
 
 def preprocess_for_train(image,
                          height,
                          width,
                          bbox,
                          fast_mode=True,
-                         scope=None,
-                         add_image_summaries=True,
-                         random_crop=True,
+                         scope='Train',
+                         add_image_summaries=False,
+                         random_crop=False,
+                         min_object_covered=0.1,
+                         random_rotate=False,
+                         random_flip=False,
                          use_grayscale=False):
   """Distort one image for training a network.
 
@@ -198,6 +191,13 @@ def preprocess_for_train(image,
     add_image_summaries: Enable image summaries.
     random_crop: Enable random cropping of images during preprocessing for
       training.
+    min_object_covered: An optional `float`. Defaults to `0.1`. The cropped
+      area of the image must contain at least this fraction of any bounding box
+      supplied.
+    random_rotate: Enable random rotating of images counter-clockwise by factor 90 (180, 270) degrees.during preprocessing for
+      training.
+    random_flip: Enable random flipping of images horizontally.
+      training.
     use_grayscale: Whether to convert the image from RGB to grayscale.
   Returns:
     3-D float Tensor of distorted image used for training with range [-1, 1].
@@ -214,19 +214,19 @@ def preprocess_for_train(image,
     image_with_box = tf.image.draw_bounding_boxes(tf.expand_dims(image, 0),
                                                   bbox)
     if add_image_summaries:
-      tf.summary.image('image_with_bounding_boxes', image_with_box)
+      tf.summary.image('original_image', image_with_box)
 
     if not random_crop:
       distorted_image = image
     else:
-      distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox)
+      distorted_image, distorted_bbox = distorted_bounding_box_crop(image, bbox, min_object_covered)
       # Restore the shape since the dynamic slice based upon the bbox_size loses
       # the third dimension.
       distorted_image.set_shape([None, None, 3])
       image_with_distorted_box = tf.image.draw_bounding_boxes(
           tf.expand_dims(image, 0), distorted_bbox)
       if add_image_summaries:
-        tf.summary.image('images_with_distorted_bounding_box',
+        tf.summary.image('original_image_with_bounding_box',
                          image_with_distorted_box)
 
     # This resizing operation may distort the images because the aspect
@@ -245,9 +245,25 @@ def preprocess_for_train(image,
       tf.summary.image(('cropped_' if random_crop else '') + 'resized_image',
                        tf.expand_dims(distorted_image, 0))
 
+    # Randomly rotate image counter.
+    if random_rotate:
+      distorted_image = tf.image.rot90(distorted_image, 
+          k=tf.random.uniform(
+          shape=[], 
+          minval=1, maxval=4, 
+          dtype=tf.int32))
+
+    if add_image_summaries:
+      tf.summary.image(('rotated_cropped_' if random_rotate else '') + 'resized_image',
+                       tf.expand_dims(distorted_image, 0))
+
     # Randomly flip the image horizontally.
-    if use_grayscale:
+    if random_flip:
       distorted_image = tf.image.random_flip_left_right(distorted_image)
+
+    if add_image_summaries:
+      tf.summary.image(('flipped_rotated_cropped' if random_flip else '') + 'resized_image',
+                       tf.expand_dims(distorted_image, 0))
 
     # Randomly distort the colors. There are 1 or 4 ways to do it.
     num_distort_cases = 1 if fast_mode else 4
@@ -255,7 +271,7 @@ def preprocess_for_train(image,
         distorted_image,
         lambda x, ordering: distort_color(x, ordering, fast_mode),
         num_cases=num_distort_cases)
-    distorted_image = rotate_tensor(distorted_image)
+    
     if use_grayscale:
       distorted_image = tf.image.rgb_to_grayscale(distorted_image)
 
@@ -271,8 +287,9 @@ def preprocess_for_eval(image,
                         height,
                         width,
                         central_fraction=0.875,
-                        scope=None,
+                        scope='evaluate',
                         central_crop=False,
+                        add_image_summaries=False,
                         use_grayscale=False):
   """Prepare one image for evaluation.
 
@@ -305,6 +322,9 @@ def preprocess_for_eval(image,
       image = tf.image.rgb_to_grayscale(image)
     # Crop the central region of the image with an area containing 87.5% of
     # the original image.
+    if add_image_summaries:
+      tf.summary.image('original_image',
+                       tf.expand_dims(image, 0))
 
     if central_crop and central_fraction:
       image = tf.image.central_crop(image, central_fraction=central_fraction)
@@ -314,7 +334,11 @@ def preprocess_for_eval(image,
       image = tf.expand_dims(image, 0)
       image = tf.image.resize_bilinear(image, [height, width],
                                        align_corners=False)
+
       image = tf.squeeze(image, [0])
+    if add_image_summaries:
+      tf.summary.image('resized_image',
+                         tf.expand_dims(image, 0))
     image = tf.subtract(image, 0.5)
     image = tf.multiply(image, 2.0)
     return image
@@ -325,10 +349,14 @@ def preprocess_image(image,
                      width,
                      is_training=False,
                      bbox=None,
-                     fast_mode=False,
-                     add_image_summaries=True,
-                     crop_image=True,
-                     use_grayscale=False):
+                     fast_mode=True,
+                     add_image_summaries=False,
+                     crop_image=False,
+                     min_object_covered=0.1,
+                     rotate_image=False,
+                     random_flip=False,
+                     use_grayscale=False,
+                     **kwargs):
   """Pre-process one image for training or evaluation.
 
   Args:
@@ -348,6 +376,7 @@ def preprocess_image(image,
     add_image_summaries: Enable image summaries.
     crop_image: Whether to enable cropping of images during preprocessing for
       both training and evaluation.
+    rotate_image: Whether to enable rotating of images by (90, 180, or 270 degs) during preprocessing for training.
     use_grayscale: Whether to convert the image from RGB to grayscale.
 
   Returns:
@@ -356,8 +385,9 @@ def preprocess_image(image,
   Raises:
     ValueError: if user does not provide bounding box
   """
+
   if is_training:
-    return preprocess_for_train(
+      return preprocess_for_train(
         image,
         height,
         width,
@@ -365,11 +395,15 @@ def preprocess_image(image,
         fast_mode,
         add_image_summaries=add_image_summaries,
         random_crop=crop_image,
+        min_object_covered=min_object_covered,
+        random_rotate=rotate_image,
+        random_flip=random_flip,
         use_grayscale=use_grayscale)
   else:
-    return preprocess_for_eval(
+      return preprocess_for_eval(
         image,
         height,
         width,
-        central_crop=False,
+        central_crop=crop_image,
+        add_image_summaries=add_image_summaries,
         use_grayscale=use_grayscale)

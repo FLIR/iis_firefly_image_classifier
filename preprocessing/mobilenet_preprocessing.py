@@ -163,6 +163,7 @@ def get_roi_bbox(roi):
     The roi bbox
   """
 
+
   # Define bbox for the ROI
   image_height = roi[4] 
   image_width = roi[5] 
@@ -223,6 +224,10 @@ def preprocess_for_train(image,
   Returns:
     3-D float Tensor of distorted image used for training with range [-1, 1].
   """
+  roi = roi.split(',')
+  for i, val in enumerate(roi):
+    roi[i] = int(val)
+  # print('####################', roi)
   with tf.name_scope(scope, 'distort_image', [image, height, width, bbox]):
     if image.dtype != tf.float32:
       image = tf.image.convert_image_dtype(image, dtype=tf.float32)
@@ -383,13 +388,14 @@ def preprocess_for_eval(image,
 def preprocess_image(image,
                      height,
                      width,
+                     roi=None,
                      is_training=False,
                      bbox=None,
                      fast_mode=True,
                      add_image_summaries=True,
                      crop_image=False, #True,
                      use_grayscale=False,
-                     roi=None):
+                     **kwargs):
   """Pre-process one image for training or evaluation.
 
   Args:
@@ -417,6 +423,10 @@ def preprocess_image(image,
   Raises:
     ValueError: if user does not provide bounding box
   """
+
+
+
+
   if is_training:
     return preprocess_for_train(
         image,
