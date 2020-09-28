@@ -1,4 +1,4 @@
-# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
+q# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -151,6 +151,17 @@ def distorted_bounding_box_crop(image,
     # Crop the image to the specified bounding box.
     cropped_image = tf.slice(image, bbox_begin, bbox_size)
     return cropped_image, distort_bbox
+
+
+import random
+
+def rotate_tensor(image):
+    # seed_num += 1
+    # random.seed(seed_num)
+    # k = random.randint(1, 10)
+    image = tf.image.rot90(image, k=tf.random.uniform(shape=[], minval=1, 
+                                                      maxval=4, dtype=tf.int32))
+    return image
     
 
 def preprocess_for_train(image,
@@ -244,7 +255,7 @@ def preprocess_for_train(image,
         distorted_image,
         lambda x, ordering: distort_color(x, ordering, fast_mode),
         num_cases=num_distort_cases)
-    
+    distorted_image = rotate_tensor(distorted_image)
     if use_grayscale:
       distorted_image = tf.image.rgb_to_grayscale(distorted_image)
 

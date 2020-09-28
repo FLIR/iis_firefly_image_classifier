@@ -19,20 +19,13 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.platform import tf_logging as logging
 from tensorflow.contrib import quantize as contrib_quantize
 from tensorflow.contrib import slim as contrib_slim
-from tensorflow.python.training import saver as tf_saver
 
 from datasets import dataset_factory
 from deployment import model_deploy
 from nets import nets_factory
 from preprocessing import preprocessing_factory
-
-import os
-import datetime
-import signal 
-import time
 
 slim = contrib_slim
 
@@ -72,27 +65,15 @@ tf.app.flags.DEFINE_integer(
     'The frequency with which logs are print.')
 
 tf.app.flags.DEFINE_integer(
-    'save_summaries_secs', 20,
+    'save_summaries_secs', 1,
     'The frequency with which summaries are saved, in seconds.')
 
 tf.app.flags.DEFINE_integer(
-    'save_interval_secs', 20,
+    'save_interval_secs', 5,
     'The frequency with which the model is saved, in seconds.')
 
 tf.app.flags.DEFINE_integer(
     'task', 0, 'Task id of the replica running the training.')
-
-tf.app.flags.DEFINE_bool(
-    'verbose_placement', False,
-    'Shows detailed information about device placement.')
-
-tf.app.flags.DEFINE_bool(
-    'hard_placement', False,
-    'Uses hard constraints for device placement on tensorflow sessions.')
-
-tf.app.flags.DEFINE_bool(
-    'fixed_memory', False,
-    'Allocates the entire memory at once.')
 
 ######################
 # Optimization Flags #
@@ -102,7 +83,7 @@ tf.app.flags.DEFINE_float(
     'weight_decay', 0.00004, 'The weight decay on the model weights.')
 
 tf.app.flags.DEFINE_string(
-    'optimizer', 'adam',
+    'optimizer', 'rmsprop',
     'The name of the optimizer, one of "adadelta", "adagrad", "adam",'
     '"ftrl", "momentum", "sgd" or "rmsprop".')
 
@@ -122,7 +103,7 @@ tf.app.flags.DEFINE_float(
     'adam_beta2', 0.999,
     'The exponential decay rate for the 2nd moment estimates.')
 
-tf.app.flags.DEFINE_float('opt_epsilon', 1e-08, 'Epsilon term for the optimizer.')
+tf.app.flags.DEFINE_float('opt_epsilon', 1.0, 'Epsilon term for the optimizer.')
 
 tf.app.flags.DEFINE_float('ftrl_learning_rate_power', -0.5,
                           'The learning rate power.')
@@ -219,7 +200,7 @@ tf.app.flags.DEFINE_string(
     'as `None`, then the model_name flag is used.')
 
 tf.app.flags.DEFINE_integer(
-    'batch_size', 32, 'The number of samples in each batch.')
+    'batch_size', 64, 'The number of samples in each batch.')
 
 tf.app.flags.DEFINE_integer(
     'train_image_size', None, 'Train image size')
@@ -233,10 +214,6 @@ tf.app.flags.DEFINE_bool('use_grayscale', False,
 #####################
 # Fine-Tuning Flags #
 #####################
-
-tf.app.flags.DEFINE_bool(
-    'feature_extraction', False,
-    'Whether or not to synchronize the replicas during training.')
 
 tf.app.flags.DEFINE_string(
     'checkpoint_path', None,
@@ -253,59 +230,11 @@ tf.app.flags.DEFINE_string(
     'By default, None would train all the variables.')
 
 tf.app.flags.DEFINE_boolean(
-    'ignore_missing_vars', True,
+    'ignore_missing_vars', False,
     'When restoring a checkpoint would ignore missing variables.')
 
-tf.app.flags.DEFINE_string(
-    'final_endpoint', None,
-    'Specifies the endpoint to construct the network up to.'
-    'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
-
-#######################
-# Experiment Details #
-#######################
-
-tf.app.flags.DEFINE_string(
-    'experiment_tag', '', 'Internal tag for experiment')
-
-tf.app.flags.DEFINE_string(
-    'experiment_file', None, 'File to output experiment metadata')
-
-#######################
-# Preprocessing Flags #
-#######################
-
-tf.app.flags.DEFINE_bool(
-    'apply_image_augmentation', False,
-    'Whether or not to synchronize the replicas during training.')
-
-tf.app.flags.DEFINE_string(
-    'roi', None, 
-    'Specifies the coordinates of an ROI for cropping the input images.'
-    'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
-
-
 FLAGS = tf.app.flags.FLAGS
-TRAIN_DIR = os.path.join(FLAGS.train_dir, FLAGS.dataset_split_name)
-if not os.path.exists(TRAIN_DIR):
-    os.makedirs(TRAIN_DIR)
 
-
-
-def _parse_roi():
-    # parse roi
-    # roi="650,950,224,224"
-    if FLAGS.roi is None:
-      return FLAGS.roi
-    else: 
-      # print("##################################### roi", FLAGS.roi)
-      roi_array_string = FLAGS.roi.split(',')
-      roi_array = []
-      for i in roi_array_string:
-        roi_array.append(int(i))
-      # print("##################################### roi parsed", roi_array)
-      return roi_array
-    
 
 def _configure_learning_rate(num_samples_per_epoch, global_step):
   """Configures the learning rate.
@@ -417,11 +346,11 @@ def _get_init_fn():
 
   # Warn the user if a checkpoint exists in the train_dir. Then we'll be
   # ignoring the checkpoint anyway.
-  # if tf.train.latest_checkpoint(TRAIN_DIR):
-  #   tf.logging.info(
-  #       'Ignoring --checkpoint_path because a checkpoint already exists in %s'
-  #       % TRAIN_DIR)
-  #   return None
+  if tf.train.latest_checkpoint(FLAGS.train_dir):
+    tf.logging.info(
+        'Ignoring --checkpoint_path because a checkpoint already exists in %s'
+        % FLAGS.train_dir)
+    return None
 
   exclusions = []
   if FLAGS.checkpoint_exclude_scopes:
@@ -441,15 +370,13 @@ def _get_init_fn():
     checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
   else:
     checkpoint_path = FLAGS.checkpoint_path
-  if FLAGS.feature_extraction:
-  	tf.logging.info('Feature-extraction from %s' % checkpoint_path)
-  else:
-  	tf.logging.info('Fine-tuning from %s' % checkpoint_path)
+
+  tf.logging.info('Fine-tuning from %s' % checkpoint_path)
 
   return slim.assign_from_checkpoint_fn(
-     checkpoint_path,
-     variables_to_restore,
-     ignore_missing_vars=FLAGS.ignore_missing_vars)
+      checkpoint_path,
+      variables_to_restore,
+      ignore_missing_vars=FLAGS.ignore_missing_vars)
 
 
 def _get_variables_to_train():
@@ -464,23 +391,10 @@ def _get_variables_to_train():
     scopes = [scope.strip() for scope in FLAGS.trainable_scopes.split(',')]
 
   variables_to_train = []
-  # print('######## All avaialable Trainable variables from name scope \n', tf.trainable_variables())
-  # fine-tune setting will add all batchnorm layers to variables to train, if no batchnorm layer is included in the trainable_scope flag.
-  if not FLAGS.feature_extraction:
-    if 'BatchNorm' not in FLAGS.trainable_scopes:
-      scopes.append('BatchNorm')
-
   for scope in scopes:
-  	variables = []
-  	for variable in tf.trainable_variables():
-  		if scope in variable.name:
-  			variables.append(variable)
-  	variables_to_train.extend(variables)
-  	# variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
-
-  	print('######## Trainable variables from name scope', scope, '\n', variables)
-  # print('######## List of all Trainable Variables ########### \n', list(set(variables_to_train)))
-  return list(set(variables_to_train))
+    variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
+    variables_to_train.extend(variables)
+  return variables_to_train
 
 
 def main(_):
@@ -516,8 +430,7 @@ def main(_):
         FLAGS.model_name,
         num_classes=(dataset.num_classes - FLAGS.labels_offset),
         weight_decay=FLAGS.weight_decay,
-        is_training=not FLAGS.feature_extraction,
-        final_endpoint=FLAGS.final_endpoint)
+        is_training=True)
 
     #####################################
     # Select the preprocessing function #
@@ -525,9 +438,8 @@ def main(_):
     preprocessing_name = FLAGS.preprocessing_name or FLAGS.model_name
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
-        is_training=FLAGS.apply_image_augmentation,
-        use_grayscale=FLAGS.use_grayscale,
-        roi=_parse_roi())
+        is_training=True,
+        use_grayscale=FLAGS.use_grayscale)
 
     ##############################################################
     # Create a dataset provider that loads data from the dataset #
@@ -573,32 +485,6 @@ def main(_):
             scope='aux_loss')
       slim.losses.softmax_cross_entropy(
           logits, labels, label_smoothing=FLAGS.label_smoothing, weights=1.0)
-
-      #############################
-      ## Calculation of metrics ##
-      #############################
-      
-      # print('###########1',logits, labels)
-      accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(labels, 1), tf.argmax(logits, 1))
-      precision, precision_op = tf.metrics.average_precision_at_k(tf.argmax(labels, 1), logits, 1)
-
-      with tf.device('/device:CPU:0'):
-        for class_id in range(dataset.num_classes):
-          precision_at_k, precision_at_k_op = tf.metrics.precision_at_k(tf.argmax(labels, 1), logits, k=1, class_id=class_id)
-          recall_at_k, recall_at_k_op = tf.metrics.recall_at_k(tf.argmax(labels, 1), logits, k=1, class_id=class_id)
-          tf.add_to_collection(f'precision_at_{class_id}', precision_at_k)
-          tf.add_to_collection(f'precision_at_{class_id}_op', precision_at_k_op)
-          tf.add_to_collection(f'recall_at_{class_id}', recall_at_k)
-          tf.add_to_collection(f'recall_at_{class_id}_op', recall_at_k_op)
-
-      # print('###########',precision, recall)
-
-      tf.add_to_collection('accuracy', accuracy)
-      tf.add_to_collection('accuracy_op', accuracy_op)
-      tf.add_to_collection('precision', precision)
-      tf.add_to_collection('precision_op', precision_op)
-
-
       return end_points
 
     # Gather initial summaries.
@@ -626,47 +512,6 @@ def main(_):
     for variable in slim.get_model_variables():
       summaries.add(tf.summary.histogram(variable.op.name, variable))
 
-    #########################################################
-    ## Calculation of metrics for all clones ##
-    #########################################################
-
-    # Metrics for all clones.
-    accuracy = tf.get_collection('accuracy')
-    accuracy_op = tf.get_collection('accuracy_op')
-    precision = tf.get_collection('precision')
-    precision_op = tf.get_collection('precision_op')
-    # accuracy_op = tf.reshape(accuracy_op, [])
-    
-
-    # Stack and take the mean.
-    accuracy = tf.reduce_mean(tf.stack(accuracy, axis=0))
-    accuracy_op = tf.reduce_mean(tf.stack(accuracy_op, axis=0))
-    precision = tf.reduce_mean(tf.stack(precision, axis=0))
-    precision_op = tf.reduce_mean(tf.stack(precision_op, axis=0))
-
-    # Add metric summaries.
-    summaries.add(tf.summary.scalar('Metrics/accuracy', accuracy))
-    summaries.add(tf.summary.scalar('op/accuracy_op', accuracy_op))
-    summaries.add(tf.summary.scalar('Metrics/average_precision', precision))
-    summaries.add(tf.summary.scalar('op/average_precision_op', precision_op))
-
-    # Add precision/recall at each class to summary 
-    for class_id in range(dataset.num_classes):
-      precision_at_k = tf.get_collection(f'precision_at_{class_id}')
-      precision_at_k_op = tf.get_collection(f'precision_at_{class_id}_op')
-      recall_at_k = tf.get_collection(f'recall_at_{class_id}')
-      recall_at_k_op = tf.get_collection(f'recall_at_{class_id}_op')
-
-      precision_at_k = tf.reduce_mean(tf.stack(precision_at_k, axis=0))
-      precision_at_k_op = tf.reduce_mean(tf.stack(precision_at_k_op, axis=0))
-      recall_at_k = tf.reduce_mean(tf.stack(recall_at_k, axis=0))
-      recall_at_k_op = tf.reduce_mean(tf.stack(recall_at_k_op, axis=0))
-
-      summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_precision', precision_at_k))
-      summaries.add(tf.summary.scalar(f'op/class_{class_id}_precision_op', precision_at_k_op))
-      summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_recall', recall_at_k))
-      summaries.add(tf.summary.scalar(f'op/class_{class_id}_recall_op', recall_at_k_op))
-
     #################################
     # Configure the moving averages #
     #################################
@@ -686,7 +531,7 @@ def main(_):
     with tf.device(deploy_config.optimizer_device()):
       learning_rate = _configure_learning_rate(dataset.num_samples, global_step)
       optimizer = _configure_optimizer(learning_rate)
-      summaries.add(tf.summary.scalar('Losses/learning_rate', learning_rate))
+      summaries.add(tf.summary.scalar('learning_rate', learning_rate))
 
     if FLAGS.sync_replicas:
       # If sync_replicas is enabled, the averaging will be done in the chief
@@ -718,7 +563,6 @@ def main(_):
     update_ops.append(grad_updates)
 
     update_op = tf.group(*update_ops)
-    # print('############# operations', update_op)
     with tf.control_dependencies([update_op]):
       train_tensor = tf.identity(total_loss, name='train_op')
 
@@ -726,113 +570,22 @@ def main(_):
     # created by model_fn and either optimize_clones() or _gather_clone_loss().
     summaries |= set(tf.get_collection(tf.GraphKeys.SUMMARIES,
                                        first_clone_scope))
+
     # Merge all summaries together.
     summary_op = tf.summary.merge(list(summaries), name='summary_op')
-
-    session_config = tf.ConfigProto(
-        log_device_placement = FLAGS.verbose_placement, 
-        allow_soft_placement = not FLAGS.hard_placement)
-    if not FLAGS.fixed_memory :
-      session_config.gpu_options.allow_growth=True
 
     ###########################
     # Kicks off the training. #
     ###########################
-    def train_step_fn(sess, train_op, global_step, train_step_kwargs):
-      """Function that takes a gradient step and specifies whether to stop.
-      Args:
-        sess: The current session.
-        train_op: An `Operation` that evaluates the gradients and returns the total
-          loss.
-        global_step: A `Tensor` representing the global training step.
-        train_step_kwargs: A dictionary of keyword arguments.
-      Returns:
-        The total loss and a boolean indicating whether or not to stop training.
-      Raises:
-        ValueError: if 'should_trace' is in `train_step_kwargs` but `logdir` is not.
-      """
-      start_time = time.time()
 
-      trace_run_options = None
-      run_metadata = None
-      if 'should_trace' in train_step_kwargs:
-        if 'logdir' not in train_step_kwargs:
-          raise ValueError('logdir must be present in train_step_kwargs when '
-                           'should_trace is present')
-        if sess.run(train_step_kwargs['should_trace']):
-          trace_run_options = config_pb2.RunOptions(
-              trace_level=config_pb2.RunOptions.FULL_TRACE)
-          run_metadata = config_pb2.RunMetadata()
-
-      total_loss, np_global_step = sess.run([train_op, global_step],
-                                            options=trace_run_options,
-                                            run_metadata=run_metadata)
-
-      accuracy = sess.run(train_step_fn.accuracy_train)
-      precision_op= sess.run(train_step_fn.precision_op_train)
-      precision= sess.run(train_step_fn.precision_train)
-      time_elapsed = time.time() - start_time
-
-      if run_metadata is not None:
-        tl = timeline.Timeline(run_metadata.step_stats)
-        trace = tl.generate_chrome_trace_format()
-        trace_filename = os.path.join(train_step_kwargs['logdir'],
-                                      'tf_trace-%d.json' % np_global_step)
-        logging.info('Writing trace to %s', trace_filename)
-        file_io.write_string_to_file(trace_filename, trace)
-        if 'summary_writer' in train_step_kwargs:
-          train_step_kwargs['summary_writer'].add_run_metadata(
-              run_metadata, 'run_metadata-%d' % np_global_step)
-
-      if 'should_log' in train_step_kwargs:
-        if sess.run(train_step_kwargs['should_log']):
-          logging.info('global step %d: loss = %.4f , accuracy = %.2f%%, average_precision = %.2f%% (%.3f sec/step)', np_global_step, total_loss, accuracy * 100, precision * 100, time_elapsed)
-          # print(logits, labels)
-
-      if 'should_stop' in train_step_kwargs:
-        should_stop = sess.run(train_step_kwargs['should_stop'])
-      else:
-        should_stop = False
-
-      return total_loss, should_stop or train_step_fn.should_stop
-
-    train_step_fn.accuracy_train = accuracy
-    train_step_fn.precision_op_train = precision_op
-    train_step_fn.precision_train = precision
-
-    train_step_fn.should_stop = False
-
-    def exit_gracefully(signum, frame) :
-      interrupted = datetime.datetime.utcnow()
-      if not FLAGS.experiment_file is None :
-        print('Interrupted on (UTC): ', interrupted, sep='', file=experiment_file)
-        experiment_file.flush()
-      train_step_fn.should_stop = True
-      print('Interrupted on (UTC): ', interrupted, sep='')
-
-    signal.signal(signal.SIGINT, exit_gracefully)
-    signal.signal(signal.SIGTERM, exit_gracefully)
-
-    start = datetime.datetime.utcnow()
-    print('Started on (UTC): ', start, sep='')
-    if not FLAGS.experiment_file is None :
-
-      experiment_file = open(os.path.join(TRAIN_DIR, FLAGS.experiment_file), 'w')
-      print('Experiment metadata file:', file=experiment_file)
-      print(FLAGS.experiment_file, file=experiment_file)
-      print('========================', file=experiment_file)
-      print('All command-line flags:', file=experiment_file)
-      print(FLAGS.experiment_file, file=experiment_file)
-      for flag_key in sorted(FLAGS.__flags.keys()) :
-        print(flag_key, ' : ', FLAGS.__flags[flag_key].value, sep='', file=experiment_file)
-      print('========================', file=experiment_file)
-      print('Started on (UTC): ', start, sep='', file=experiment_file)
-      experiment_file.flush()
+    session_config = tf.ConfigProto(
+        log_device_placement = False, 
+        allow_soft_placement = True)
+    session_config.gpu_options.allow_growth=True
 
     slim.learning.train(
         train_tensor,
-        train_step_fn=train_step_fn,
-        logdir=TRAIN_DIR,
+        logdir=FLAGS.train_dir,
         master=FLAGS.master,
         is_chief=(FLAGS.task == 0),
         init_fn=_get_init_fn(),
@@ -844,11 +597,6 @@ def main(_):
         sync_optimizer=optimizer if FLAGS.sync_replicas else None,
         session_config=session_config)
 
-    finish = datetime.datetime.utcnow()
-    if not FLAGS.experiment_file is None :
-      print('Finished on (UTC): ', finish, sep='', file=experiment_file)
-      print('Elapsed: ', finish-start, sep='', file=experiment_file)
-      experiment_file.flush()
 
 if __name__ == '__main__':
   tf.app.run()
