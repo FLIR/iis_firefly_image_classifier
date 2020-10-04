@@ -797,9 +797,6 @@ def main(_):
                                             options=trace_run_options,
                                             run_metadata=run_metadata)
 
-      accuracy = sess.run(train_step_fn.accuracy_train)
-      accuracy_op= sess.run(train_step_fn.accuracy_op_train)
-
       time_elapsed = time.time() - start_time
 
       if run_metadata is not None:
@@ -825,8 +822,6 @@ def main(_):
 
       return total_loss, should_stop or train_step_fn.should_stop
 
-    train_step_fn.accuracy_train = accuracy
-    train_step_fn.accuracy_op_train = accuracy_op
 
     train_step_fn.should_stop = False
 
