@@ -71,6 +71,16 @@ tf.compat.v1.app.flags.DEFINE_integer(
     0,
     'What percentage of images to use as a validation set.'
     )
+tf.compat.v1.app.flags.DEFINE_integer(
+    'image_height',
+    224,
+    'Target image height after resizing. If None original image size is kepts.'
+    )
+tf.compat.v1.app.flags.DEFINE_integer(
+    'image_width',
+    224,
+    'Target image width after resizing. If None original image size is kepts.'
+    )
 
 
 def main(_):
@@ -83,7 +93,7 @@ def main(_):
 
   if len(os.listdir(FLAGS.images_dataset_dir)):
     # print('#############',FLAGS.validation_percentage, FLAGS.test_percentage)
-    convert_dataset.run(FLAGS.dataset_name, FLAGS.images_dataset_dir, FLAGS.tfrecords_dataset_dir, FLAGS.validation_percentage, FLAGS.test_percentage)
+    convert_dataset.run(FLAGS.dataset_name, FLAGS.images_dataset_dir, FLAGS.tfrecords_dataset_dir, FLAGS.validation_percentage, FLAGS.test_percentage, FLAGS.image_height, FLAGS.image_width)
 
   else:
     raise ValueError(
@@ -91,4 +101,3 @@ def main(_):
 
 if __name__ == '__main__':
   tf.compat.v1.app.run()
-

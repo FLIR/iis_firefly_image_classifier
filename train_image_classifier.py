@@ -31,7 +31,7 @@ from preprocessing import preprocessing_factory
 
 import os
 import datetime
-import signal 
+import signal
 import time
 
 slim = contrib_slim
@@ -302,7 +302,7 @@ tf.app.flags.DEFINE_bool(
     'Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
 
 tf.app.flags.DEFINE_string(
-    'roi', None, 
+    'roi', None,
     'Specifies the coordinates of an ROI for cropping the input images.'
     'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
@@ -319,7 +319,7 @@ def _parse_roi():
     # roi="650,950,224,224"
     if FLAGS.roi is None:
       return FLAGS.roi
-    else: 
+    else:
       # print("##################################### roi", FLAGS.roi)
       roi_array_string = FLAGS.roi.split(',')
       roi_array = []
@@ -327,7 +327,7 @@ def _parse_roi():
         roi_array.append(int(i))
       # print("##################################### roi parsed", roi_array)
       return roi_array
-    
+
 
 def _configure_learning_rate(num_samples_per_epoch, global_step):
   """Configures the learning rate.
@@ -565,7 +565,7 @@ def main(_):
 
       train_image_size = FLAGS.train_image_size or network_fn.default_image_size
 
-      image = image_preprocessing_fn(image, 
+      image = image_preprocessing_fn(image,
         train_image_size, train_image_size,
         add_image_summaries=FLAGS.add_image_summaries,
         crop_image=FLAGS.random_image_crop,
@@ -606,7 +606,7 @@ def main(_):
       #############################
       ## Calculation of metrics ##
       #############################
-      
+
       # print('###########1',logits, labels)
       accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(labels, 1), tf.argmax(logits, 1))
       precision, precision_op = tf.metrics.average_precision_at_k(tf.argmax(labels, 1), logits, 1)
@@ -665,7 +665,7 @@ def main(_):
     precision = tf.get_collection('precision')
     precision_op = tf.get_collection('precision_op')
     # accuracy_op = tf.reshape(accuracy_op, [])
-    
+
 
     # Stack and take the mean.
     accuracy = tf.reduce_mean(tf.stack(accuracy, axis=0))
@@ -679,7 +679,7 @@ def main(_):
     summaries.add(tf.summary.scalar('Metrics/average_precision', precision))
     summaries.add(tf.summary.scalar('op/average_precision_op', precision_op))
 
-    # Add precision/recall at each class to summary 
+    # Add precision/recall at each class to summary
     for class_id in range(dataset.num_classes):
       precision_at_k = tf.get_collection(f'precision_at_{class_id}')
       precision_at_k_op = tf.get_collection(f'precision_at_{class_id}_op')
@@ -759,7 +759,7 @@ def main(_):
     summary_op = tf.summary.merge(list(summaries), name='summary_op')
 
     session_config = tf.ConfigProto(
-        log_device_placement = FLAGS.verbose_placement, 
+        log_device_placement = FLAGS.verbose_placement,
         allow_soft_placement = not FLAGS.hard_placement)
     if not FLAGS.fixed_memory :
       session_config.gpu_options.allow_growth=True
@@ -798,8 +798,8 @@ def main(_):
                                             run_metadata=run_metadata)
 
       accuracy = sess.run(train_step_fn.accuracy_train)
-      precision_op= sess.run(train_step_fn.precision_op_train)
-      precision= sess.run(train_step_fn.precision_train)
+      accuracy_op= sess.run(train_step_fn.accuracy_op_train)
+
       time_elapsed = time.time() - start_time
 
       if run_metadata is not None:
@@ -815,7 +815,7 @@ def main(_):
 
       if 'should_log' in train_step_kwargs:
         if sess.run(train_step_kwargs['should_log']):
-          logging.info('global step %d: loss = %.4f , accuracy = %.2f%%, average_precision = %.2f%% (%.3f sec/step)', np_global_step, total_loss, accuracy * 100, precision * 100, time_elapsed)
+          logging.info('global step %d: loss = %.4f (%.3f sec/step)', np_global_step, total_loss, time_elapsed)
           # print(logits, labels)
 
       if 'should_stop' in train_step_kwargs:
@@ -826,8 +826,7 @@ def main(_):
       return total_loss, should_stop or train_step_fn.should_stop
 
     train_step_fn.accuracy_train = accuracy
-    train_step_fn.precision_op_train = precision_op
-    train_step_fn.precision_train = precision
+    train_step_fn.accuracy_op_train = accuracy_op
 
     train_step_fn.should_stop = False
 

@@ -40,7 +40,7 @@ from datasets import dataset_utils
 
 
 
-  
+
 # The URL where the Flowers data can be downloaded.
 # _DATA_URL = 'http://download.tensorflow.org/example_images/flower_photos.tgz'
 
@@ -54,24 +54,47 @@ _RANDOM_SEED = 0
 _NUM_SHARDS = 5
 
 
-class ImageReader(object):
+class ImageReaderPNG(object):
   """Helper class that provides TensorFlow image coding utilities."""
 
   def __init__(self):
-    # Initializes function that decodes RGB JPEG data.
-    self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
-    self._decode_jpeg = tf.image.decode_image(self._decode_jpeg_data, channels=3)
+    # Initializes function that decodes RGB png data.
+    self._decode_png_data = tf.placeholder(dtype=tf.string)
+    self._decode_png = tf.image.decode_png(self._decode_png_data, channels=3)
+    self._decode_png_float = tf.image.convert_image_dtype(self._decode_png, dtype=tf.float32, saturate=False)
+
+    # self._image = tf.placeholder(dtype=tf.float32)
+    self._image_height = tf.placeholder(dtype=tf.int16)
+    self._image_width = tf.placeholder(dtype=tf.int16)
+    self._resize_image = tf.image.resize_images(self._decode_png_float, [self._image_height, self._image_width])
+
+    # self._encode_png_data = tf.placeholder(dtype=tf.uint8)
+    self._resize_image = tf.image.convert_image_dtype(self._resize_image, dtype=tf.uint8, saturate=False)
+    self._encode_png = tf.image.encode_png(self._resize_image)
 
   def read_image_dims(self, sess, image_data):
-    image = self.decode_jpeg(sess, image_data)
+    image = self.decode_png(sess, image_data)
     return image.shape[0], image.shape[1]
 
-  def decode_jpeg(self, sess, image_data):
-    image = sess.run(self._decode_jpeg,
-                     feed_dict={self._decode_jpeg_data: image_data})
+  def resize_image(self, sess, image_data, image_height, image_width):
+    image_data = sess.run(self._encode_png,
+                      feed_dict={self._decode_png_data:image_data,
+                                self._image_height:image_height,
+                                self._image_width:image_width})
+    return image_data
+
+  def decode_png(self, sess, image_data):
+    image = sess.run(self._decode_png_float,
+                     feed_dict={self._decode_png_data: image_data})
     assert len(image.shape) == 3
     assert image.shape[2] == 3
     return image
+
+  def encode_png(self, sess, image):
+    image_data = sess.run(self._encode_png,
+                     feed_dict={self._encode_png_data: image})
+    return image_data
+
 
 
 def _get_filenames_and_classes(dataset_dir):
@@ -109,7 +132,7 @@ def _get_dataset_filename(dataset_dir, split_name, shard_id, dataset_name):
   return os.path.join(dataset_dir, output_filename)
 
 
-def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dataset_name):
+def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dataset_name, image_height, image_width):
   """Converts the given filenames to a TFRecord dataset.
 
   Args:
@@ -122,9 +145,9 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
   assert split_name in ['train', 'validation', 'test']
 
   num_per_shard = int(math.ceil(len(filenames) / float(_NUM_SHARDS)))
-
+  print('##############', filenames[0])
   with tf.Graph().as_default():
-    image_reader = ImageReader()
+    image_reader = ImageReaderPNG()
 
     with tf.Session('') as sess:
 
@@ -143,6 +166,11 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
             # Read the filename:
             image_data = tf.gfile.GFile(filenames[i], 'rb').read()
             height, width = image_reader.read_image_dims(sess, image_data)
+            # print('################# before', height, width)
+            if image_height and image_width:
+                image_data = image_reader.resize_image(sess, image_data, image_height, image_width)
+                height, width = image_reader.read_image_dims(sess, image_data)
+                # print('################# after', height, width)
 
             class_name = os.path.basename(os.path.dirname(filenames[i]))
             class_id = class_names_to_ids[class_name]
@@ -179,7 +207,7 @@ def _dataset_exists(dataset_dir, dataset_name):
   return True
 
 
-def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_percentage, test_percentage):
+def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_percentage, test_percentage, image_height, image_width):
   """Runs the download and conversion operation.
 
   Args:
@@ -197,7 +225,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
 
   if _dataset_exists(tfrecords_dataset_dir, dataset_name):
     print("""
-      Dataset files already exist. Either choose a different dataset name (--dataset_name) or a different directory to store your tfrecord data (--tfrecords_dataset_dir). 
+      Dataset files already exist. Either choose a different dataset name (--dataset_name) or a different directory to store your tfrecord data (--tfrecords_dataset_dir).
 
       Exiting without re-creating them.
       """)
@@ -219,7 +247,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
     test_size = len(test_filenames)
     print('###############', test_size)
     _convert_dataset('test', test_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir, dataset_name)
+                   tfrecords_dataset_dir, dataset_name, image_height, image_width)
     dataset_split['test'] = test_size
   # else:
   #   test_size = 0
@@ -229,7 +257,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
     training_filenames, validation_filenames = train_test_split(training_filenames, test_size=validation_percentage/100, random_state=_RANDOM_SEED)
     validation_size = len(validation_filenames)
     _convert_dataset('validation', validation_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir, dataset_name)
+                   tfrecords_dataset_dir, dataset_name, image_height, image_width)
     dataset_split['validation'] = validation_size
   # else:
   #   validation_size = 0
@@ -237,13 +265,13 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   dataset_size = len(photo_filenames)
   train_size = len(training_filenames)
   dataset_split['train'] = train_size
-  
+
   # print('############################ dataset_size {}, train_size {}, validation_size {}, test_size {}'.format(dataset_size, train_size, validation_size, test_size))
 
   # First, convert the training and validation sets.
   _convert_dataset('train', training_filenames, class_names_to_ids,
-                   tfrecords_dataset_dir, dataset_name)
-  
+                   tfrecords_dataset_dir, dataset_name, image_height, image_width)
+
 
 
   # Finally, write the label and dataset json files:
