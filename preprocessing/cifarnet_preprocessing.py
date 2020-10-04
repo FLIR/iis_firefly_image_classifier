@@ -119,7 +119,8 @@ def preprocess_image(image,
                      output_width,
                      is_training=False,
                      add_image_summaries=True,
-                     use_grayscale=False):
+                     use_grayscale=False,
+                     **kwargs):
   """Preprocesses the given image.
 
   Args:

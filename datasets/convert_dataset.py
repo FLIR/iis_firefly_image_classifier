@@ -219,7 +219,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
     test_percentage: test dataset
   """
   # create new dataset
-  tfrecords_dataset_dir = os.path.join(tfrecords_dataset_dir, dataset_name)
+  # tfrecords_dataset_dir = os.path.join(tfrecords_dataset_dir, dataset_name)
   if not tf.gfile.Exists(tfrecords_dataset_dir):
     tf.gfile.MakeDirs(tfrecords_dataset_dir)
 

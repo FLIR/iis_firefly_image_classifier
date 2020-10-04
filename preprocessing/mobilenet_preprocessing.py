@@ -165,18 +165,18 @@ def get_roi_bbox(roi):
 
 
   # Define bbox for the ROI
-  image_height = roi[4] 
-  image_width = roi[5] 
-  
+  image_height = roi[4]
+  image_width = roi[5]
+
   # roi_bbox is a shape (1,1,4) tensor, that contains [y_min, x_min, y_max, x_max]. The values are normalize to [0,1]
-  roi_bbox = tf.constant([roi[0]/image_height, roi[1]/image_width, (roi[0]+roi[2])/image_height, (roi[1]+roi[3])/image_width]) 
+  roi_bbox = tf.constant([roi[0]/image_height, roi[1]/image_width, (roi[0]+roi[2])/image_height, (roi[1]+roi[3])/image_width])
   roi_bbox = tf.expand_dims(roi_bbox, 0)  # convert a rank 1 tensor to rank 3. Shape (1,1,4)
   roi_bbox = tf.expand_dims(roi_bbox, 0)
   return roi_bbox
 
 def draw_roi_bbox(image, roi_bbox, add_image_summaries, scope=None):
   """ Draw roi_bbox, overlay on image """
-  
+
   with tf.name_scope(scope):
     image.set_shape([None, None, 3])
     image_with_roi_box = tf.image.draw_bounding_boxes(
@@ -267,7 +267,7 @@ def preprocess_for_train(image,
     draw_roi_bbox(image, roi_bbox, add_image_summaries, 'original')
     draw_roi_bbox(distorted_image, roi_bbox, add_image_summaries, 'augmented')
 
-    # Extract region of interest (roi)  
+    # Extract region of interest (roi)
     if roi is None:
       distorted_image = distorted_image
     else:
