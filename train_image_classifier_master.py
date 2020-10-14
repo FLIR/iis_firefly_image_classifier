@@ -579,7 +579,7 @@ def main(_):
     ###########################
 
     session_config = tf.ConfigProto(
-        log_device_placement = False, 
+        log_device_placement = False,
         allow_soft_placement = True)
     session_config.gpu_options.allow_growth=True
 
