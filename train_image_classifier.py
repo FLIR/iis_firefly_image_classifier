@@ -243,14 +243,15 @@ tf.app.flags.DEFINE_string(
     'The path to a checkpoint from which to fine-tune.')
 
 tf.app.flags.DEFINE_string(
-    'checkpoint_exclude_scopes', None,
+    'checkpoint_exclude_scopes', 'MobilenetV1/Logits',
     'Comma-separated list of scopes of variables to exclude when restoring '
-    'from a checkpoint.')
+    'from a checkpoint.'
+    'By default, only the Logits layer is excluded')
 
 tf.app.flags.DEFINE_string(
-    'trainable_scopes', None,
+    'trainable_scopes', 'MobilenetV1/Logits',
     'Comma-separated list of scopes to filter the set of variables to train.'
-    'By default, None would train all the variables.')
+    'By default, only the Logits layer is trained. None would train all the variables.')
 
 tf.app.flags.DEFINE_boolean(
     'ignore_missing_vars', True,
@@ -275,14 +276,35 @@ tf.app.flags.DEFINE_string(
 # Preprocessing Flags #
 #######################
 
+
 tf.app.flags.DEFINE_bool(
-    'apply_image_augmentation', False,
-    'Whether or not to synchronize the replicas during training.')
+    'add_image_summaries', True,
+    'Enable image summaries.')
+
+tf.app.flags.DEFINE_bool(
+    'apply_image_augmentation', True,
+    'Enable random image augmentation during preprocessing for training.')
+
+tf.app.flags.DEFINE_bool(
+    'random_image_crop', True,
+    'Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled')
+
+tf.app.flags.DEFINE_float(
+    'min_object_covered', 0.8,
+    'The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled')
+
+tf.app.flags.DEFINE_bool(
+    'random_image_rotation', True,
+    'Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled')
+
+tf.app.flags.DEFINE_bool(
+    'random_image_flip', False,
+    'Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
 
 tf.app.flags.DEFINE_string(
     'roi', None, 
     'Specifies the coordinates of an ROI for cropping the input images.'
-    'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
+    'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -470,6 +492,7 @@ def _get_variables_to_train():
     if 'BatchNorm' not in FLAGS.trainable_scopes:
       scopes.append('BatchNorm')
 
+  print('##############', scopes)
   for scope in scopes:
   	variables = []
   	for variable in tf.trainable_variables():
@@ -526,8 +549,7 @@ def main(_):
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
         is_training=FLAGS.apply_image_augmentation,
-        use_grayscale=FLAGS.use_grayscale,
-        roi=_parse_roi())
+        use_grayscale=FLAGS.use_grayscale)
 
     ##############################################################
     # Create a dataset provider that loads data from the dataset #
@@ -543,7 +565,14 @@ def main(_):
 
       train_image_size = FLAGS.train_image_size or network_fn.default_image_size
 
-      image = image_preprocessing_fn(image, train_image_size, train_image_size)
+      image = image_preprocessing_fn(image, 
+        train_image_size, train_image_size,
+        add_image_summaries=FLAGS.add_image_summaries,
+        crop_image=FLAGS.random_image_crop,
+        min_object_covered=FLAGS.min_object_covered,
+        rotate_image=FLAGS.random_image_rotation,
+        random_flip=FLAGS.random_image_flip,
+        roi=FLAGS.roi)
 
       images, labels = tf.train.batch(
           [image, label],

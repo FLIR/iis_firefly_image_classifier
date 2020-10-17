@@ -77,7 +77,7 @@ def extract_roi(image, roi):
   Input: 
      image: 4-D Tensor of shape [batch, height, width, channels] 
          or 3-D Tensor of shape [height, width, channels]"""
-
+  # print('################ roi', roi)
   extracted_roi = tf.image.crop_to_bounding_box(
     image,
     roi[0],
@@ -314,11 +314,11 @@ def aug(image):
   random_rotate = 5 #0.7
   augmented_image = augment_random_rotate(image, random_rotate)  
   
-  image_width, image_height = 1440, 1080
+  image_width, image_height = 274, 274
   shift_max_x = 10
   shift_max_y = 10
   augmented_image = augment_random_shift(augmented_image, image_width, image_height, shift_max_x, shift_max_y)  
-  # roi_param = {
+  # # roi_param = {
   #   'roi_offset_x':950,
   #   'roi_offset_y':650,
   #   'roi_width':224,

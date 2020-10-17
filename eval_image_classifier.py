@@ -108,6 +108,9 @@ tf.app.flags.DEFINE_bool(
 #######################
 # Preprocessing Flags #
 #######################
+tf.app.flags.DEFINE_bool(
+    'add_image_summaries', True,
+    'Enable image summaries.')
 
 tf.app.flags.DEFINE_string(
     'roi', None, 
@@ -174,12 +177,13 @@ def main(_):
     image_preprocessing_fn = preprocessing_factory.get_preprocessing(
         preprocessing_name,
         is_training=False,
-        use_grayscale=FLAGS.use_grayscale,
-        roi=_parse_roi())
+        use_grayscale=FLAGS.use_grayscale)
 
     eval_image_size = FLAGS.eval_image_size or network_fn.default_image_size
 
-    image = image_preprocessing_fn(image, eval_image_size, eval_image_size)
+    image = image_preprocessing_fn(image, eval_image_size, eval_image_size,
+        add_image_summaries=FLAGS.add_image_summaries,
+        roi=_parse_roi())
 
     images, labels = tf.train.batch(
         [image, label],

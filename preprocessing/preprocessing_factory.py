@@ -21,6 +21,7 @@ from tensorflow.contrib import slim as contrib_slim
 
 from preprocessing import cifarnet_preprocessing
 from preprocessing import inception_preprocessing
+from preprocessing import custom_1_inception_preprocessing
 from preprocessing import lenet_preprocessing
 from preprocessing import vgg_preprocessing
 from preprocessing import mobilenet_preprocessing
@@ -28,7 +29,7 @@ from preprocessing import mobilenet_preprocessing
 slim = contrib_slim
 
 
-def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
+def get_preprocessing(name, is_training=False, use_grayscale=False):
   """Returns preprocessing_fn(image, height, width, **kwargs).
 
   Args:
@@ -45,9 +46,6 @@ def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
   Raises:
     ValueError: If Preprocessing `name` is not recognized.
   """
-  custom_preprocessing_fn_map = {
-  'mobilenet_v1_pcb': mobilenet_preprocessing, #inception_preprocessing,
-  }
 
   preprocessing_fn_map = {
       'cifarnet': cifarnet_preprocessing,
@@ -78,13 +76,13 @@ def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
       'vgg_a': vgg_preprocessing,
       'vgg_16': vgg_preprocessing,
       'vgg_19': vgg_preprocessing,
+      'custom_1_preprocessing_pipline':custom_1_inception_preprocessing,
+      'mobilenet_v1_pcb': mobilenet_preprocessing,      
   }
-
-  if name not in preprocessing_fn_map and name not in custom_preprocessing_fn_map:
-    raise ValueError('Preprocessing name [%s] was not recognized' % name)
 
   if name in preprocessing_fn_map:
     def preprocessing_fn(image, output_height, output_width, **kwargs):
+      # print('##############', kwargs)
       return preprocessing_fn_map[name].preprocess_image(
           image,
           output_height,
@@ -93,15 +91,7 @@ def get_preprocessing(name, is_training=False, use_grayscale=False, roi=None):
           use_grayscale=use_grayscale,
           **kwargs)
       
-  elif name in custom_preprocessing_fn_map:
-    def preprocessing_fn(image, output_height, output_width, **kwargs):
-      return custom_preprocessing_fn_map[name].preprocess_image(
-          image,
-          output_height,
-          output_width,
-          is_training=is_training,
-          use_grayscale=use_grayscale,
-          roi=roi,
-          **kwargs)
+  else:
+    raise ValueError('Preprocessing name [%s] was not recognized' % name)
 
   return preprocessing_fn
