@@ -353,7 +353,8 @@ def preprocess_image(image,
                      is_training=False,
                      resize_side_min=_RESIZE_SIDE_MIN,
                      resize_side_max=_RESIZE_SIDE_MAX,
-                     use_grayscale=False):
+                     use_grayscale=False,
+                     **kwargs):
   """Preprocesses the given image.
 
   Args:

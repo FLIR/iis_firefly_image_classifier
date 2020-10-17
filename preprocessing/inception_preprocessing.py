@@ -151,7 +151,7 @@ def distorted_bounding_box_crop(image,
     # Crop the image to the specified bounding box.
     cropped_image = tf.slice(image, bbox_begin, bbox_size)
     return cropped_image, distort_bbox
-    
+
 
 def preprocess_for_train(image,
                          height,
@@ -244,7 +244,7 @@ def preprocess_for_train(image,
         distorted_image,
         lambda x, ordering: distort_color(x, ordering, fast_mode),
         num_cases=num_distort_cases)
-    
+
     if use_grayscale:
       distorted_image = tf.image.rgb_to_grayscale(distorted_image)
 
@@ -317,7 +317,8 @@ def preprocess_image(image,
                      fast_mode=True,
                      add_image_summaries=True,
                      crop_image=True,
-                     use_grayscale=False):
+                     use_grayscale=False,
+                     **kwargs):
   """Pre-process one image for training or evaluation.
 
   Args:
