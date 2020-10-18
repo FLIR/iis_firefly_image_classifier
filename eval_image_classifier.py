@@ -113,18 +113,25 @@ tf.app.flags.DEFINE_bool(
     'Enable image summaries.')
 
 tf.app.flags.DEFINE_string(
-    'roi', None, 
+    'roi', None,
     'Specifies the coordinates of an ROI for cropping the input images.'
     'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
 
 FLAGS = tf.app.flags.FLAGS
-EVAL_DIR = os.path.join(FLAGS.eval_dir, FLAGS.dataset_split_name)
+
+if FLAGS.eval_dir:
+    EVAL_DIR = os.path.join(FLAGS.eval_dir, FLAGS.dataset_split_name)
+    if not os.path.exists(EVAL_DIR):
+        os.makedirs(EVAL_DIR)
+else:
+    raise ValueError('You must supply evaluation directory with --eval_dir.')
+
 
 def _parse_roi():
     # parse roi
     if FLAGS.roi is None:
       return FLAGS.roi
-    else: 
+    else:
       roi_array_string = FLAGS.roi.split(',')
       roi_array = []
       for i in roi_array_string:
@@ -134,7 +141,7 @@ def _parse_roi():
 def main(_):
   if not FLAGS.dataset_dir:
     raise ValueError('You must supply the dataset directory with --dataset_dir')
-  
+
   if not FLAGS.eval_dir:
     raise ValueError('You must supply an eval directory with --eval_dir')
 
@@ -210,7 +217,7 @@ def main(_):
 
     loss = tf.losses.softmax_cross_entropy(tf.one_hot(labels, dataset.num_classes), logits)
 
-    
+
     #############################
     ## Calculation of metrics ##
     #############################
@@ -219,7 +226,7 @@ def main(_):
     precision, precision_op = tf.metrics.average_precision_at_k(tf.squeeze(labels), logits, 1)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     update_ops.append([accuracy_op, precision_op])
-    
+
 
     tf.add_to_collection('accuracy', accuracy)
     tf.add_to_collection('accuracy_op', accuracy_op)
@@ -236,11 +243,11 @@ def main(_):
         tf.add_to_collection(f'precision_at_{class_id}_op', precision_at_k_op)
         tf.add_to_collection(f'recall_at_{class_id}', recall_at_k)
         tf.add_to_collection(f'recall_at_{class_id}_op', recall_at_k_op)
-        
+
 
     #############################
     ## Add summaries ##
-    #############################   
+    #############################
     summaries = set(tf.get_collection(tf.GraphKeys.SUMMARIES))
     # Add summaries for losses.
     for loss in tf.get_collection(tf.GraphKeys.LOSSES):
@@ -289,14 +296,14 @@ def main(_):
     #     checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
     else:
         checkpoint_path = FLAGS.checkpoint_path
-        
+
 
     tf.logging.info('#####Evaluating %s' % checkpoint_path)
     # evaluate for 1000 batches:
     # num_evals = 5
-    
+
     # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    
+
     update_op = tf.group(*update_ops)
     # print('################', update_op)
     with tf.control_dependencies([update_op]):
@@ -309,7 +316,7 @@ def main(_):
     # session_config = tf.ConfigProto()
     # session_config.gpu_options.allow_growth = True
     session_config = tf.ConfigProto(
-        log_device_placement = FLAGS.verbose_placement, 
+        log_device_placement = FLAGS.verbose_placement,
         allow_soft_placement = not FLAGS.hard_placement)
     if not FLAGS.fixed_memory :
       session_config.gpu_options.allow_growth=True
@@ -323,7 +330,7 @@ def main(_):
         eval_op=update_ops,
         summary_op=summary_op,
         eval_interval_secs=20,
-        session_config=session_config) 
+        session_config=session_config)
     # How often to run the evaluation
     # slim.evaluation.evaluate_once(
     #     master=FLAGS.master,
