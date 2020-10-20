@@ -1,0 +1,43 @@
+- model: train 
+  description: Retrain script from tf_classificaiton with augmentations  
+  operations:
+    train:
+      description: Retrain a classifier
+      main: train_image_classifier_guild 
+      flags-import: all  
+      # flags:                 # Change flags
+      #   max_number_of_steps:
+      #     type: int 
+      #     default: 20
+      #   batch_size:
+      #     type: int
+      #     default: 64
+      #     choices: [16, 32, 64]
+      #   # dataset_dir: /home/research/dixu/Projects/tf_classification/TFRecord/pcb_led
+      #   # dataset_name: pcb_led
+      #   initial_learning_rate: 0.001
+      requires:
+        - file: checkpoints  # resolve file dependancies
+        - file: train_dir    # output folder is mapped from host to virtual environment in env/.guild/runs
+    eval:
+      description: Evaluate and monitor model performance during training
+      main: eval_image_classifier
+      flags-import: all 
+      flags:
+        eval_dir: 'train_dir/pcb/t5' 
+        dataset_dir: '/home/research/dixu/Projects/tf_classification/TFRecord/pcb_led'
+        dataset_name: 'pcb_led' 
+        batch_size: 64  
+        dataset_split_name: 'validation' 
+        model_name: 'mobilenet_v1' 
+        preprocessing_name: 'mobilenet_v1' 
+        eval_image_size: 224 
+        checkpoint_path: 'checkpoints/mobilenet_v1_1.0_224.ckpt'
+        roi: '650,950,224,224,1080,1440'
+      requires:
+        - file: checkpoints  
+        - file: train_dir    
+
+
+  sourcecode: 
+    - '*.py'

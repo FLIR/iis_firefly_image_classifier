@@ -28,96 +28,48 @@ from nets import nets_factory
 from preprocessing import preprocessing_factory
 
 import os
+import argparse
 
 slim = contrib_slim
 
-tf.app.flags.DEFINE_integer(
-    'batch_size', 256, 'The number of samples in each batch.')
 
-tf.app.flags.DEFINE_integer(
-    'max_num_batches', None,
-    'Max number of batches to evaluate by default use all.')
 
-tf.app.flags.DEFINE_string(
-    'master', '', 'The address of the TensorFlow master to use.')
+p = argparse.ArgumentParser()
 
-tf.app.flags.DEFINE_string(
-    'checkpoint_path', None,
-    'The directory where the model was written to or an absolute path to a '
+p.add_argument("--batch_size", type=int, default=20, help='The number of samples in each batch.')
+p.add_argument("--max_num_batches", type=int, default=None, help='Max number of batches to evaluate by default use all.')
+p.add_argument("--master", type=str, help='The address of the TensorFlow master to use.')
+p.add_argument("--checkpoint_path", type=str, default='/tmp/tfmodel/', help='The directory where the model was written to or an absolute path to a '
     'checkpoint file.')
-
-tf.app.flags.DEFINE_string(
-    'eval_dir', None, 'Directory where the results are saved to.')
-
-tf.app.flags.DEFINE_integer(
-    'num_preprocessing_threads', 4,
-    'The number of threads used to create the batches.')
-
-tf.app.flags.DEFINE_string(
-    'dataset_name', 'imagenet', 'The name of the dataset to load.')
-
-tf.app.flags.DEFINE_string(
-    'dataset_split_name', 'validation', 'The name of the train/test split.')
-
-tf.app.flags.DEFINE_string(
-    'dataset_dir', None, 'The directory where the dataset files are stored.')
-
-tf.app.flags.DEFINE_integer(
-    'labels_offset', 0,
-    'An offset for the labels in the dataset. This flag is primarily used to '
-    'evaluate the VGG and ResNet architectures which do not use a background '
-    'class for the ImageNet dataset.')
-
-tf.app.flags.DEFINE_string(
-    'model_name', 'inception_v3', 'The name of the architecture to evaluate.')
-
-tf.app.flags.DEFINE_string(
-    'preprocessing_name', None, 'The name of the preprocessing to use. If left '
+p.add_argument("--eval_dir", type=str, default='/tmp/tfmodel/', help='Directory where the results are saved to.')
+p.add_argument("--num_preprocessing_threads", type=int, default=4, help='The number of threads used to create the batches.')
+p.add_argument("--dataset_name", type=str, default='imagenet', help='The name of the dataset to load.')
+p.add_argument("--dataset_split_name", type=str, default='test', help='The name of the train/test split.')
+p.add_argument("--dataset_dir", type=str, default=None, help='The directory where the dataset files are stored.')
+p.add_argument("--labels_offset", type=int, default=0, help='An offset for the labels in the dataset. This flag is primarily used to '
+    'evaluate the VGG and ResNet architectures which do not use a background class for the ImageNet dataset.')
+p.add_argument("--model_name", type=str, default='inception_v3', help='The name of the architecture to evaluate.')
+p.add_argument("--preprocessing_name", type=str, default=None, help='The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')
-
-tf.app.flags.DEFINE_float(
-    'moving_average_decay', None,
-    'The decay to use for the moving average.'
+p.add_argument("--moving_average_decay", type=float, default=None, help='The decay to use for the moving average.'
     'If left as None, then moving averages are not used.')
-
-tf.app.flags.DEFINE_integer(
-    'eval_image_size', None, 'Eval image size')
-
-tf.app.flags.DEFINE_bool(
-    'quantize', False, 'whether to use quantized graph or not.')
-
-tf.app.flags.DEFINE_bool('use_grayscale', False,
-                         'Whether to convert input images to grayscale.')
-
-tf.app.flags.DEFINE_string(
-    'final_endpoint', None,
-    'Specifies the endpoint to construct the network up to.'
+p.add_argument("--eval_image_size", type=int, default=None, help='Eval image size')
+p.add_argument("--quantize", type=bool, default=False, help='whether to use quantized graph or not.')
+p.add_argument("--use_grayscale", type=bool, default=False, help='Whether to convert input images to grayscale.')
+p.add_argument("--final_endpoint", type=str, default=None, help='Specifies the endpoint to construct the network up to.'
     'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
-tf.app.flags.DEFINE_bool(
-    'verbose_placement', False,
-    'Shows detailed information about device placement.')
-
-tf.app.flags.DEFINE_bool(
-    'hard_placement', False,
-    'Uses hard constraints for device placement on tensorflow sessions.')
-
-tf.app.flags.DEFINE_bool(
-    'fixed_memory', False,
-    'Allocates the entire memory at once.')
+p.add_argument("--verbose_placement", type=bool, default=False, help='Shows detailed information about device placement.')
+p.add_argument("--hard_placement", type=bool, default=False, help='Uses hard constraints for device placement on tensorflow sessions.')
+p.add_argument("--fixed_memory", type=bool, default=False, help='Allocates the entire memory at once.')
 
 #######################
 # Preprocessing Flags #
 #######################
-tf.app.flags.DEFINE_bool(
-    'add_image_summaries', True,
-    'Enable image summaries.')
+p.add_argument("--add_image_summaries", type=bool, default=True, help='Enable image summaries.')
+p.add_argument("--roi", type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.'
+    ' Expects six integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
+FLAGS = p.parse_args()
 
-tf.app.flags.DEFINE_string(
-    'roi', None, 
-    'Specifies the coordinates of an ROI for cropping the input images.'
-    'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
-
-FLAGS = tf.app.flags.FLAGS
 EVAL_DIR = os.path.join(FLAGS.eval_dir, FLAGS.dataset_split_name)
 
 def _parse_roi():
@@ -131,7 +83,7 @@ def _parse_roi():
         roi_array.append(int(i))
       return roi_array
 
-def main(_):
+def main():
   if not FLAGS.dataset_dir:
     raise ValueError('You must supply the dataset directory with --dataset_dir')
   
@@ -335,4 +287,5 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.app.run()
+  # tf.app.run()
+  main()

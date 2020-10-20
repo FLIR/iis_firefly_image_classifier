@@ -33,6 +33,7 @@ import os
 import datetime
 import signal
 import time
+import argparse
 
 slim = contrib_slim
 
@@ -307,7 +308,12 @@ tf.app.flags.DEFINE_string(
     'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
 
-FLAGS = tf.app.flags.FLAGS
+# FLAGS = tf.app.flags.FLAGS
+p = argparse.ArgumentParser()
+# sample input argument
+p.add_argument("--batch_size", type=int, default=20, help='The number of samples in each batch.')
+
+FLAGS = p.parse_args()
 TRAIN_DIR = os.path.join(FLAGS.train_dir, FLAGS.dataset_split_name)
 if not os.path.exists(TRAIN_DIR):
     os.makedirs(TRAIN_DIR)
@@ -506,7 +512,7 @@ def _get_variables_to_train():
   return list(set(variables_to_train))
 
 
-def main(_):
+def main():
   if not FLAGS.dataset_dir:
     raise ValueError('You must supply the dataset directory with --dataset_dir')
 
@@ -874,4 +880,5 @@ def main(_):
       experiment_file.flush()
 
 if __name__ == '__main__':
-  tf.app.run()
+  # tf.app.run()
+  main()
