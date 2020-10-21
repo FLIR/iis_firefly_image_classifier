@@ -45,7 +45,7 @@ _FILE_PATTERN = '%s_%s_*.tfrecord'
 # }
 
 # def read_json(dataset_name, dataset_dir):
-  
+
 #   json_file = os.path.join(dataset_dir, 'dataset_config.json')
 
 #   with open(json_file) as file:
@@ -84,7 +84,7 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
     raise ValueError('split name %s was not recognized.' % split_name)
 
   if not file_pattern:
-    
+
     file_pattern = _FILE_PATTERN % (dataset_name, split_name)
   file_pattern = os.path.join(dataset_dir, file_pattern)
 
@@ -94,14 +94,22 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
 
   keys_to_features = {
       'image/encoded': tf.FixedLenFeature((), tf.string, default_value=''),
+      'image/name': tf.FixedLenFeature((), tf.string, default_value=''),
       'image/format': tf.FixedLenFeature((), tf.string, default_value='png'),
       'image/class/label': tf.FixedLenFeature(
+          [], tf.int64, default_value=tf.zeros([], dtype=tf.int64)),
+      'image/height': tf.FixedLenFeature(
+          [], tf.int64, default_value=tf.zeros([], dtype=tf.int64)),
+      'image/width': tf.FixedLenFeature(
           [], tf.int64, default_value=tf.zeros([], dtype=tf.int64)),
   }
 
   items_to_handlers = {
       'image': slim.tfexample_decoder.Image(),
       'label': slim.tfexample_decoder.Tensor('image/class/label'),
+      'image_name': slim.tfexample_decoder.Tensor('image/name'),
+      'image_height': slim.tfexample_decoder.Tensor('image/height'),
+      'image_width': slim.tfexample_decoder.Tensor('image/width'),
   }
 
   decoder = slim.tfexample_decoder.TFExampleDecoder(
@@ -109,13 +117,27 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
 
   labels_to_names = None
   if dataset_utils.has_labels(dataset_dir):
-    labels_to_names = dataset_utils.read_label_file(dataset_dir)
+    class_to_label_names, label_to_class_names = dataset_utils.read_label_file(dataset_dir)
+
+  num_samples=splits_to_sizes[split_name]
+  if split_name+'_per_class' in splits_to_sizes:
+    num_samples_per_class=splits_to_sizes[split_name+'_per_class']
+    return slim.dataset.Dataset(
+        data_sources=file_pattern,
+        reader=reader,
+        decoder=decoder,
+        num_samples=num_samples,
+        items_to_descriptions=items_to_descriptions,
+        num_classes=num_classes,
+        labels_to_names=label_to_class_names,
+        num_samples_per_class=num_samples_per_class)
+
 
   return slim.dataset.Dataset(
       data_sources=file_pattern,
       reader=reader,
       decoder=decoder,
-      num_samples=splits_to_sizes[split_name],
+      num_samples=num_samples,
       items_to_descriptions=items_to_descriptions,
       num_classes=num_classes,
-      labels_to_names=labels_to_names)
+      labels_to_names=label_to_class_names)

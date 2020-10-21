@@ -230,6 +230,9 @@ tf.app.flags.DEFINE_integer('max_number_of_steps', None,
 tf.app.flags.DEFINE_bool('use_grayscale', False,
                          'Whether to convert input images to grayscale.')
 
+tf.app.flags.DEFINE_bool('balance_classes', False,
+                         'apply class weight to loss function .')
+
 #####################
 # Fine-Tuning Flags #
 #####################
@@ -604,9 +607,19 @@ def main(_):
             end_points['AuxLogits'], labels,
             label_smoothing=FLAGS.label_smoothing, weights=0.4,
             scope='aux_loss')
-      slim.losses.softmax_cross_entropy(
-          logits, labels, label_smoothing=FLAGS.label_smoothing, weights=1.0)
 
+
+      if FLAGS.balance_classes:
+          for label_name in bdataset.num_samples_per_class:
+              class_name = dataset.labels_to_names[label_name]
+
+          class_weights = tf.constant([41.25, 0.51])
+          sample_weights = tf.reduce_sum(tf.multiply(labels, class_weights), 1)
+          slim.losses.softmax_cross_entropy(
+                    logits, labels, label_smoothing=FLAGS.label_smoothing, weights=sample_weights)
+      else:
+          slim.losses.softmax_cross_entropy(
+                    logits, labels, label_smoothing=FLAGS.label_smoothing, weights=1.0)
       #############################
       ## Calculation of metrics ##
       #############################
