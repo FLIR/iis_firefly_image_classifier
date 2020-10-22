@@ -152,7 +152,7 @@ def distorted_bounding_box_crop(image,
     cropped_image = tf.slice(image, bbox_begin, bbox_size)
     return cropped_image, distort_bbox
 
-import random   
+import random
 
 def preprocess_for_train(image,
                          height,
@@ -247,10 +247,10 @@ def preprocess_for_train(image,
 
     # Randomly rotate image counter.
     if random_rotate:
-      distorted_image = tf.image.rot90(distorted_image, 
+      distorted_image = tf.image.rot90(distorted_image,
           k=tf.random.uniform(
-          shape=[], 
-          minval=1, maxval=4, 
+          shape=[],
+          minval=1, maxval=4,
           dtype=tf.int32))
 
     if add_image_summaries:
@@ -271,7 +271,7 @@ def preprocess_for_train(image,
         distorted_image,
         lambda x, ordering: distort_color(x, ordering, fast_mode),
         num_cases=num_distort_cases)
-    
+
     if use_grayscale:
       distorted_image = tf.image.rgb_to_grayscale(distorted_image)
 
@@ -351,7 +351,7 @@ def preprocess_image(image,
                      bbox=None,
                      fast_mode=True,
                      add_image_summaries=False,
-                     crop_image=False,
+                     crop_image=True,
                      min_object_covered=0.1,
                      rotate_image=False,
                      random_flip=False,

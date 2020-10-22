@@ -125,7 +125,6 @@ FLAGS = tf.app.flags.FLAGS
 
 def main(_):
 
-  print('#################### dataset Directory', FLAGS.dataset_dir)
   if not FLAGS.output_file:
     raise ValueError('You must supply the path to save to with --output_file')
   if FLAGS.is_video_model and not FLAGS.num_frames:

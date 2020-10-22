@@ -413,12 +413,12 @@ def run_main():
       nargs="?",
       const=True,
       type="bool",
-      default=False,
+      default=True,
       help="Whether the input files are in binary format.")
   parser.add_argument(
       "--output_node_names",
       type=str,
-      default="",
+      default="MobilenetV1/Predictions/Reshape_1",
       help="The name of the output nodes, comma separated.")
   parser.add_argument(
       "--restore_op_name",
