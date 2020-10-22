@@ -212,19 +212,19 @@ tf.app.flags.DEFINE_integer(
     'class for the ImageNet dataset.')
 
 tf.app.flags.DEFINE_string(
-    'model_name', 'inception_v3', 'The name of the architecture to train.')
+    'model_name', 'mobilenet_v1', 'The name of the architecture to train.')
 
 tf.app.flags.DEFINE_string(
-    'preprocessing_name', None, 'The name of the preprocessing to use. If left '
+    'preprocessing_name', 'custom_1_preprocessing_pipline', 'The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')
 
 tf.app.flags.DEFINE_integer(
-    'batch_size', 32, 'The number of samples in each batch.')
+    'batch_size', 64, 'The number of samples in each batch.')
 
 tf.app.flags.DEFINE_integer(
-    'train_image_size', None, 'Train image size')
+    'train_image_size', 224, 'Train image size')
 
-tf.app.flags.DEFINE_integer('max_number_of_steps', None,
+tf.app.flags.DEFINE_integer('max_number_of_steps', 50000,
                             'The maximum number of training steps.')
 
 tf.app.flags.DEFINE_bool('use_grayscale', False,
@@ -242,7 +242,7 @@ tf.app.flags.DEFINE_bool(
     'Whether or not to synchronize the replicas during training.')
 
 tf.app.flags.DEFINE_string(
-    'checkpoint_path', None,
+    'checkpoint_path', './checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt',
     'The path to a checkpoint from which to fine-tune.')
 
 tf.app.flags.DEFINE_string(
@@ -514,9 +514,11 @@ def _get_variables_to_train():
 
 
 def main(_):
-  if not FLAGS.dataset_dir:
+  if not os.path.isdir(FLAGS.dataset_dir):
     raise ValueError('You must supply the dataset directory with --dataset_dir')
-
+  DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
+  if not os.path.isdir(DATASET_DIR):
+    raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
     #######################
@@ -537,7 +539,7 @@ def main(_):
     # Select the dataset #
     ######################
     dataset = dataset_factory.get_dataset(
-        FLAGS.dataset_name, FLAGS.dataset_split_name, FLAGS.dataset_dir)
+        FLAGS.dataset_name, FLAGS.dataset_split_name, DATASET_DIR)
 
     ######################
     # Select the network #

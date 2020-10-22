@@ -187,6 +187,8 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
 
   sys.stdout.write('\n')
   sys.stdout.flush()
+  num_samples_per_classl/['class_weights'] = dict{}
+  for num_samples in num_samples_per_class:
   return num_samples_per_class
 
 
@@ -257,6 +259,7 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
                    tfrecords_dataset_dir, dataset_name, image_height, image_width)
     dataset_split['test'] = test_size
     dataset_split['test_per_class'] = num_samples_per_class
+
   # else:
   #   test_size = 0
 

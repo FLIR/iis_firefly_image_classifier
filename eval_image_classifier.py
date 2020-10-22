@@ -32,7 +32,7 @@ import os
 slim = contrib_slim
 
 tf.app.flags.DEFINE_integer(
-    'batch_size', 256, 'The number of samples in each batch.')
+    'batch_size', 64, 'The number of samples in each batch.')
 
 tf.app.flags.DEFINE_integer(
     'max_num_batches', None,
@@ -69,10 +69,10 @@ tf.app.flags.DEFINE_integer(
     'class for the ImageNet dataset.')
 
 tf.app.flags.DEFINE_string(
-    'model_name', 'inception_v3', 'The name of the architecture to evaluate.')
+    'model_name', 'mobilenet_v1', 'The name of the architecture to evaluate.')
 
 tf.app.flags.DEFINE_string(
-    'preprocessing_name', None, 'The name of the preprocessing to use. If left '
+    'preprocessing_name', 'custom_1_preprocessing_pipline', 'The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')
 
 tf.app.flags.DEFINE_float(
@@ -93,6 +93,7 @@ tf.app.flags.DEFINE_string(
     'final_endpoint', None,
     'Specifies the endpoint to construct the network up to.'
     'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
+
 tf.app.flags.DEFINE_bool(
     'verbose_placement', False,
     'Shows detailed information about device placement.')
@@ -139,8 +140,11 @@ def _parse_roi():
       return roi_array
 
 def main(_):
-  if not FLAGS.dataset_dir:
+  if not os.path.isdir(FLAGS.dataset_dir):
     raise ValueError('You must supply the dataset directory with --dataset_dir')
+  DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
+  if not os.path.isdir(DATASET_DIR):
+    raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
 
   if not FLAGS.eval_dir:
     raise ValueError('You must supply an eval directory with --eval_dir')
@@ -154,7 +158,7 @@ def main(_):
     # Select the dataset #
     ######################
     dataset = dataset_factory.get_dataset(
-        FLAGS.dataset_name, FLAGS.dataset_split_name, FLAGS.dataset_dir)
+        FLAGS.dataset_name, FLAGS.dataset_split_name, DATASET_DIR)
 
     ####################
     # Select the model #

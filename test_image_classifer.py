@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_string(
     'test_dir', None, 'Directory where the output .txt file for prediction probabilities is saved .')
 
 tf.app.flags.DEFINE_string(
-    'model_name', None, 'The name of the architecture to evaluate.')
+    'model_name', 'mobilenet_v1', 'The name of the architecture to evaluate.')
 
 tf.app.flags.DEFINE_string(
     'checkpoint_path', None,
@@ -47,7 +47,7 @@ tf.app.flags.DEFINE_bool('use_grayscale', False,
 #######################
 
 tf.app.flags.DEFINE_string(
-    'dataset_name', 'blocks_all', 'The name of the dataset to load.')
+    'dataset_name', None, 'The name of the dataset to load.')
 
 tf.app.flags.DEFINE_string(
     'dataset_dir',None,
@@ -57,7 +57,7 @@ tf.app.flags.DEFINE_string(
     'preprocessing_name', 'custom_1_preprocessing_pipline', 'The name of the preprocessing to use. If left as `None`, then the model_name flag is used.')
 
 tf.app.flags.DEFINE_boolean(
-    'tfrecord',False, 'Input file is formatted as TFRecord.')
+    'tfrecord',True, 'Input file is formatted as TFRecord.')
 
 tf.app.flags.DEFINE_string(
     'dataset_split_name', 'test', 'The name of the train/test split.')
@@ -79,7 +79,7 @@ tf.app.flags.DEFINE_integer(
 #######################
 
 tf.app.flags.DEFINE_boolean(
-    'test_with_groudtruth',False, 'Evaluate with groudtruth')
+    'test_with_groudtruth',True, 'Evaluate with groudtruth')
 
 tf.app.flags.DEFINE_string(
     'label_file', None, 'Image file, one image per line.')
@@ -114,8 +114,13 @@ if FLAGS.tfrecord:
     if os.path.isfile(FLAGS.dataset_dir):
         fls = list(tf.python_io.tf_record_iterator(path=FLAGS.dataset_dir))
     else:
+        if not os.path.isdir(FLAGS.dataset_dir):
+          raise ValueError('You must supply the dataset directory with --dataset_dir')
+        DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
+        if not os.path.isdir(DATASET_DIR):
+          raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
         file_pattern = '_'.join([FLAGS.dataset_name, FLAGS.dataset_split_name])
-        for root, dirs, files in os.walk(FLAGS.dataset_dir):
+        for root, dirs, files in os.walk(DATASET_DIR):
             for file in files:
                 if file.startswith(file_pattern):
                     if file.endswith('.tfrecord'):
@@ -151,10 +156,14 @@ if model_variables is None:
 if FLAGS.tfrecord:
   tf.logging.warn('Image name is not available in TFRecord file.')
 
-if tf.gfile.IsDirectory(FLAGS.checkpoint_path):
-  checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
+if FLAGS.checkpoint_path:
+  if tf.gfile.IsDirectory(FLAGS.checkpoint_path):
+      checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
+  else:
+      checkpoint_path = FLAGS.checkpoint_path
 else:
-  checkpoint_path = FLAGS.checkpoint_path
+  checkpoint_path = os.path.join(FLAGS.test_dir, 'train')
+  checkpoint_path = tf.train.latest_checkpoint(checkpoint_path)
 
 # if evaluation with groudtruth is set true. read label file, set number of classes and create class-to-label/label-to-class dictionary
 num_classes = FLAGS.num_classes
@@ -163,7 +172,7 @@ if FLAGS.test_with_groudtruth:
         class_to_label_dict, label_to_class_dict = dataset_utils.read_label_file(FLAGS.label_file)
         num_classes = len(class_to_label_dict.keys())
     elif FLAGS.tfrecord:
-        class_to_label_dict, label_to_class_dict = dataset_utils.read_label_file(FLAGS.label_file)
+        class_to_label_dict, label_to_class_dict = dataset_utils.read_label_file(os.path.join(DATASET_DIR, 'labels.txt'))
         num_classes = len(class_to_label_dict.keys())
     else:
         raise ValueError('You must supply the label file path with --label_file.')
@@ -330,13 +339,13 @@ if FLAGS.test_with_groudtruth:
     output_acc = accuracy_score(y_true, y_pred)
     output_precision = precision_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
     output_recall = recall_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
-    output_f1 = f1_score(y_true, y_pred, average='micro', labels=np.unique(output_gt), zero_division=0)
+    # output_f1 = f1_score(y_true, y_pred, average='micro', labels=np.unique(output_gt), zero_division=0)
     #print(conf_mat_output, output_acc, output_precision, output_recall)
 
     print("\n\n\n==================== Evaluation Result Summary ====================")
     print("Accuracy score : {}".format(output_acc))
     print("Precision score : {}".format(output_precision))
     print("Recall score: {}".format(output_recall))
-    print("F1 score: {}".format(output_f1))
+    # print("F1 score: {}".format(output_f1))
     print(classification_report(y_true, y_pred, digits=7, labels=np.unique(output_gt)))
     print("===================================================================")
