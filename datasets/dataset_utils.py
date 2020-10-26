@@ -177,7 +177,41 @@ def write_label_file(labels_to_class_names,
   with tf.gfile.Open(labels_filename, 'w') as f:
     for label in labels_to_class_names:
       class_name = labels_to_class_names[label]
-      f.write('%d:%s\n' % (label, class_name))
+      f.write(f'{class_name}\n')
+
+def read_label_file(filepath):
+    """
+    read label file and return two dictionaries. Label to class index and class index to label.
+
+    Args:
+        path: String. file path to label .txt file, where line index represents the class and the line string element represents the label
+    Returns:
+        labels_to_class_names: A map of (integer) labels to class names.
+        class_to_label_names: A map of class names to (integer) labels.
+    """
+
+    if os.path.isfile(filepath):
+        # init dict's
+        label_to_class_names = {}
+        class_to_label_names = {}
+
+        # itorate over the lines to create label/class dictionaries
+        with open(filepath, 'r') as label_file:
+            for i, label in enumerate(label_file.readlines()):
+                class_label = label.strip()
+                # add class:label pairs to class_to_label_names dict
+                if class_label_index not in class_to_label_names:
+                    class_to_label_names[str(i)] = class_label
+                # add label:class pairs to label_to_class_names dict
+                if class_label not in label_to_class_names:
+                    label_to_class_names[class_label] = str(i)
+
+    else:
+        raise ValueError('label file [%s] was not recognized' %
+                         FLAGS.label_file)
+
+
+    return class_to_label_names, label_to_class_names
 
 def write_dataset_config_json(dataset_name,
                      dataset_dir, class_names,
@@ -192,25 +226,25 @@ def write_dataset_config_json(dataset_name,
     validation_size: number of validation samples
     test_size: number of test samples
   """
-  # Data to be written 
-  dictionary ={ 
-      "dataset_name" : dataset_name, 
+  # Data to be written
+  dictionary ={
+      "dataset_name" : dataset_name,
       "dataset_dir" : dataset_dir,
       "class_names" : class_names,
-      "number_of_classes" : len(class_names), 
+      "number_of_classes" : len(class_names),
       "dataset_split" : dataset_split
-  } 
-    
+  }
+
   # Serializing json
-  filename = os.path.join(dataset_dir, "dataset_config.json") 
-  with open(filename, "w") as outfile: 
-    json.dump(dictionary, outfile) 
+  filename = os.path.join(dataset_dir, "dataset_config.json")
+  with open(filename, "w") as outfile:
+    json.dump(dictionary, outfile)
 
 def read_dataset_config_json(dataset_name, dataset_dir):
-  
+
   # print('image directory', dataset_dir)
   json_file = os.path.join(dataset_dir, 'dataset_config.json')
-  
+
   with open(json_file) as file:
     data = json.load(file)
   if dataset_name != data['dataset_name']:

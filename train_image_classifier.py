@@ -308,9 +308,13 @@ tf.app.flags.DEFINE_string(
 
 
 FLAGS = tf.app.flags.FLAGS
-TRAIN_DIR = os.path.join(FLAGS.train_dir, FLAGS.dataset_split_name)
-if not os.path.exists(TRAIN_DIR):
-    os.makedirs(TRAIN_DIR)
+
+if FLAGS.train_dir:
+    TRAIN_DIR = os.path.join(FLAGS.train_dir, FLAGS.dataset_split_name)
+    if not os.path.exists(TRAIN_DIR):
+        os.makedirs(TRAIN_DIR)
+else:
+    raise ValueError('You must supply train directory with --train_dir.')
 
 
 
