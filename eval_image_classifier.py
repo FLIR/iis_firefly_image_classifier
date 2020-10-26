@@ -34,54 +34,88 @@ slim = contrib_slim
 
 p = argparse.ArgumentParser()
 
-p.add_argument("--batch_size", type=int, default=64, help='The number of samples in each batch.')
+p.add_argument("--batch_size", type=int, default=16, help='The number of samples in each batch.')
+
 p.add_argument("--max_num_batches", type=int, default=None, help='Max number of batches to evaluate by default use all.')
-p.add_argument("--master", type=str, help='The address of the TensorFlow master to use.')
-p.add_argument("--checkpoint_path", type=str, default='/tmp/tfmodel/', help='The directory where the model was written to or an absolute path to a '
+
+p.add_argument("--master", type=str, default='', help='The address of the TensorFlow master to use.')
+
+p.add_argument("--checkpoint_path", type=str, default=None, help='The directory where the model was written to or an absolute path to a '
     'checkpoint file.')
-p.add_argument("--eval_dir", type=str, default=None , help='Directory where the results are saved to.')
+
+p.add_argument("--experiment_dir", type=str, default=None , help='Directory where the results are saved to.')
+
 p.add_argument("--num_preprocessing_threads", type=int, default=4, help='The number of threads used to create the batches.')
-p.add_argument("--dataset_name", type=str, default='mobilenet_v1', help='The name of the dataset to load.')
+
+p.add_argument("--dataset_name", type=str, default=None, help='The name of the dataset to load.')
+
 p.add_argument("--dataset_split_name", type=str, default='validation', help='The name of the train/validation/test split.')
+
 p.add_argument("--dataset_dir", type=str, default=None, help='The directory where the dataset files are stored.')
+
 p.add_argument("--labels_offset", type=int, default=0, help='An offset for the labels in the dataset. This flag is primarily used to '
     'evaluate the VGG and ResNet architectures which do not use a background class for the ImageNet dataset.')
-p.add_argument("--model_name", type=str, default='inception_v3', help='The name of the architecture to evaluate.')
+
+p.add_argument("--model_name", type=str, default='mobilenet_v1', help='The name of the architecture to evaluate.')
+
 p.add_argument("--preprocessing_name", type=str, default='custom_1_preprocessing_pipline', help='The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')
+
 p.add_argument("--moving_average_decay", type=float, default=None, help='The decay to use for the moving average.'
     'If left as None, then moving averages are not used.')
+
 p.add_argument("--eval_image_size", type=int, default=None, help='Eval image size')
+
 p.add_argument("--quantize", type=bool, default=False, help='whether to use quantized graph or not.')
+
 p.add_argument("--use_grayscale", type=bool, default=False, help='Whether to convert input images to grayscale.')
+
 p.add_argument("--final_endpoint", type=str, default=None, help='Specifies the endpoint to construct the network up to.'
     'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
 
 p.add_argument("--verbose_placement", type=bool, default=False, help='Shows detailed information about device placement.')
+
 p.add_argument("--hard_placement", type=bool, default=False, help='Uses hard constraints for device placement on tensorflow sessions.')
+
 p.add_argument("--fixed_memory", type=bool, default=False, help='Allocates the entire memory at once.')
-=======
 
+p.add_argument('--experiment_name', type=str, default=None, help= ' If None the highest experiment number (The number of experiment folders) is selected. ')
 
+p.add_argument("--eval_interval_secs", type=int, default=20, help='The frequency with which the model is evaluated')
 
+p.add_argument("--eval_timeout_secs", type=int, default=None, help='The maximum amount of time to wait between checkpoints. If left as None, then the process will wait for double the eval_interval_secs.')
+
+p.add_argument("--experiment_number", type=int, default=0, help='Only needs to be specified if running script with guild')
 #######################
 # Preprocessing Flags #
 #######################
 
 p.add_argument("--add_image_summaries", type=bool, default=True, help='Enable image summaries.')
+
 p.add_argument("--roi", type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.'
     ' Expects six integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width.')
 
 FLAGS = p.parse_args()
-EVAL_DIR = os.path.join(FLAGS.eval_dir, FLAGS.dataset_split_name)
 
-if FLAGS.eval_dir:
-    EVAL_DIR = os.path.join(FLAGS.eval_dir, FLAGS.dataset_split_name)
-    if not os.path.exists(EVAL_DIR):
-        os.makedirs(EVAL_DIR)
-else:
-    raise ValueError('You must supply evaluation directory with --eval_dir.')
 
+
+# if FLAGS.experiment_dir:
+#     experiment_dir = FLAGS.experiment_dir
+#     experiment_name = FLAGS.experiment_name
+#     # create a new experiment directory if experiment_name is none).
+#     if not FLAGS.experiment_name:
+#         # list only directories that are names experiment_
+#         output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
+#         if not output_dirs:
+#             raise ValueError('No experiment folders found. check evaluation directory with --experiment_dir and assign experiment name with --experiment_name.')
+#         experiment_name = 'experiment_'+ str(len(output_dirs))
+
+#     experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
+#     if not os.path.exists(experiment_dir):
+#         os.makedirs(experiment_dir)
+
+# else:
+#     raise ValueError('You must supply train directory with --experiment_dir.')
 def _parse_roi():
     # parse roi
     if FLAGS.roi is None:
@@ -100,8 +134,8 @@ def main():
   if not os.path.isdir(DATASET_DIR):
     raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
 
-  if not FLAGS.eval_dir:
-    raise ValueError('You must supply an eval directory with --eval_dir')
+  if not FLAGS.experiment_dir:
+    raise ValueError('You must supply an eval directory with --experiment_dir')
 
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
@@ -235,26 +269,47 @@ def main():
         summaries.add(tf.summary.scalar(f'op/class_{class_id}_recall_op', recall_at_k_op))
 
 
-    # TODO(sguada) use num_epochs=1
+    # set up experiment directory
+    if FLAGS.experiment_dir:
+        experiment_dir = FLAGS.experiment_dir
+        experiment_name = FLAGS.experiment_name
+        # create a new experiment directory if experiment_name is none).
+        if not FLAGS.experiment_name:
+            # list only directories that are names experiment_
+            output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
+            if not output_dirs:
+                raise ValueError('No experiment folders found. check evaluation directory with --experiment_dir and assign experiment name with --experiment_name.')
+            experiment_name = 'experiment_'+ str(len(output_dirs))
+        # exports experiment number to guild (guild compare)
+        try:
+            experiment_number = experiment_name.split('_')[-1]
+            experiment_number = int(experiment_number)
+            print('experiment number: {}'.format(experiment_number))
+            
+        except ValueError:
+            pass  # it was a string, not an int.
+        
+        experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
+        if not os.path.exists(experiment_dir):
+            os.makedirs(experiment_dir)
+    else:
+        raise ValueError('You must supply train directory with --experiment_dir.')
+
+    # set batch size if none to 
+    # number_of_samples_in_dataset / batch_size 
     if FLAGS.max_num_batches:
       num_batches = FLAGS.max_num_batches
     else:
       # This ensures that we make a single pass over all of the data.
       num_batches = math.ceil(dataset.num_samples / float(FLAGS.batch_size))
-      # print('############', FLAGS.batch_size, dataset.num_samples, num_batches)
 
-    # print('####################2', FLAGS.batch_size, num_batches, dataset.num_samples)
 
-    # if checkpoint_path flag not set, look for checkpoint in train
+    # if checkpoint_path flag is none, look for checkpoint in experiment train directory
     if FLAGS.checkpoint_path is None:
-        checkpoint_path = os.path.join(FLAGS.eval_dir, 'train')
-        # checkpoint_path = FLAGS.eval_dir
-
-    # elif tf.gfile.IsDirectory(FLAGS.checkpoint_path):
-    #     checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
+        checkpoint_path = '/'.join(experiment_dir.split('/')[:-1])
+        checkpoint_path = os.path.join(checkpoint_path, 'train')
     else:
         checkpoint_path = FLAGS.checkpoint_path
-
 
     tf.logging.info('#####Evaluating %s' % checkpoint_path)
     # evaluate for 1000 batches:
@@ -279,24 +334,32 @@ def main():
     if not FLAGS.fixed_memory :
       session_config.gpu_options.allow_growth=True
 
+    if not FLAGS.eval_timeout_secs:
+        eval_timeout_secs = FLAGS.eval_interval_secs * 2
+    else:
+        eval_timeout_secs = FLAGS.eval_timeout_secs
+
     # Evaluate every 1 minute:
     slim.evaluation.evaluation_loop(
         master=FLAGS.master,
         checkpoint_dir=checkpoint_path,
-        logdir=EVAL_DIR,
+        logdir=experiment_dir,
         num_evals=num_batches,
         eval_op=update_ops,
         summary_op=summary_op,
-        eval_interval_secs=20,
+        eval_interval_secs=FLAGS.eval_interval_secs,
+        timeout=eval_timeout_secs,
         session_config=session_config)
     # How often to run the evaluation
     # slim.evaluation.evaluate_once(
     #     master=FLAGS.master,
     #     checkpoint_path=checkpoint_path,
-    #     logdir=FLAGS.eval_dir,
+    #     logdir=experiment_dir,
     #     num_evals=num_batches,
-    #     eval_op=list(names_to_updates.values()),
-    #     variables_to_restore=variables_to_restore)
+    #     eval_op=update_ops,
+    #     variables_to_restore=list(variables_to_restore),
+    #     session_config=session_config)
+
 
 
 if __name__ == '__main__':

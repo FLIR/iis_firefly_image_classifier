@@ -26,7 +26,9 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 slim = tf.contrib.slim
 
 tf.app.flags.DEFINE_string(
-    'test_dir', None, 'Directory where the output .txt file for prediction probabilities is saved .')
+    'experiment_dir', None, 'Directory where the output .txt file for prediction probabilities is saved .')
+
+tf.app.flags.DEFINE_string('experiment_name', None, ' If None a new experiment folder is created. Naming convension experiment_number')
 
 tf.app.flags.DEFINE_string(
     'model_name', 'mobilenet_v1', 'The name of the architecture to evaluate.')
@@ -90,14 +92,41 @@ tf.app.flags.DEFINE_boolean(
 
 FLAGS = tf.app.flags.FLAGS
 
-if FLAGS.test_dir:
-    TEST_DIR = os.path.join(FLAGS.test_dir, FLAGS.dataset_split_name)
-    if not os.path.exists(TEST_DIR):
-        os.makedirs(TEST_DIR)
+# set up experiment directory
+if FLAGS.experiment_dir:
+    experiment_dir = FLAGS.experiment_dir
+    experiment_name = FLAGS.experiment_name
+    # create a new experiment directory if experiment_name is none).
+    if not FLAGS.experiment_name:
+        # list only directories that are names experiment_
+        output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
+        if not output_dirs:
+            raise ValueError('No experiment folders found. check evaluation directory with --experiment_dir and assign experiment name with --experiment_name.')
+        experiment_name = 'experiment_'+ str(len(output_dirs))
+    # exports experiment number to guild (guild compare)
+    try:
+        experiment_number = experiment_name.split('_')[-1]
+        experiment_number = int(experiment_number)
+        print('experiment number: {}'.format(experiment_number))
+        
+    except ValueError:
+        pass  # it was a string, not an int.
+    
+    experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
+    if not os.path.exists(experiment_dir):
+        os.makedirs(experiment_dir)
 else:
-    raise ValueError('You must supply test directory with --test_dir.')
+    raise ValueError('You must supply train directory with --experiment_dir.')
 
-PREDICTION_FILE = os.path.join(TEST_DIR, 'predictions.csv')
+
+# if FLAGS.experiment_dir:
+#     experiment_dir = os.path.join(FLAGS.experiment_dir, FLAGS.dataset_split_name)
+#     if not os.path.exists(experiment_dir):
+#         os.makedirs(experiment_dir)
+# else:
+#     raise ValueError('You must supply test directory with --experiment_dir.')
+
+PREDICTION_FILE = os.path.join(experiment_dir, 'predictions.csv')
 
 model_name_to_variables = {'mobilenet_v1_025':'MobilenetV1','mobilenet_v1_050':'MobilenetV1','mobilenet_v1_075':'MobilenetV1','mobilenet_v1':'MobilenetV1','inception_v1':'InceptionV1'}
 
@@ -156,14 +185,21 @@ if model_variables is None:
 if FLAGS.tfrecord:
   tf.logging.warn('Image name is not available in TFRecord file.')
 
-if FLAGS.checkpoint_path:
-  if tf.gfile.IsDirectory(FLAGS.checkpoint_path):
-      checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
-  else:
-      checkpoint_path = FLAGS.checkpoint_path
+tf.logging.info('Evaluating checkpoint')#: %s' % checkpoint_path)
+# if checkpoint_path flag is none, look for checkpoint in experiment train directory
+if FLAGS.checkpoint_path is None:
+    checkpoint_path = '/'.join(experiment_dir.split('/')[:-1])
+    checkpoint_path = os.path.join(checkpoint_path, 'train')
+    checkpoint_path = tf.train.latest_checkpoint(checkpoint_path)
 else:
-  checkpoint_path = os.path.join(FLAGS.test_dir, 'train')
-  checkpoint_path = tf.train.latest_checkpoint(checkpoint_path)
+    # checkpoint_path = FLAGS.checkpoint_path
+    if tf.gfile.IsDirectory(FLAGS.checkpoint_path):
+      checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
+    else:
+      checkpoint_path = FLAGS.checkpoint_path
+
+tf.logging.info('Evaluating checkpoint: %s' % checkpoint_path)
+
 
 # if evaluation with groudtruth is set true. read label file, set number of classes and create class-to-label/label-to-class dictionary
 num_classes = FLAGS.num_classes
@@ -219,7 +255,7 @@ probabilities = tf.nn.softmax(logits)
 init_fn = slim.assign_from_checkpoint_fn(checkpoint_path, slim.get_model_variables(model_variables))
 
 
-if FLAGS.test_dir:
+if FLAGS.experiment_dir:
   with open(PREDICTION_FILE, 'w') as fout:
       h = ['image']
       h.extend(['class%s' % i for i in range(num_classes)])
@@ -306,10 +342,10 @@ with tf.Session() as sess:
               pred_label = class_to_label_dict[str(a[-1])]
           else:
               pred_label = str(a[-1])
-          if FLAGS.test_dir is not None:
-            with open(PREDICTION_FILE, 'a') as fout:
-              fout.write(','.join([str(e) for e in a]))
-              fout.write('\n')
+          # if FLAGS.experiment_dir is not None:
+          with open(PREDICTION_FILE, 'a') as fout:
+            fout.write(','.join([str(e) for e in a]))
+            fout.write('\n')
           # print(f'image name: {a[0]},     class prediction: {pred_label}')
           counter += 1
           sys.stdout.write(f'\rProcessing images... {str(counter)}/{len(fls)}')

@@ -37,293 +37,193 @@ import argparse
 
 slim = contrib_slim
 
-tf.app.flags.DEFINE_string(
-    'master', '', 'The address of the TensorFlow master to use.')
+p = argparse.ArgumentParser()
+p.add_argument(
+    '--master', type=str, default='', help='The address of the TensorFlow master to use.')
 
-tf.app.flags.DEFINE_string(
-    'train_dir', '/tmp/tfmodel/',
-    'Directory where checkpoints and event logs are written to.')
+p.add_argument('--experiment_dir', type=str, default='./experiment_dir/tfmodel', help='Directory where checkpoints and event logs are written to.')
 
-tf.app.flags.DEFINE_integer('num_clones', 1,
-                            'Number of model clones to deploy. Note For '
+p.add_argument('--num_clones', type=int, default=1, help='Number of model clones to deploy. Note For '
                             'historical reasons loss from all clones averaged '
                             'out and learning rate decay happen per clone '
                             'epochs')
 
-tf.app.flags.DEFINE_boolean('clone_on_cpu', False,
-                            'Use CPUs to deploy clones.')
+p.add_argument('--clone_on_cpu', type=bool, default=False, help='Use CPUs to deploy clones.')
 
-tf.app.flags.DEFINE_integer('worker_replicas', 1, 'Number of worker replicas.')
+p.add_argument('--worker_replicas', type=int, default=1, help='Number of worker replicas.')
 
-tf.app.flags.DEFINE_integer(
-    'num_ps_tasks', 0,
-    'The number of parameter servers. If the value is 0, then the parameters '
+p.add_argument('--num_ps_tasks', type=int, default=0, help='The number of parameter servers. If the value is 0, then the parameters '
     'are handled locally by the worker.')
 
-tf.app.flags.DEFINE_integer(
-    'num_readers', 4,
-    'The number of parallel readers that read data from the dataset.')
+p.add_argument('--num_readers', type=int, default=4, help='The number of parallel readers that read data from the dataset.')
 
-tf.app.flags.DEFINE_integer(
-    'num_preprocessing_threads', 4,
-    'The number of threads used to create the batches.')
+p.add_argument('--num_preprocessing_threads', type=int, default=4, help='The number of threads used to create the batches.')
 
-tf.app.flags.DEFINE_integer(
-    'log_every_n_steps', 10,
-    'The frequency with which logs are print.')
+p.add_argument('--log_every_n_steps', type=int, default=10, help='The frequency with which logs are print.')
 
-tf.app.flags.DEFINE_integer(
-    'save_summaries_secs', 20,
-    'The frequency with which summaries are saved, in seconds.')
+p.add_argument('--save_summaries_secs', type=int, default=20, help='The frequency with which summaries are saved, in seconds.')
 
-tf.app.flags.DEFINE_integer(
-    'save_interval_secs', 20,
-    'The frequency with which the model is saved, in seconds.')
+p.add_argument('--save_interval_secs', type=int, default=20, help='The frequency with which the model is saved, in seconds.')
 
-tf.app.flags.DEFINE_integer(
-    'task', 0, 'Task id of the replica running the training.')
+p.add_argument('--task', type=int, default=0, help='Task id of the replica running the training.')
 
-tf.app.flags.DEFINE_bool(
-    'verbose_placement', False,
-    'Shows detailed information about device placement.')
+p.add_argument('--verbose_placement', type=bool, default=False, help='Shows detailed information about device placement.')
 
-tf.app.flags.DEFINE_bool(
-    'hard_placement', False,
-    'Uses hard constraints for device placement on tensorflow sessions.')
+p.add_argument('--hard_placement', type=bool, default=False, help='Uses hard constraints for device placement on tensorflow sessions.')
 
-tf.app.flags.DEFINE_bool(
-    'fixed_memory', False,
-    'Allocates the entire memory at once.')
+p.add_argument('--fixed_memory', type=bool, default=False, help='Allocates the entire memory at once.')
 
 ######################
 # Optimization Flags #
 ######################
 
-tf.app.flags.DEFINE_float(
-    'weight_decay', 0.00004, 'The weight decay on the model weights.')
+p.add_argument('--weight_decay', type=float, default=0.00004, help='The weight decay on the model weights.')
 
-tf.app.flags.DEFINE_string(
-    'optimizer', 'adam',
-    'The name of the optimizer, one of "adadelta", "adagrad", "adam",'
+p.add_argument('--optimizer', type=str, default='adam', help='The name of the optimizer, one of "adadelta", "adagrad", "adam",'
     '"ftrl", "momentum", "sgd" or "rmsprop".')
 
-tf.app.flags.DEFINE_float(
-    'adadelta_rho', 0.95,
-    'The decay rate for adadelta.')
+p.add_argument('--adadelta_rho', type=float, default=0.95, help='The decay rate for adadelta.')
 
-tf.app.flags.DEFINE_float(
-    'adagrad_initial_accumulator_value', 0.1,
-    'Starting value for the AdaGrad accumulators.')
+p.add_argument('--adagrad_initial_accumulator_value', type=float, default=0.1, help='Starting value for the AdaGrad accumulators.')
 
-tf.app.flags.DEFINE_float(
-    'adam_beta1', 0.9,
-    'The exponential decay rate for the 1st moment estimates.')
+p.add_argument('--adam_beta1', type=float, default=0.9, help='The exponential decay rate for the 1st moment estimates.')
 
-tf.app.flags.DEFINE_float(
-    'adam_beta2', 0.999,
-    'The exponential decay rate for the 2nd moment estimates.')
+p.add_argument('--adam_beta2', type=float, default=0.999, help='The exponential decay rate for the 2nd moment estimates.')
 
-tf.app.flags.DEFINE_float('opt_epsilon', 1e-08, 'Epsilon term for the optimizer.')
+p.add_argument('--opt_epsilon', type=float, default=1e-08, help='Epsilon term for the optimizer.')
 
-tf.app.flags.DEFINE_float('ftrl_learning_rate_power', -0.5,
-                          'The learning rate power.')
+p.add_argument('--ftrl_learning_rate_power', type=float, default=-0.5, help='The learning rate power.')
 
-tf.app.flags.DEFINE_float(
-    'ftrl_initial_accumulator_value', 0.1,
-    'Starting value for the FTRL accumulators.')
+p.add_argument('--ftrl_initial_accumulator_value', type=float, default=0.1, help='Starting value for the FTRL accumulators.')
 
-tf.app.flags.DEFINE_float(
-    'ftrl_l1', 0.0, 'The FTRL l1 regularization strength.')
+p.add_argument('--ftrl_l1', type=float, default=0.0, help='The FTRL l1 regularization strength.')
 
-tf.app.flags.DEFINE_float(
-    'ftrl_l2', 0.0, 'The FTRL l2 regularization strength.')
+p.add_argument('--ftrl_l2', type=float, default=0.0, help='The FTRL l2 regularization strength.')
 
-tf.app.flags.DEFINE_float(
-    'momentum', 0.9,
-    'The momentum for the MomentumOptimizer and RMSPropOptimizer.')
+p.add_argument('--momentum', type=float, default=0.9, help='The momentum for the MomentumOptimizer and RMSPropOptimizer.')
 
-tf.app.flags.DEFINE_float('rmsprop_momentum', 0.9, 'Momentum.')
+p.add_argument('--rmsprop_momentum', type=float, default=0.9, help='Momentum.')
 
-tf.app.flags.DEFINE_float('rmsprop_decay', 0.9, 'Decay term for RMSProp.')
+p.add_argument('--rmsprop_decay', type=float, default=0.9, help='Decay term for RMSProp.')
 
-tf.app.flags.DEFINE_integer(
-    'quantize_delay', -1,
-    'Number of steps to start quantized training. Set to -1 would disable '
+p.add_argument('--quantize_delay', type=int, default=-1, help='Number of steps to start quantized training. Set to -1 would disable '
     'quantized training.')
 
 #######################
 # Learning Rate Flags #
 #######################
 
-tf.app.flags.DEFINE_string(
-    'learning_rate_decay_type',
-    'exponential',
-    'Specifies how the learning rate is decayed. One of "fixed", "exponential",'
+p.add_argument('--learning_rate_decay_type', type=str, default='exponential', help='Specifies how the learning rate is decayed. One of "fixed", "exponential",'
     ' or "polynomial"')
 
-tf.app.flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
+p.add_argument('--learning_rate', type=float, default=0.01, help='Initial learning rate.')
 
-tf.app.flags.DEFINE_float(
-    'end_learning_rate', 0.0001,
-    'The minimal end learning rate used by a polynomial decay learning rate.')
+p.add_argument('--end_learning_rate', type=float, default=0.0001, help='The minimal end learning rate used by a polynomial decay learning rate.')
 
-tf.app.flags.DEFINE_float(
-    'label_smoothing', 0.0, 'The amount of label smoothing.')
+p.add_argument('--label_smoothing', type=float, default=0.0, help='The amount of label smoothing.')
 
-tf.app.flags.DEFINE_float(
-    'learning_rate_decay_factor', 0.94, 'Learning rate decay factor.')
+p.add_argument('--learning_rate_decay_factor', type=float, default=0.94, help='Learning rate decay factor.')
 
-tf.app.flags.DEFINE_float(
-    'num_epochs_per_decay', 2.0,
-    'Number of epochs after which learning rate decays. Note: this flag counts '
+p.add_argument('--num_epochs_per_decay', type=float, default=2.0, help='Number of epochs after which learning rate decays. Note: this flag counts '
     'epochs per clone but aggregates per sync replicas. So 1.0 means that '
     'each clone will go over full epoch individually, but replicas will go '
     'once across all replicas.')
 
-tf.app.flags.DEFINE_bool(
-    'sync_replicas', False,
-    'Whether or not to synchronize the replicas during training.')
+p.add_argument('--sync_replicas', type=bool, default=False, help='Whether or not to synchronize the replicas during training.')
 
-tf.app.flags.DEFINE_integer(
-    'replicas_to_aggregate', 1,
-    'The Number of gradients to collect before updating params.')
+p.add_argument('--replicas_to_aggregate', type=int, default=1, help='The Number of gradients to collect before updating params.')
 
-tf.app.flags.DEFINE_float(
-    'moving_average_decay', None,
-    'The decay to use for the moving average.'
+p.add_argument('--moving_average_decay', type=float, default=None, help='The decay to use for the moving average.'
     'If left as None, then moving averages are not used.')
 
 #######################
 # Dataset Flags #
 #######################
 
-tf.app.flags.DEFINE_string(
-    'dataset_name', 'imagenet', 'The name of the dataset to load.')
+p.add_argument('--dataset_name', type=str, default='imagenet', help='The name of the dataset to load.')
 
-tf.app.flags.DEFINE_string(
-    'dataset_split_name', 'train', 'The name of the train/test split.')
+p.add_argument('--dataset_split_name', type=str, default='train', help='The name of the train/test split.')
 
-tf.app.flags.DEFINE_string(
-    'dataset_dir', None, 'The directory where the dataset files are stored.')
+p.add_argument('--dataset_dir', type=str, default=None, help='The directory where the dataset files are stored.')
 
-tf.app.flags.DEFINE_integer(
-    'labels_offset', 0,
-    'An offset for the labels in the dataset. This flag is primarily used to '
+p.add_argument('--labels_offset', type=int, default=0, help='An offset for the labels in the dataset. This flag is primarily used to '
     'evaluate the VGG and ResNet architectures which do not use a background '
     'class for the ImageNet dataset.')
 
-tf.app.flags.DEFINE_string(
-    'model_name', 'mobilenet_v1', 'The name of the architecture to train.')
+p.add_argument('--model_name', type=str, default='mobilenet_v1', help='The name of the architecture to train.')
 
-tf.app.flags.DEFINE_string(
-    'preprocessing_name', 'custom_1_preprocessing_pipline', 'The name of the preprocessing to use. If left '
+p.add_argument('--preprocessing_name', type=str, default='custom_1_preprocessing_pipline', help='The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')
 
-tf.app.flags.DEFINE_integer(
-    'batch_size', 64, 'The number of samples in each batch.')
+p.add_argument('--batch_size', type=int, default=64, help='The number of samples in each batch.')
 
-tf.app.flags.DEFINE_integer(
-    'train_image_size', 224, 'Train image size')
+p.add_argument('--train_image_size', type=int, default=224, help='Train image size')
 
-tf.app.flags.DEFINE_integer('max_number_of_steps', 50000,
-                            'The maximum number of training steps.')
+p.add_argument('--max_number_of_steps', type=int, default=50000, help='The maximum number of training steps.')
 
-tf.app.flags.DEFINE_bool('use_grayscale', False,
-                         'Whether to convert input images to grayscale.')
+p.add_argument('--use_grayscale', type=bool, default=False, help='Whether to convert input images to grayscale.')
 
-tf.app.flags.DEFINE_bool('balance_classes', False,
-                         'apply class weight to loss function .')
+p.add_argument('--balance_classes', type=bool, default=False, help='apply class weight to loss function .')
 
 #####################
 # Fine-Tuning Flags #
 #####################
 
-tf.app.flags.DEFINE_bool(
-    'feature_extraction', False,
-    'Whether or not to synchronize the replicas during training.')
+p.add_argument('--feature_extraction', type=bool, default=False, help='Whether or not to synchronize the replicas during training.')
 
-tf.app.flags.DEFINE_string(
-    'checkpoint_path', './checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt',
-    'The path to a checkpoint from which to fine-tune.')
+p.add_argument('--checkpoint_path',  type=str, default='./checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt',
+    help='The path to a checkpoint from which to fine-tune.')
 
-tf.app.flags.DEFINE_string(
-    'checkpoint_exclude_scopes', 'MobilenetV1/Logits',
-    'Comma-separated list of scopes of variables to exclude when restoring '
+p.add_argument('--checkpoint_exclude_scopes',  type=str, default='MobilenetV1/Logits',
+    help='Comma-separated list of scopes of variables to exclude when restoring '
     'from a checkpoint.'
     'By default, only the Logits layer is excluded')
 
-tf.app.flags.DEFINE_string(
-    'trainable_scopes', 'MobilenetV1/Logits',
-    'Comma-separated list of scopes to filter the set of variables to train.'
+p.add_argument('--trainable_scopes', type=str, default='MobilenetV1/Logits',
+    help='Comma-separated list of scopes to filter the set of variables to train.'
     'By default, only the Logits layer is trained. None would train all the variables.')
 
-tf.app.flags.DEFINE_boolean(
-    'ignore_missing_vars', True,
-    'When restoring a checkpoint would ignore missing variables.')
+p.add_argument('--ignore_missing_vars', type=bool, default=True, help='When restoring a checkpoint would ignore missing variables.')
 
-tf.app.flags.DEFINE_string(
-    'final_endpoint', None,
-    'Specifies the endpoint to construct the network up to.'
+p.add_argument('--final_endpoint', type=str, default=None, help='Specifies the endpoint to construct the network up to.'
     'By default, None would be the last layer before Logits.') # this argument was added for modbilenet_v1.py
 
 #######################
 # Experiment Details #
 #######################
 
-tf.app.flags.DEFINE_string(
-    'experiment_tag', '', 'Internal tag for experiment')
+p.add_argument('--experiment_tag', type=str, default='', help='Internal tag for experiment')
 
-tf.app.flags.DEFINE_string(
-    'experiment_file', None, 'File to output experiment metadata')
+p.add_argument('--experiment_file', type=str, default=None, help='File to output experiment metadata')
+
+p.add_argument('--experiment_name', type=str, default=None, help= ' If None a new experiment folder is created. Naming convension experiment_number')
 
 #######################
 # Preprocessing Flags #
 #######################
 
 
-tf.app.flags.DEFINE_bool(
-    'add_image_summaries', True,
-    'Enable image summaries.')
+p.add_argument('--add_image_summaries', type=bool, default=True, help='Enable image summaries.')
 
-tf.app.flags.DEFINE_bool(
-    'apply_image_augmentation', True,
-    'Enable random image augmentation during preprocessing for training.')
+p.add_argument('--apply_image_augmentation', type=bool, default=True, help='Enable random image augmentation during preprocessing for training.')
 
-tf.app.flags.DEFINE_bool(
-    'random_image_crop', True,
-    'Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--random_image_crop', type=bool, default=True, help='Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled')
 
-tf.app.flags.DEFINE_float(
-    'min_object_covered', 0.8,
-    'The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--min_object_covered', type=float, default=0.8, help='The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled')
 
-tf.app.flags.DEFINE_bool(
-    'random_image_rotation', True,
-    'Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--random_image_rotation', type=bool, default=True, help='Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled')
 
-tf.app.flags.DEFINE_bool(
-    'random_image_flip', False,
-    'Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--random_image_flip', type=bool, default=False, help='Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
 
-tf.app.flags.DEFINE_string(
-    'roi', None,
-    'Specifies the coordinates of an ROI for cropping the input images.'
-    'Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
+p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
 
 # FLAGS = tf.app.flags.FLAGS
-p = argparse.ArgumentParser()
+# p = argparse.ArgumentParser()
 # sample input argument
-p.add_argument("--batch_size", type=int, default=20, help='The number of samples in each batch.')
+# p.add_argument("--batch_size", type=int, default=20, help='The number of samples in each batch.')
 
 FLAGS = p.parse_args()
-
-if FLAGS.train_dir:
-    TRAIN_DIR = os.path.join(FLAGS.train_dir, FLAGS.dataset_split_name)
-    if not os.path.exists(TRAIN_DIR):
-        os.makedirs(TRAIN_DIR)
-else:
-    raise ValueError('You must supply train directory with --train_dir.')
 
 
 
@@ -450,12 +350,12 @@ def _get_init_fn():
   if FLAGS.checkpoint_path is None:
     return None
 
-  # Warn the user if a checkpoint exists in the train_dir. Then we'll be
+  # Warn the user if a checkpoint exists in the experiment_dir. Then we'll be
   # ignoring the checkpoint anyway.
-  # if tf.train.latest_checkpoint(TRAIN_DIR):
+  # if tf.train.latest_checkpoint(experiment_dir):
   #   tf.logging.info(
   #       'Ignoring --checkpoint_path because a checkpoint already exists in %s'
-  #       % TRAIN_DIR)
+  #       % experiment_dir)
   #   return None
 
   exclusions = []
@@ -505,7 +405,7 @@ def _get_variables_to_train():
     if 'BatchNorm' not in FLAGS.trainable_scopes:
       scopes.append('BatchNorm')
 
-  print('##############', scopes)
+  # print('##############', scopes)
   for scope in scopes:
   	variables = []
   	for variable in tf.trainable_variables():
@@ -766,7 +666,7 @@ def main():
         var_list=variables_to_train)
     # Add total_loss to summary.
     summaries.add(tf.summary.scalar('total_loss', total_loss))
-
+    loss = total_loss
     # Create gradient updates.
     grad_updates = optimizer.apply_gradients(clones_gradients,
                                              global_step=global_step)
@@ -822,6 +722,7 @@ def main():
       total_loss, np_global_step = sess.run([train_op, global_step],
                                             options=trace_run_options,
                                             run_metadata=run_metadata)
+      # loss = total_loss
 
       time_elapsed = time.time() - start_time
 
@@ -838,7 +739,10 @@ def main():
 
       if 'should_log' in train_step_kwargs:
         if sess.run(train_step_kwargs['should_log']):
-          logging.info('global step %d: loss = %.4f (%.3f sec/step)', np_global_step, total_loss, time_elapsed)
+            print('global step {:d}: loss = {:1.4f} ({:.3f} sec/step)'.format(np_global_step, total_loss, time_elapsed))
+            # print("accuracy loss: {}".format(total_loss))
+        # print("step: {}".format(np_global_step))
+          # logging.info('global step %d: loss = %.4f (%.3f sec/step)', np_global_step, total_loss, time_elapsed)
           # print(logits, labels)
 
       if 'should_stop' in train_step_kwargs:
@@ -850,6 +754,30 @@ def main():
 
 
     train_step_fn.should_stop = False
+    # train_step_fn.accuracy = accuracy
+
+    # set training directory path
+    if FLAGS.experiment_dir:
+        experiment_dir = FLAGS.experiment_dir
+        experiment_name = FLAGS.experiment_name
+        # create a new experiment directory if experiment_name is none).
+        if not FLAGS.experiment_name:
+          # list only directories that are names experiment_
+            output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
+            experiment_name = 'experiment_'+ str(len(output_dirs)+1)
+            
+        try:
+            experiment_number = experiment_name.split('_')[-1]
+            experiment_number = int(experiment_number)
+            
+        except ValueError:
+            pass  # it was a string, not an int.
+        print('experiment number: {}'.format(experiment_number))
+        experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
+        if not os.path.exists(experiment_dir):
+            os.makedirs(experiment_dir)
+    else:
+        raise ValueError('You must supply train directory with --experiment_dir.')
 
     def exit_gracefully(signum, frame) :
       interrupted = datetime.datetime.utcnow()
@@ -866,7 +794,7 @@ def main():
     print('Started on (UTC): ', start, sep='')
     if not FLAGS.experiment_file is None :
 
-      experiment_file = open(os.path.join(TRAIN_DIR, FLAGS.experiment_file), 'w')
+      experiment_file = open(os.path.join(experiment_dir, FLAGS.experiment_file), 'w')
       print('Experiment metadata file:', file=experiment_file)
       print(FLAGS.experiment_file, file=experiment_file)
       print('========================', file=experiment_file)
@@ -881,7 +809,7 @@ def main():
     slim.learning.train(
         train_tensor,
         train_step_fn=train_step_fn,
-        logdir=TRAIN_DIR,
+        logdir=experiment_dir,
         master=FLAGS.master,
         is_chief=(FLAGS.task == 0),
         init_fn=_get_init_fn(),
