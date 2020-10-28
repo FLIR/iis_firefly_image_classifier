@@ -163,7 +163,7 @@ p.add_argument('--max_number_of_steps', type=int, default=50000, help='The maxim
 
 p.add_argument('--use_grayscale', type=bool, default=False, help='Whether to convert input images to grayscale.')
 
-p.add_argument('--balance_classes', type=bool, default=False, help='apply class weight to loss function .')
+p.add_argument('--imbalance_correction', type=bool, default=True, help='apply class weight to loss function .')
 
 #####################
 # Fine-Tuning Flags #
@@ -217,11 +217,6 @@ p.add_argument('--random_image_flip', type=bool, default=False, help='Enable ran
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
-
-# FLAGS = tf.app.flags.FLAGS
-# p = argparse.ArgumentParser()
-# sample input argument
-# p.add_argument("--batch_size", type=int, default=20, help='The number of samples in each batch.')
 
 FLAGS = p.parse_args()
 
@@ -412,7 +407,6 @@ def _get_variables_to_train():
   		if scope in variable.name:
   			variables.append(variable)
   	variables_to_train.extend(variables)
-  	# variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
 
   	print('######## Trainable variables from name scope', scope, '\n', variables)
   # print('######## List of all Trainable Variables ########### \n', list(set(variables_to_train)))
@@ -511,23 +505,22 @@ def main():
       #############################
       # Specify the loss function #
       #############################
-      if 'AuxLogits' in end_points:
-        slim.losses.softmax_cross_entropy(
-            end_points['AuxLogits'], labels,
-            label_smoothing=FLAGS.label_smoothing, weights=0.4,
-            scope='aux_loss')
+      if FLAGS.imbalance_correction:
+          # specify some class weightings
+          class_weights = dataset.sorted_class_weights
+          # deduce weights for batch samples based on their true label
+          weights = tf.reduce_sum(tf.multiply(labels, class_weights), 1)
 
-
-      if FLAGS.balance_classes:
-          for label_name in bdataset.num_samples_per_class:
-              class_name = dataset.labels_to_names[label_name]
-
-          class_weights = tf.constant([41.25, 0.51])
-          sample_weights = tf.reduce_sum(tf.multiply(labels, class_weights), 1)
           slim.losses.softmax_cross_entropy(
-                    logits, labels, label_smoothing=FLAGS.label_smoothing, weights=sample_weights)
+                    logits, labels, label_smoothing=FLAGS.label_smoothing, weights=weights)
       else:
-          slim.losses.softmax_cross_entropy(
+          if 'AuxLogits' in end_points:
+            slim.losses.softmax_cross_entropy(
+                end_points['AuxLogits'], labels,
+                label_smoothing=FLAGS.label_smoothing, weights=0.4,
+                scope='aux_loss')
+          else:
+            slim.losses.softmax_cross_entropy(
                     logits, labels, label_smoothing=FLAGS.label_smoothing, weights=1.0)
       #############################
       ## Calculation of metrics ##
@@ -765,11 +758,11 @@ def main():
           # list only directories that are names experiment_
             output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
             experiment_name = 'experiment_'+ str(len(output_dirs)+1)
-            
+
         try:
             experiment_number = experiment_name.split('_')[-1]
             experiment_number = int(experiment_number)
-            
+
         except ValueError:
             pass  # it was a string, not an int.
         print('experiment number: {}'.format(experiment_number))
@@ -779,11 +772,15 @@ def main():
     else:
         raise ValueError('You must supply train directory with --experiment_dir.')
 
+    experiment_file = FLAGS.experiment_file
+    if not experiment_file:
+        experiment_file = experiment_name + '.txt'
+
     def exit_gracefully(signum, frame) :
       interrupted = datetime.datetime.utcnow()
-      if not FLAGS.experiment_file is None :
-        print('Interrupted on (UTC): ', interrupted, sep='', file=experiment_file)
-        experiment_file.flush()
+      # if not experiment_file is None :
+      print('Interrupted on (UTC): ', interrupted, sep='', file=experiment_file)
+      experiment_file.flush()
       train_step_fn.should_stop = True
       print('Interrupted on (UTC): ', interrupted, sep='')
 
@@ -792,19 +789,20 @@ def main():
 
     start = datetime.datetime.utcnow()
     print('Started on (UTC): ', start, sep='')
-    if not FLAGS.experiment_file is None :
 
-      experiment_file = open(os.path.join(experiment_dir, FLAGS.experiment_file), 'w')
-      print('Experiment metadata file:', file=experiment_file)
-      print(FLAGS.experiment_file, file=experiment_file)
-      print('========================', file=experiment_file)
-      print('All command-line flags:', file=experiment_file)
-      print(FLAGS.experiment_file, file=experiment_file)
-      for flag_key in sorted(FLAGS.__flags.keys()) :
-        print(flag_key, ' : ', FLAGS.__flags[flag_key].value, sep='', file=experiment_file)
-      print('========================', file=experiment_file)
-      print('Started on (UTC): ', start, sep='', file=experiment_file)
-      experiment_file.flush()
+    # if not experiment_file is None :
+    experiment_file = open(os.path.join(experiment_dir, experiment_file), 'w')
+    print('Experiment metadata file:', file=experiment_file)
+    print(experiment_file, file=experiment_file)
+    print('========================', file=experiment_file)
+    print('All command-line flags:', file=experiment_file)
+    print(experiment_file, file=experiment_file)
+    # for flag_key in sorted(FLAGS.__flags.keys()) :
+    for key,value in vars(FLAGS).items():
+      print(key, ' : ', value, sep='', file=experiment_file)
+    print('========================', file=experiment_file)
+    print('Started on (UTC): ', start, sep='', file=experiment_file)
+    experiment_file.flush()
 
     slim.learning.train(
         train_tensor,
@@ -822,7 +820,7 @@ def main():
         session_config=session_config)
 
     finish = datetime.datetime.utcnow()
-    if not FLAGS.experiment_file is None :
+    if not experiment_file is None :
       print('Finished on (UTC): ', finish, sep='', file=experiment_file)
       print('Elapsed: ', finish-start, sep='', file=experiment_file)
       experiment_file.flush()

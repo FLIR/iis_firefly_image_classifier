@@ -115,23 +115,41 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
   decoder = slim.tfexample_decoder.TFExampleDecoder(
       keys_to_features, items_to_handlers)
 
+  def dataset_class_weight(splits_to_sizes, split_name, label_to_class_number):
+    """
+    Returns sorted list of class ratios
+    """
+
+    num_samples = splits_to_sizes[split_name]
+    num_samples_per_class = splits_to_sizes[split_name+'_per_class']
+    # print('##### number of samples per class: ', num_samples_per_class)
+    sorted_class_weights = list()
+    sorted_label_name = sorted(label_to_class_number.keys(), key= lambda x: label_to_class_number[x])
+    for label_name in sorted_label_name:
+        # norm_class_weight = num_samples / (num_samples_per_class[label_name] * num_classes)
+        norm_class_weight = num_samples / (num_samples_per_class[label_name])
+        sorted_class_weights.append(norm_class_weight)
+        # print('##### Class {} weight: {:1.4f}'.format(label_name, norm_class_weight))
+    return sorted_class_weights
+
   labels_to_names = None
   if dataset_utils.has_labels(dataset_dir):
-    class_to_label_names, label_to_class_names = dataset_utils.read_label_file(dataset_dir)
+    class_to_label_name, label_to_class_number = dataset_utils.read_label_file(dataset_dir)
 
   num_samples=splits_to_sizes[split_name]
   if split_name+'_per_class' in splits_to_sizes:
-    num_samples_per_class=splits_to_sizes[split_name+'_per_class']
-    return slim.dataset.Dataset(
+     sorted_class_weights = dataset_class_weight(splits_to_sizes, split_name, label_to_class_number)
+
+     return slim.dataset.Dataset(
         data_sources=file_pattern,
         reader=reader,
         decoder=decoder,
         num_samples=num_samples,
         items_to_descriptions=items_to_descriptions,
         num_classes=num_classes,
-        labels_to_names=label_to_class_names,
-        num_samples_per_class=num_samples_per_class)
-
+        labels_to_names=label_to_class_number,
+        sorted_class_weights=sorted_class_weights
+        )
 
   return slim.dataset.Dataset(
       data_sources=file_pattern,
@@ -140,4 +158,4 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
       num_samples=num_samples,
       items_to_descriptions=items_to_descriptions,
       num_classes=num_classes,
-      labels_to_names=label_to_class_names)
+      labels_to_names=label_to_class_number)

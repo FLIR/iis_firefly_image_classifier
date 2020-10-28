@@ -285,18 +285,18 @@ def main():
             experiment_number = experiment_name.split('_')[-1]
             experiment_number = int(experiment_number)
             print('experiment number: {}'.format(experiment_number))
-            
+
         except ValueError:
             pass  # it was a string, not an int.
-        
+
         experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
         if not os.path.exists(experiment_dir):
             os.makedirs(experiment_dir)
     else:
         raise ValueError('You must supply train directory with --experiment_dir.')
 
-    # set batch size if none to 
-    # number_of_samples_in_dataset / batch_size 
+    # set batch size if none to
+    # number_of_samples_in_dataset / batch_size
     if FLAGS.max_num_batches:
       num_batches = FLAGS.max_num_batches
     else:
@@ -311,7 +311,7 @@ def main():
     else:
         checkpoint_path = FLAGS.checkpoint_path
 
-    tf.logging.info('#####Evaluating %s' % checkpoint_path)
+    tf.logging.info('Evaluating checkpoint: %s' % checkpoint_path)
     # evaluate for 1000 batches:
     # num_evals = 5
 

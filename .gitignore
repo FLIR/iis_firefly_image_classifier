@@ -1,6 +1,7 @@
 #list of ignored files and directories
 
 train_dir/
+experiment_dir/
 checkpoints/
 graph_transform.py
 TFRecord/
