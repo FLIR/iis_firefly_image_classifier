@@ -145,7 +145,9 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
   assert split_name in ['train', 'validation', 'test']
 
   num_per_shard = int(math.ceil(len(filenames) / float(_NUM_SHARDS)))
-  print('##############', filenames[0])
+  # print('##############', filenames[0])
+  num_samples_per_class = dict()
+
   with tf.Graph().as_default():
     image_reader = ImageReaderPNG()
 
@@ -159,6 +161,7 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
           start_ndx = shard_id * num_per_shard
           end_ndx = min((shard_id+1) * num_per_shard, len(filenames))
           for i in range(start_ndx, end_ndx):
+
             sys.stdout.write('\r>> Converting image %d/%d shard %d' % (
                 i+1, len(filenames), shard_id))
             sys.stdout.flush()
@@ -173,14 +176,20 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
                 # print('################# after', height, width)
 
             class_name = os.path.basename(os.path.dirname(filenames[i]))
+            if class_name not in num_samples_per_class:
+                num_samples_per_class[class_name] = 0
+            num_samples_per_class[class_name] += 1
             class_id = class_names_to_ids[class_name]
-
+            image_name = bytes(filenames[i], 'utf-8')
             example = dataset_utils.image_to_tfexample(
-                image_data, b'jpg', height, width, class_id)
+                image_data, image_name, b'jpg', height, width, class_id)
             tfrecord_writer.write(example.SerializeToString())
 
   sys.stdout.write('\n')
   sys.stdout.flush()
+  num_samples_per_classl/['class_weights'] = dict{}
+  for num_samples in num_samples_per_class:
+  return num_samples_per_class
 
 
 def _clean_up_temporary_files(dataset_dir):
@@ -245,10 +254,12 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   if test_percentage > 0:
     training_filenames, test_filenames = train_test_split(training_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED)
     test_size = len(test_filenames)
-    print('###############', test_size)
-    _convert_dataset('test', test_filenames, class_names_to_ids,
+    # print('###############', test_size)
+    num_samples_per_class = _convert_dataset('test', test_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name, image_height, image_width)
     dataset_split['test'] = test_size
+    dataset_split['test_per_class'] = num_samples_per_class
+
   # else:
   #   test_size = 0
 
@@ -256,9 +267,10 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   if validation_percentage > 0:
     training_filenames, validation_filenames = train_test_split(training_filenames, test_size=validation_percentage/100, random_state=_RANDOM_SEED)
     validation_size = len(validation_filenames)
-    _convert_dataset('validation', validation_filenames, class_names_to_ids,
+    num_samples_per_class = _convert_dataset('validation', validation_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name, image_height, image_width)
     dataset_split['validation'] = validation_size
+    dataset_split['validation_per_class'] = num_samples_per_class
   # else:
   #   validation_size = 0
 
@@ -269,8 +281,9 @@ def run(dataset_name, images_dataset_dir, tfrecords_dataset_dir, validation_perc
   # print('############################ dataset_size {}, train_size {}, validation_size {}, test_size {}'.format(dataset_size, train_size, validation_size, test_size))
 
   # First, convert the training and validation sets.
-  _convert_dataset('train', training_filenames, class_names_to_ids,
+  num_samples_per_class = _convert_dataset('train', training_filenames, class_names_to_ids,
                    tfrecords_dataset_dir, dataset_name, image_height, image_width)
+  dataset_split['train_per_class'] = num_samples_per_class
 
 
 

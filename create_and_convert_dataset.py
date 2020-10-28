@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-r"""Create and converts a particular dataset.
+"""Create and converts a particular dataset.
 
 Usage:
 ```shell
 
 $ python create_and_convert_dataset.py \
     --dataset_name=flowers \
-    --images_dataset_dir=/tmp/flower_photes
+    --dataset_dir=/tmp/flower_photes
     --tfrecords_dataset_dir=/tmp/flowers
     --validation_percentage=10
     --test_percentage=10
@@ -52,7 +52,7 @@ tf.compat.v1.app.flags.DEFINE_string(
     )
 
 tf.compat.v1.app.flags.DEFINE_string(
-    'images_dataset_dir',
+    'dataset_dir',
     None,
     'The directory where the input images are saved.')
 
@@ -63,12 +63,12 @@ tf.compat.v1.app.flags.DEFINE_string(
 
 tf.compat.v1.app.flags.DEFINE_integer(
     'validation_percentage',
-    20,
+    10,
     'What percentage of images to use as a test set.'
     )
 tf.compat.v1.app.flags.DEFINE_integer(
     'test_percentage',
-    0,
+    10,
     'What percentage of images to use as a validation set.'
     )
 tf.compat.v1.app.flags.DEFINE_integer(
@@ -83,21 +83,26 @@ tf.compat.v1.app.flags.DEFINE_integer(
     )
 
 
+
 def main(_):
+  # print(FLAGS.dataset_dir)
   if not FLAGS.dataset_name:
     raise ValueError('You must supply a dataset name with --dataset_name')
-  if not FLAGS.images_dataset_dir:
-    raise ValueError('You must supply the dataset directory where you current image are stored with --images_dataset_dir')
+  if not os.path.isdir(FLAGS.dataset_dir):
+    raise ValueError('You must supply the dataset directory where you current image are stored with --dataset_dir')
+  DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+  # if not FLAGS.tfrecords_dataset_dir:
+  #   raise ValueError('You must supply a dataset directory to store the convert tfrecord dataset with --tfrecords_dataset_dir')
   if not FLAGS.tfrecords_dataset_dir:
-    raise ValueError('You must supply a dataset directory to store the convert tfrecord dataset with --tfrecords_dataset_dir')
-
-  if len(os.listdir(FLAGS.images_dataset_dir)):
+    TFRECORDS_DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
+    # if os.path.isdir(TFRECORDS_DATASET_DIR)
+  if len(os.listdir(FLAGS.dataset_dir)):
     # print('#############',FLAGS.validation_percentage, FLAGS.test_percentage)
-    convert_dataset.run(FLAGS.dataset_name, FLAGS.images_dataset_dir, FLAGS.tfrecords_dataset_dir, FLAGS.validation_percentage, FLAGS.test_percentage, FLAGS.image_height, FLAGS.image_width)
+    convert_dataset.run(FLAGS.dataset_name, DATASET_DIR, TFRECORDS_DATASET_DIR, FLAGS.validation_percentage, FLAGS.test_percentage, FLAGS.image_height, FLAGS.image_width)
 
   else:
     raise ValueError(
-        'images_dataset_dir [%s] is empty.' % FLAGS.images_dataset_dir)
+        'dataset_dir [%s] is empty.' % FLAGS.dataset_dir)
 
 if __name__ == '__main__':
   tf.compat.v1.app.run()
