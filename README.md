@@ -337,12 +337,18 @@ tensorboard --logdir=${TRAIN_DIR}
 
 Once TensorBoard is running, navigate your web browser to http://localhost:6006.
 -->
+# Training a customized model for your own application
 
-# Fine-tuning a model from an existing checkpoint
+Training a model from scratch is no easy job. It is time consuming and requires extensive deep learning expertise. Rather than training from scratch, we'll often want to start from a pre-trained model and fine-tune it to create customized models for your new applications.
+
+## The Simple Approach
+
+## The Advanced Approach 
+### Fine-tuning a model from an existing checkpoint
 <a id='Tuning'></a>
 
 
-Training a model from scratch is no easy job. It is time consuming and requires extensive deep learning expertise. Rather than training from scratch, we'll often want to start from a pre-trained model and fine-tune it to create customized models for your new applications.
+
 To indicate a checkpoint from which to fine-tune, we'll call training with
 the `--checkpoint_path` flag and assign it an absolute path to a checkpoint
 file.
@@ -410,7 +416,7 @@ For training on cpu (with tensorflow package, instead of tensorflow-gpu), set fl
 We suggest to use a different directory `TRAIN_DIR` is suggested to be in a different directory each time  
 
 
-# Evaluating performance of a model while training
+### Evaluating performance of a model while training
 <a id='Eval'></a>
 
 To evaluate the performance of a model (whether pretrained or your own),
