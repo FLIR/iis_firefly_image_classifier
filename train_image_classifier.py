@@ -25,6 +25,7 @@ from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.training import saver as tf_saver
 
 from datasets import dataset_factory
+from datasets import convert_dataset
 from deployment import model_deploy
 from nets import nets_factory
 from preprocessing import preprocessing_factory
@@ -41,7 +42,9 @@ p = argparse.ArgumentParser()
 p.add_argument(
     '--master', type=str, default='', help='The address of the TensorFlow master to use.')
 
-p.add_argument('--experiment_dir', type=str, default='./experiment_dir/tfmodel', help='Directory where checkpoints and event logs are written to.')
+p.add_argument('--project_dir', type=str, default='./project_dir/', help='Directory where checkpoints and event logs are written to.')
+
+p.add_argument('--project_name', type=str, default=None, help= 'Must supply project name examples: flower_classifier, component_classifier')
 
 p.add_argument('--num_clones', type=int, default=1, help='Number of model clones to deploy. Note For '
                             'historical reasons loss from all clones averaged '
@@ -140,11 +143,19 @@ p.add_argument('--moving_average_decay', type=float, default=None, help='The dec
 # Dataset Flags #
 #######################
 
+p.add_argument('--image_dir', type=str, default=None, help='The directory where the input images are saved.')
+
 p.add_argument('--dataset_name', type=str, default='imagenet', help='The name of the dataset to load.')
 
 p.add_argument('--dataset_split_name', type=str, default='train', help='The name of the train/test split.')
 
 p.add_argument('--dataset_dir', type=str, default=None, help='The directory where the dataset files are stored.')
+
+p.add_argument('--train_percentage', type=int, default=80, help='What percentage of images to use as a train set.')
+
+p.add_argument('--validation_percentage', type=int, default=10, help='What percentage of images to use as a validation set.')
+
+p.add_argument('--test_percentage', type=int, default=10, help='What percentage of images to use as a test set.')
 
 p.add_argument('--labels_offset', type=int, default=0, help='An offset for the labels in the dataset. This flag is primarily used to '
     'evaluate the VGG and ResNet architectures which do not use a background '
@@ -163,7 +174,7 @@ p.add_argument('--max_number_of_steps', type=int, default=50000, help='The maxim
 
 p.add_argument('--use_grayscale', type=bool, default=False, help='Whether to convert input images to grayscale.')
 
-p.add_argument('--balance_classes', type=bool, default=False, help='apply class weight to loss function .')
+p.add_argument('--imbalance_correction', type=bool, default=True, help='apply class weight to loss function .')
 
 #####################
 # Fine-Tuning Flags #
@@ -194,7 +205,7 @@ p.add_argument('--final_endpoint', type=str, default=None, help='Specifies the e
 
 p.add_argument('--experiment_tag', type=str, default='', help='Internal tag for experiment')
 
-p.add_argument('--experiment_file', type=str, default=None, help='File to output experiment metadata')
+# p.add_argument('--experiment_file', type=str, default=None, help='File to output experiment metadata')
 
 p.add_argument('--experiment_name', type=str, default=None, help= ' If None a new experiment folder is created. Naming convension experiment_number')
 
@@ -217,11 +228,6 @@ p.add_argument('--random_image_flip', type=bool, default=False, help='Enable ran
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
-
-# FLAGS = tf.app.flags.FLAGS
-# p = argparse.ArgumentParser()
-# sample input argument
-# p.add_argument("--batch_size", type=int, default=20, help='The number of samples in each batch.')
 
 FLAGS = p.parse_args()
 
@@ -350,14 +356,6 @@ def _get_init_fn():
   if FLAGS.checkpoint_path is None:
     return None
 
-  # Warn the user if a checkpoint exists in the experiment_dir. Then we'll be
-  # ignoring the checkpoint anyway.
-  # if tf.train.latest_checkpoint(experiment_dir):
-  #   tf.logging.info(
-  #       'Ignoring --checkpoint_path because a checkpoint already exists in %s'
-  #       % experiment_dir)
-  #   return None
-
   exclusions = []
   if FLAGS.checkpoint_exclude_scopes:
     exclusions = [scope.strip()
@@ -412,20 +410,66 @@ def _get_variables_to_train():
   		if scope in variable.name:
   			variables.append(variable)
   	variables_to_train.extend(variables)
-  	# variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
 
   	print('######## Trainable variables from name scope', scope, '\n', variables)
   # print('######## List of all Trainable Variables ########### \n', list(set(variables_to_train)))
   return list(set(variables_to_train))
 
+def create_new_experiment_dir(project_dir):
+    output_dirs = [x[0] for x in os.walk(project_dir) if 'experiment_' in x[0].split('/')[-1]]
+    if output_dirs:
+        experiment_number = max([int(x.split('_')[-1]) for x in output_dirs]) + 1
+        # experiment_name = 'experiment_'+ str(experiment_number)
+    else:
+        experiment_number = 1
 
+    # experiment_number = experiment_name.split('_')[-1]
+    # experiment_number = int(experiment_number)
+    experiment_name = 'experiment_'+ str(experiment_number)
+    print('experiment number: {}'.format(experiment_number))
+    experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), experiment_name)
+
+    return experiment_dir
 
 def main():
-  if not FLAGS.dataset_dir:
-    raise ValueError('You must supply the dataset directory with --dataset_dir')
-  DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
-  if not os.path.isdir(DATASET_DIR):
-    raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
+  # check required input arguments
+  if not FLAGS.project_name:
+    raise ValueError('You must supply a project name with --project_name')
+  if not FLAGS.dataset_name:
+    raise ValueError('You must supply a dataset name with --dataset_name')
+
+  # set and check project_dir and experiment_dir.
+  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  if not FLAGS.experiment_name:
+    # list only directories that are names experiment_
+      experiment_dir = create_new_experiment_dir(project_dir)
+  else:
+      experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
+      if not os.path.exists(experiment_dir):
+          raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
+
+  train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+  if not os.path.exists(train_dir):
+      os.makedirs(train_dir)
+
+  # set and check dataset_dir
+  if FLAGS.image_dir:
+      dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
+              FLAGS.dataset_name,
+              FLAGS.dataset_dir,
+              FLAGS.image_dir,
+              FLAGS.train_percentage,
+              FLAGS.validation_percentage,
+              FLAGS.test_percentage,
+              FLAGS.train_image_size,
+              FLAGS.train_image_size)
+  else:
+      if FLAGS.dataset_dir:
+          dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+      else:
+          dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+  if not os.path.isdir(dataset_dir):
+    raise ValueError('Can not find tfrecord dataset directory {}'. format(dataset_dir))
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
     #######################
@@ -446,7 +490,7 @@ def main():
     # Select the dataset #
     ######################
     dataset = dataset_factory.get_dataset(
-        FLAGS.dataset_name, FLAGS.dataset_split_name, DATASET_DIR)
+        FLAGS.dataset_name, FLAGS.dataset_split_name, dataset_dir)
 
     ######################
     # Select the network #
@@ -511,23 +555,22 @@ def main():
       #############################
       # Specify the loss function #
       #############################
-      if 'AuxLogits' in end_points:
-        slim.losses.softmax_cross_entropy(
-            end_points['AuxLogits'], labels,
-            label_smoothing=FLAGS.label_smoothing, weights=0.4,
-            scope='aux_loss')
+      if FLAGS.imbalance_correction:
+          # specify some class weightings
+          class_weights = dataset.sorted_class_weights
+          # deduce weights for batch samples based on their true label
+          weights = tf.reduce_sum(tf.multiply(labels, class_weights), 1)
 
-
-      if FLAGS.balance_classes:
-          for label_name in bdataset.num_samples_per_class:
-              class_name = dataset.labels_to_names[label_name]
-
-          class_weights = tf.constant([41.25, 0.51])
-          sample_weights = tf.reduce_sum(tf.multiply(labels, class_weights), 1)
           slim.losses.softmax_cross_entropy(
-                    logits, labels, label_smoothing=FLAGS.label_smoothing, weights=sample_weights)
+                    logits, labels, label_smoothing=FLAGS.label_smoothing, weights=weights)
       else:
-          slim.losses.softmax_cross_entropy(
+          if 'AuxLogits' in end_points:
+            slim.losses.softmax_cross_entropy(
+                end_points['AuxLogits'], labels,
+                label_smoothing=FLAGS.label_smoothing, weights=0.4,
+                scope='aux_loss')
+          else:
+            slim.losses.softmax_cross_entropy(
                     logits, labels, label_smoothing=FLAGS.label_smoothing, weights=1.0)
       #############################
       ## Calculation of metrics ##
@@ -756,34 +799,12 @@ def main():
     train_step_fn.should_stop = False
     # train_step_fn.accuracy = accuracy
 
-    # set training directory path
-    if FLAGS.experiment_dir:
-        experiment_dir = FLAGS.experiment_dir
-        experiment_name = FLAGS.experiment_name
-        # create a new experiment directory if experiment_name is none).
-        if not FLAGS.experiment_name:
-          # list only directories that are names experiment_
-            output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
-            experiment_name = 'experiment_'+ str(len(output_dirs)+1)
-            
-        try:
-            experiment_number = experiment_name.split('_')[-1]
-            experiment_number = int(experiment_number)
-            
-        except ValueError:
-            pass  # it was a string, not an int.
-        print('experiment number: {}'.format(experiment_number))
-        experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
-        if not os.path.exists(experiment_dir):
-            os.makedirs(experiment_dir)
-    else:
-        raise ValueError('You must supply train directory with --experiment_dir.')
 
     def exit_gracefully(signum, frame) :
       interrupted = datetime.datetime.utcnow()
-      if not FLAGS.experiment_file is None :
-        print('Interrupted on (UTC): ', interrupted, sep='', file=experiment_file)
-        experiment_file.flush()
+      # if not experiment_file is None :
+      print('Interrupted on (UTC): ', interrupted, sep='', file=experiment_file)
+      experiment_file.flush()
       train_step_fn.should_stop = True
       print('Interrupted on (UTC): ', interrupted, sep='')
 
@@ -792,24 +813,26 @@ def main():
 
     start = datetime.datetime.utcnow()
     print('Started on (UTC): ', start, sep='')
-    if not FLAGS.experiment_file is None :
 
-      experiment_file = open(os.path.join(experiment_dir, FLAGS.experiment_file), 'w')
-      print('Experiment metadata file:', file=experiment_file)
-      print(FLAGS.experiment_file, file=experiment_file)
-      print('========================', file=experiment_file)
-      print('All command-line flags:', file=experiment_file)
-      print(FLAGS.experiment_file, file=experiment_file)
-      for flag_key in sorted(FLAGS.__flags.keys()) :
-        print(flag_key, ' : ', FLAGS.__flags[flag_key].value, sep='', file=experiment_file)
-      print('========================', file=experiment_file)
-      print('Started on (UTC): ', start, sep='', file=experiment_file)
-      experiment_file.flush()
+    # if not experiment_file is None :
+    experiment_file_path = os.path.join(train_dir, 'experiment_setting.txt')
+    experiment_file = open(experiment_file_path, 'w')
+    print('Experiment metadata file:', file=experiment_file)
+    print(experiment_file_path, file=experiment_file)
+    print('========================', file=experiment_file)
+    print('All command-line flags:', file=experiment_file)
+    print(experiment_file_path, file=experiment_file)
+    # for flag_key in sorted(FLAGS.__flags.keys()) :
+    for key,value in vars(FLAGS).items():
+      print(key, ' : ', value, sep='', file=experiment_file)
+    print('========================', file=experiment_file)
+    print('Started on (UTC): ', start, sep='', file=experiment_file)
+    experiment_file.flush()
 
     slim.learning.train(
         train_tensor,
         train_step_fn=train_step_fn,
-        logdir=experiment_dir,
+        logdir=train_dir,
         master=FLAGS.master,
         is_chief=(FLAGS.task == 0),
         init_fn=_get_init_fn(),
@@ -822,10 +845,10 @@ def main():
         session_config=session_config)
 
     finish = datetime.datetime.utcnow()
-    if not FLAGS.experiment_file is None :
-      print('Finished on (UTC): ', finish, sep='', file=experiment_file)
-      print('Elapsed: ', finish-start, sep='', file=experiment_file)
-      experiment_file.flush()
+    # if not experiment_file is None :
+    print('Finished on (UTC): ', finish, sep='', file=experiment_file)
+    print('Elapsed: ', finish-start, sep='', file=experiment_file)
+    experiment_file.flush()
 
 if __name__ == '__main__':
   # tf.app.run()

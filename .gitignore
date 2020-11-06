@@ -1,8 +1,13 @@
 #list of ignored files and directories
-
+archive/
+project_dir/
 train_dir/
+experiment_dir/
+scripts/
 checkpoints/
 graph_transform.py
 TFRecord/
+.ipynb_checkpoints/
 *.pyc
 env/
+__pycache__/

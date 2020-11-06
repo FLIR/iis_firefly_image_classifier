@@ -43,7 +43,9 @@ p.add_argument("--master", type=str, default='', help='The address of the Tensor
 p.add_argument("--checkpoint_path", type=str, default=None, help='The directory where the model was written to or an absolute path to a '
     'checkpoint file.')
 
-p.add_argument("--experiment_dir", type=str, default=None , help='Directory where the results are saved to.')
+p.add_argument("--project_dir", type=str, default='./project_dir/' , help='Directory where the results are saved to.')
+
+p.add_argument('--project_name', type=str, default=None, help= 'Must supply a project name examples: flower_classifier, component_classifier')
 
 p.add_argument("--num_preprocessing_threads", type=int, default=4, help='The number of threads used to create the batches.')
 
@@ -97,25 +99,6 @@ p.add_argument("--roi", type=str, default=None, help='Specifies the coordinates 
 
 FLAGS = p.parse_args()
 
-
-
-# if FLAGS.experiment_dir:
-#     experiment_dir = FLAGS.experiment_dir
-#     experiment_name = FLAGS.experiment_name
-#     # create a new experiment directory if experiment_name is none).
-#     if not FLAGS.experiment_name:
-#         # list only directories that are names experiment_
-#         output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
-#         if not output_dirs:
-#             raise ValueError('No experiment folders found. check evaluation directory with --experiment_dir and assign experiment name with --experiment_name.')
-#         experiment_name = 'experiment_'+ str(len(output_dirs))
-
-#     experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
-#     if not os.path.exists(experiment_dir):
-#         os.makedirs(experiment_dir)
-
-# else:
-#     raise ValueError('You must supply train directory with --experiment_dir.')
 def _parse_roi():
     # parse roi
     if FLAGS.roi is None:
@@ -127,15 +110,51 @@ def _parse_roi():
         roi_array.append(int(i))
       return roi_array
 
-def main():
-  if not FLAGS.dataset_dir:
-    raise ValueError('You must supply the dataset directory with --dataset_dir')
-  DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
-  if not os.path.isdir(DATASET_DIR):
-    raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
+def select_latest_experiment_dir(project_dir):
+    output_dirs = [x[0] for x in os.walk(project_dir) if 'experiment_' in x[0].split('/')[-1]]
+    if not output_dirs:
+        raise ValueError('No experiments found in project folder: {}. Check project folder or specify experiment name with --experiment_name flag'.format(project_dir))
+    experiment_number = max([int(x.split('_')[-1]) for x in output_dirs])
+    experiment_name = 'experiment_'+ str(experiment_number)
+    # experiment_number = experiment_name.split('_')[-1]
+    # experiment_number = int(experiment_number)
+    print('experiment number: {}'.format(experiment_number))
+    experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), experiment_name)
 
-  if not FLAGS.experiment_dir:
-    raise ValueError('You must supply an eval directory with --experiment_dir')
+    return experiment_dir
+
+def main():
+  # check required input arguments
+  if not FLAGS.project_name:
+    raise ValueError('You must supply a project name with --project_name')
+  if not FLAGS.dataset_name:
+    raise ValueError('You must supply a dataset name with --dataset_name')
+  # dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
+  # set and check project_dir and experiment_dir.
+  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  if not FLAGS.experiment_name:
+    # list only directories that are names experiment_
+    experiment_dir = select_latest_experiment_dir(project_dir)
+  else:
+    experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
+    if not os.path.exists(experiment_dir):
+        raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
+
+  eval_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+  if not os.path.exists(eval_dir):
+    # raise ValueError(f'Can not find evalulation directory {eval_dir}')
+    os.makedirs(eval_dir)
+    # else:
+    #     raise ValueError('You must supply a project name with --project_name.')
+  # set and check dataset directory
+  if FLAGS.dataset_dir:
+      dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+  else:
+      dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+  if not os.path.isdir(dataset_dir):
+    raise ValueError(f'Can not find tfrecord dataset directory {dataset_dir}')
+  # if not FLAGS.project_dir:
+  #   raise ValueError('You must supply an eval directory with --project_dir')
 
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
@@ -146,7 +165,7 @@ def main():
     # Select the dataset #
     ######################
     dataset = dataset_factory.get_dataset(
-        FLAGS.dataset_name, FLAGS.dataset_split_name, DATASET_DIR)
+        FLAGS.dataset_name, FLAGS.dataset_split_name, dataset_dir)
 
     ####################
     # Select the model #
@@ -268,35 +287,42 @@ def main():
         summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_recall', recall_at_k))
         summaries.add(tf.summary.scalar(f'op/class_{class_id}_recall_op', recall_at_k_op))
 
+    # def select_latest_experiment_dir(project_dir):
+    #     output_dirs = [x[0] for x in os.walk(project_dir) if 'experiment_' in x[0].split('/')[-1]]
+    #     if not output_dirs:
+    #         raise ValueError('No experiments found in project folder: {}. Check project folder or specify experiment name with --experiment_name flag'.format(project_dir))
+    #     experiment_number = max([int(x.split('_')[-1]) for x in output_dirs])
+    #     experiment_name = 'experiment_'+ str(experiment_number)
+    #     # experiment_number = experiment_name.split('_')[-1]
+    #     # experiment_number = int(experiment_number)
+    #     print('experiment number: {}'.format(experiment_number))
+    #     experiment_dir = os.path.join(project_dir, experiment_name)
+    #
+    #     return experiment_dir
+    #
+    # # initialize experiment directory
+    # if FLAGS.project_name:
+    #     # project_name = FLAGS.project_name
+    #     project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+    #     # experiment_name = FLAGS.experiment_name
+    #
+    #     # create a new experiment directory if experiment_name is none).
+    #     if not FLAGS.experiment_name:
+    #         # list only directories that are names experiment_
+    #         experiment_dir = select_latest_experiment_dir(project_dir)
+    #     else:
+    #         experiment_dir = os.path.join(project_dir, FLAGS.experiment_name)
+    #         if not os.path.exists(experiment_dir):
+    #             raise ValueError('Experiment name {} does not exist.'.format(FLAGS.experiment_name))
+    #
+    #     eval_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+    #     if not os.path.exists(eval_dir):
+    #         os.makedirs(eval_dir)
+    # else:
+    #     raise ValueError('You must supply a project name with --project_name.')
 
-    # set up experiment directory
-    if FLAGS.experiment_dir:
-        experiment_dir = FLAGS.experiment_dir
-        experiment_name = FLAGS.experiment_name
-        # create a new experiment directory if experiment_name is none).
-        if not FLAGS.experiment_name:
-            # list only directories that are names experiment_
-            output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
-            if not output_dirs:
-                raise ValueError('No experiment folders found. check evaluation directory with --experiment_dir and assign experiment name with --experiment_name.')
-            experiment_name = 'experiment_'+ str(len(output_dirs))
-        # exports experiment number to guild (guild compare)
-        try:
-            experiment_number = experiment_name.split('_')[-1]
-            experiment_number = int(experiment_number)
-            print('experiment number: {}'.format(experiment_number))
-            
-        except ValueError:
-            pass  # it was a string, not an int.
-        
-        experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
-        if not os.path.exists(experiment_dir):
-            os.makedirs(experiment_dir)
-    else:
-        raise ValueError('You must supply train directory with --experiment_dir.')
-
-    # set batch size if none to 
-    # number_of_samples_in_dataset / batch_size 
+    # set batch size if none to
+    # number_of_samples_in_dataset / batch_size
     if FLAGS.max_num_batches:
       num_batches = FLAGS.max_num_batches
     else:
@@ -306,12 +332,12 @@ def main():
 
     # if checkpoint_path flag is none, look for checkpoint in experiment train directory
     if FLAGS.checkpoint_path is None:
-        checkpoint_path = '/'.join(experiment_dir.split('/')[:-1])
-        checkpoint_path = os.path.join(checkpoint_path, 'train')
+        # checkpoint_path = experiment_dir
+        checkpoint_path = os.path.join(experiment_dir, 'train')
     else:
         checkpoint_path = FLAGS.checkpoint_path
 
-    tf.logging.info('#####Evaluating %s' % checkpoint_path)
+    tf.logging.info('Evaluating checkpoint: %s' % checkpoint_path)
     # evaluate for 1000 batches:
     # num_evals = 5
 
@@ -343,7 +369,7 @@ def main():
     slim.evaluation.evaluation_loop(
         master=FLAGS.master,
         checkpoint_dir=checkpoint_path,
-        logdir=experiment_dir,
+        logdir=eval_dir,
         num_evals=num_batches,
         eval_op=update_ops,
         summary_op=summary_op,
@@ -354,7 +380,7 @@ def main():
     # slim.evaluation.evaluate_once(
     #     master=FLAGS.master,
     #     checkpoint_path=checkpoint_path,
-    #     logdir=experiment_dir,
+    #     logdir=project_dir,
     #     num_evals=num_batches,
     #     eval_op=update_ops,
     #     variables_to_restore=list(variables_to_restore),
