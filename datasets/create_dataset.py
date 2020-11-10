@@ -137,9 +137,9 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
     class_to_label_name, label_to_class_number = dataset_utils.read_label_file(dataset_dir)
 
   num_samples=splits_to_sizes[split_name]
-  print('###################', splits_to_sizes)
+  # print('###################', splits_to_sizes)
   if split_name+'_per_class' in splits_to_sizes:
-     print('###################', splits_to_sizes)
+     # print('###################', splits_to_sizes)
      sorted_class_weights = dataset_class_weight(splits_to_sizes, split_name, label_to_class_number)
 
      return slim.dataset.Dataset(

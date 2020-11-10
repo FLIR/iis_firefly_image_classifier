@@ -23,12 +23,17 @@ from tensorflow.python.platform import tf_logging as logging
 from tensorflow.contrib import quantize as contrib_quantize
 from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.training import saver as tf_saver
+from tensorflow.core.framework import graph_pb2
+from tensorflow.core.protobuf import saver_pb2
+from tensorflow.core.protobuf.meta_graph_pb2 import MetaGraphDef
 
 from datasets import dataset_factory
 from datasets import convert_dataset
+from datasets import dataset_utils
 from deployment import model_deploy
 from nets import nets_factory
 from preprocessing import preprocessing_factory
+from freeze_graph import freeze_graph, export_inference_graph
 
 import os
 import datetime
@@ -149,7 +154,7 @@ p.add_argument('--dataset_name', type=str, default='imagenet', help='The name of
 
 p.add_argument('--dataset_split_name', type=str, default='train', help='The name of the train/test split.')
 
-p.add_argument('--dataset_dir', type=str, default=None, help='The directory where the dataset files are stored.')
+p.add_argument('--dataset_dir', type=str, default="", help='The directory where the dataset files are stored.')
 
 p.add_argument('--train_percentage', type=int, default=80, help='What percentage of images to use as a train set.')
 
@@ -228,10 +233,7 @@ p.add_argument('--random_image_flip', type=bool, default=False, help='Enable ran
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
-
 FLAGS = p.parse_args()
-
-
 
 def _parse_roi():
     # parse roi
@@ -403,33 +405,15 @@ def _get_variables_to_train():
     if 'BatchNorm' not in FLAGS.trainable_scopes:
       scopes.append('BatchNorm')
 
-  # print('##############', scopes)
   for scope in scopes:
   	variables = []
   	for variable in tf.trainable_variables():
   		if scope in variable.name:
   			variables.append(variable)
   	variables_to_train.extend(variables)
-
   	print('######## Trainable variables from name scope', scope, '\n', variables)
-  # print('######## List of all Trainable Variables ########### \n', list(set(variables_to_train)))
   return list(set(variables_to_train))
 
-def create_new_experiment_dir(project_dir):
-    output_dirs = [x[0] for x in os.walk(project_dir) if 'experiment_' in x[0].split('/')[-1]]
-    if output_dirs:
-        experiment_number = max([int(x.split('_')[-1]) for x in output_dirs]) + 1
-        # experiment_name = 'experiment_'+ str(experiment_number)
-    else:
-        experiment_number = 1
-
-    # experiment_number = experiment_name.split('_')[-1]
-    # experiment_number = int(experiment_number)
-    experiment_name = 'experiment_'+ str(experiment_number)
-    print('experiment number: {}'.format(experiment_number))
-    experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), experiment_name)
-
-    return experiment_dir
 
 def main():
   # check required input arguments
@@ -442,7 +426,7 @@ def main():
   project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
   if not FLAGS.experiment_name:
     # list only directories that are names experiment_
-      experiment_dir = create_new_experiment_dir(project_dir)
+      experiment_dir = dataset_utils.create_new_experiment_dir(project_dir)
   else:
       experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
       if not os.path.exists(experiment_dir):
@@ -464,7 +448,7 @@ def main():
               FLAGS.train_image_size,
               FLAGS.train_image_size)
   else:
-      if FLAGS.dataset_dir:
+      if os.path.isdir(FLAGS.dataset_dir):
           dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
       else:
           dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
@@ -575,7 +559,6 @@ def main():
       #############################
       ## Calculation of metrics ##
       #############################
-
       # print('###########1',logits, labels)
       accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(labels, 1), tf.argmax(logits, 1))
       precision, precision_op = tf.metrics.average_precision_at_k(tf.argmax(labels, 1), logits, 1)
@@ -627,7 +610,6 @@ def main():
     #########################################################
     ## Calculation of metrics for all clones ##
     #########################################################
-
     # Metrics for all clones.
     accuracy = tf.get_collection('accuracy')
     accuracy_op = tf.get_collection('accuracy_op')
@@ -714,9 +696,7 @@ def main():
     grad_updates = optimizer.apply_gradients(clones_gradients,
                                              global_step=global_step)
     update_ops.append(grad_updates)
-
     update_op = tf.group(*update_ops)
-    # print('############# operations', update_op)
     with tf.control_dependencies([update_op]):
       train_tensor = tf.identity(total_loss, name='train_op')
 
@@ -765,7 +745,6 @@ def main():
       total_loss, np_global_step = sess.run([train_op, global_step],
                                             options=trace_run_options,
                                             run_metadata=run_metadata)
-      # loss = total_loss
 
       time_elapsed = time.time() - start_time
 
@@ -783,10 +762,6 @@ def main():
       if 'should_log' in train_step_kwargs:
         if sess.run(train_step_kwargs['should_log']):
             print('global step {:d}: loss = {:1.4f} ({:.3f} sec/step)'.format(np_global_step, total_loss, time_elapsed))
-            # print("accuracy loss: {}".format(total_loss))
-        # print("step: {}".format(np_global_step))
-          # logging.info('global step %d: loss = %.4f (%.3f sec/step)', np_global_step, total_loss, time_elapsed)
-          # print(logits, labels)
 
       if 'should_stop' in train_step_kwargs:
         should_stop = sess.run(train_step_kwargs['should_stop'])
@@ -798,7 +773,6 @@ def main():
 
     train_step_fn.should_stop = False
     # train_step_fn.accuracy = accuracy
-
 
     def exit_gracefully(signum, frame) :
       interrupted = datetime.datetime.utcnow()
@@ -845,7 +819,44 @@ def main():
         session_config=session_config)
 
     finish = datetime.datetime.utcnow()
-    # if not experiment_file is None :
+    # generate and save graph (output file model_name_graph.pb)
+    print('Generate frozengraph')
+    # TODO: Simplify by loading checkpoint+graph and freezing together (no need to save graph)
+    # genrate and save inference graph
+    is_training = False
+    is_video_model = False
+    batch_size = None
+    num_frames = None
+    quantize = False
+    write_text_graphdef = False
+    output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
+    export_inference_graph(FLAGS.dataset_name, dataset_dir,  FLAGS.model_name, FLAGS.labels_offset, is_training, FLAGS.final_endpoint, FLAGS.train_image_size, FLAGS.use_grayscale, is_video_model, batch_size, num_frames, quantize, write_text_graphdef, output_file)
+
+    # load last checkpoint and generate frozen weighted graph from export_inference_graph
+    # input_saver = ""
+    # input_binary=True
+    # checkpoint_path = tf.train.latest_checkpoint(train_dir)
+    # output_node_names = "MobilenetV1/Predictions/Reshape_1"
+    # restore_op_name = "save/restore_all"
+    # filename_tensor_name = "save/Const:0"
+    # output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
+    # output_graph = os.path.join(train_dir, output_graph_name)
+    # clear_devices = True
+    # initializer_nodes = ""
+    # variable_names_whitelist = ""
+    # variable_names_blacklist = ""
+    # input_meta_graph = ""
+    # input_saved_model_dir = ""
+    # saved_model_tags = "serve"
+    # checkpoint_version = saver_pb2.SaverDef.V2
+    # freeze_graph(output_file, input_saver, input_binary,
+    # checkpoint_path, output_node_names,
+    # restore_op_name, filename_tensor_name,
+    # output_graph, clear_devices, initializer_nodes,
+    # variable_names_whitelist, variable_names_blacklist,
+    # input_meta_graph, input_saved_model_dir,
+    # saved_model_tags, checkpoint_version)
+
     print('Finished on (UTC): ', finish, sep='', file=experiment_file)
     print('Elapsed: ', finish-start, sep='', file=experiment_file)
     experiment_file.flush()
@@ -853,3 +864,49 @@ def main():
 if __name__ == '__main__':
   # tf.app.run()
   main()
+  # TODO: Fix the mess below.
+
+  # The code below generates a frozen graph from the last trained checkpoint and defined graph (export_inference_graph)
+  # set and check project_dir and experiment_dir.
+  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  if not FLAGS.experiment_name:
+    # list only directories that are names experiment_
+      # experiment_dir = create_new_experiment_dir(project_dir)
+      experiment_dir = dataset_utils.select_latest_experiment_dir(project_dir)
+  else:
+      experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
+      if not os.path.exists(experiment_dir):
+          raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
+
+  train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+  # if not os.path.exists(train_dir):
+  #     os.makedirs(train_dir)
+  output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
+  if not os.path.isfile(output_file):
+      raise ValueError('graph not found')
+  # load last checkpoint and generate frozen weighted graph from export_inference_graph
+  from tensorflow.core.protobuf import saver_pb2
+  input_saver = ""
+  input_binary=True
+  checkpoint_path = tf.train.latest_checkpoint(train_dir)
+  print('#######',checkpoint_path)
+  output_node_names = "MobilenetV1/Predictions/Reshape_1"
+  restore_op_name = "save/restore_all"
+  filename_tensor_name = "save/Const:0"
+  output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
+  output_graph = os.path.join(train_dir, output_graph_name)
+  clear_devices = True
+  initializer_nodes = ""
+  variable_names_whitelist = ""
+  variable_names_blacklist = ""
+  input_meta_graph = ""
+  input_saved_model_dir = ""
+  saved_model_tags = "serve"
+  checkpoint_version = saver_pb2.SaverDef.V2
+  freeze_graph(output_file, input_saver, input_binary,
+  checkpoint_path, output_node_names,
+  restore_op_name, filename_tensor_name,
+  output_graph, clear_devices, initializer_nodes,
+  variable_names_whitelist, variable_names_blacklist,
+  input_meta_graph, input_saved_model_dir,
+  saved_model_tags, checkpoint_version)

@@ -28,6 +28,35 @@ import tensorflow as tf
 
 LABELS_FILENAME = 'labels.txt'
 
+def create_new_experiment_dir(project_dir):
+    output_dirs = [x[0] for x in os.walk(project_dir) if 'experiment_' in x[0].split('/')[-1]]
+    if output_dirs:
+        experiment_number = max([int(x.split('_')[-1]) for x in output_dirs]) + 1
+        # experiment_name = 'experiment_'+ str(experiment_number)
+    else:
+        experiment_number = 1
+
+    # experiment_number = experiment_name.split('_')[-1]
+    # experiment_number = int(experiment_number)
+    experiment_name = 'experiment_'+ str(experiment_number)
+    print('experiment number: {}'.format(experiment_number))
+    experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), experiment_name)
+
+    return experiment_dir
+
+def select_latest_experiment_dir(project_dir):
+    output_dirs = [x[0] for x in os.walk(project_dir) if 'experiment_' in x[0].split('/')[-1]]
+    if not output_dirs:
+        raise ValueError('No experiments found in project folder: {}. Check project folder or specify experiment name with --experiment_name flag'.format(project_dir))
+    experiment_number = max([int(x.split('_')[-1]) for x in output_dirs])
+    experiment_name = 'experiment_'+ str(experiment_number)
+    # experiment_number = experiment_name.split('_')[-1]
+    # experiment_number = int(experiment_number)
+    print('experiment number: {}'.format(experiment_number))
+    experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), experiment_name)
+
+    return experiment_dir
+
 
 def int64_feature(values):
   """Returns a TF-Feature of int64s.

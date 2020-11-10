@@ -43,6 +43,11 @@ import sys
 
 from google.protobuf import text_format
 
+import tensorflow as tf
+from tensorflow.python.platform import gfile
+from datasets import dataset_factory
+from nets import nets_factory
+
 from tensorflow.core.framework import graph_pb2
 from tensorflow.core.protobuf import saver_pb2
 from tensorflow.core.protobuf.meta_graph_pb2 import MetaGraphDef
@@ -284,6 +289,42 @@ def _parse_input_saver_proto(input_saver, input_binary):
       text_format.Merge(f.read(), saver_def)
   return saver_def
 
+def export_inference_graph(dataset_name, dataset_dir,  model_name, labels_offset, is_training, final_endpoint, image_size, use_grayscale, is_video_model, batch_size, num_frames, quantize, write_text_graphdef, output_file):
+
+    tf.logging.set_verbosity(tf.logging.INFO)
+    with tf.Graph().as_default() as graph:
+        dataset = dataset_factory.get_dataset(dataset_name, 'train', dataset_dir)
+        network_fn = nets_factory.get_network_fn(
+            model_name,
+            num_classes=(dataset.num_classes - labels_offset),
+            is_training=is_training,
+            final_endpoint=final_endpoint)
+        image_size = image_size or network_fn.default_image_size
+        num_channels = 1 if use_grayscale else 3
+        if is_video_model:
+          input_shape = [
+              batch_size, num_frames, image_size, image_size,
+              num_channels
+          ]
+        else:
+          input_shape = [batch_size, image_size, image_size, num_channels]
+        placeholder = tf.placeholder(name='input', dtype=tf.float32,
+                                     shape=input_shape)
+        network_fn(placeholder)
+
+        if quantize:
+          contrib_quantize.create_eval_graph()
+
+        graph_def = graph.as_graph_def()
+        if write_text_graphdef:
+          tf.io.write_graph(
+              graph_def,
+              os.path.dirname(output_file),
+              os.path.basename(output_file),
+              as_text=True)
+        else:
+          with gfile.GFile(output_file, 'wb') as f:
+            f.write(graph_def.SerializeToString())
 
 def freeze_graph(input_graph,
                  input_saver,

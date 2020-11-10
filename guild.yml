@@ -3,8 +3,8 @@
   operations:
     train:
       description: Retrain a classifier
-      main: train_image_classifier
-      output-scalars: 
+      main: ./train_image_classifier
+      output-scalars:
         - 'global step (?P<step>\step): loss = (?P<loss>\value)'
         - experiment_number: 'experiment number: (\value)'
         # - val_loss: 'validation loss: (\value)'
@@ -15,7 +15,7 @@
       flags:                 # Change flags
         max_number_of_steps:
           type: int
-          default: 500
+          default: 5
         batch_size:
           type: int
           default: 64
@@ -23,18 +23,21 @@
         learning_rate:
           type: float
           default: 0.01
-        experiment_dir:
+        project_dir:
           type: string
-          default: './train_dir/letter_blocks_mobilenet_v1/'
+          default: './project_dir/'
+        project_name:
+          type: string
+          default: ''
         experiment_name:
           type: string
           default: ''
         dataset_dir:
           type: string
-          default: '/home/docker/ahmed/datasets/blocks/'
+          default: ''
         dataset_name:
           type: string
-          default: 'letter_blocks'
+          default: ''
         dataset_split_name:
           type: string
           default: 'train'
@@ -53,11 +56,11 @@
           default: False
       requires:
         - file: checkpoints  # resolve file dependancies
-        - file: train_dir    # output folder is mapped from host to virtual environment in env/.guild/runs
+        - file: project_dir    # output folder is mapped from host to virtual environment in env/.guild/runs
     eval:
       description: Evaluate and monitor model performance during training
       main: eval_image_classifier
-      output-scalars: 
+      output-scalars:
         - experiment_number: 'experiment number: (\value)'
       # flags-import: all
       flags:
@@ -65,18 +68,21 @@
           type: int
           default: 64
           choices: [16, 32, 64]
-        experiment_dir:
+        project_dir:
           type: string
-          default: './train_dir/letter_blocks_mobilenet_v1/'
+          default: './project_dir/'
+        project_name:
+          type: string
+          default: ''
         experiment_name:
           type: string
           default: ''
         dataset_dir:
           type: string
-          default: '/home/docker/ahmed/datasets/blocks/'
+          default: ''
         dataset_name:
           type: string
-          default: 'letter_blocks'
+          default: ''
         dataset_split_name:
           type: string
           default: 'validation'
@@ -95,7 +101,7 @@
         # roi: '650,950,224,224,1080,1440'
       requires:
         - file: checkpoints
-        - file: train_dir
+        - file: project_dir
 
 
   sourcecode:
