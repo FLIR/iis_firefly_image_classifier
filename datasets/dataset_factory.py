@@ -32,8 +32,6 @@ datasets_map = {
     'flowers': flowers,
     'imagenet': imagenet,
     'mnist': mnist,
-    'tylenol': tylenol,
-    # 'blocks':blocks,
     'visualwakewords': visualwakewords,
 }
 

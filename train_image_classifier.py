@@ -210,8 +210,6 @@ p.add_argument('--final_endpoint', type=str, default=None, help='Specifies the e
 
 p.add_argument('--experiment_tag', type=str, default='', help='Internal tag for experiment')
 
-# p.add_argument('--experiment_file', type=str, default=None, help='File to output experiment metadata')
-
 p.add_argument('--experiment_name', type=str, default=None, help= ' If None a new experiment folder is created. Naming convension experiment_number')
 
 #######################
@@ -232,8 +230,6 @@ p.add_argument('--random_image_rotation', type=bool, default=True, help='Enable 
 p.add_argument('--random_image_flip', type=bool, default=False, help='Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
-
-FLAGS = p.parse_args()
 
 def _parse_roi():
     # parse roi
@@ -559,7 +555,6 @@ def main():
       #############################
       ## Calculation of metrics ##
       #############################
-      # print('###########1',logits, labels)
       accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(labels, 1), tf.argmax(logits, 1))
       precision, precision_op = tf.metrics.average_precision_at_k(tf.argmax(labels, 1), logits, 1)
 
@@ -572,13 +567,10 @@ def main():
           tf.add_to_collection(f'recall_at_{class_id}', recall_at_k)
           tf.add_to_collection(f'recall_at_{class_id}_op', recall_at_k_op)
 
-      # print('###########',precision, recall)
-
       tf.add_to_collection('accuracy', accuracy)
       tf.add_to_collection('accuracy_op', accuracy_op)
       tf.add_to_collection('precision', precision)
       tf.add_to_collection('precision_op', precision_op)
-
 
       return end_points
 
@@ -788,7 +780,7 @@ def main():
     start = datetime.datetime.utcnow()
     print('Started on (UTC): ', start, sep='')
 
-    # if not experiment_file is None :
+    # record script flags (FLAGS). write to experiment file
     experiment_file_path = os.path.join(train_dir, 'experiment_setting.txt')
     experiment_file = open(experiment_file_path, 'w')
     print('Experiment metadata file:', file=experiment_file)
@@ -796,7 +788,6 @@ def main():
     print('========================', file=experiment_file)
     print('All command-line flags:', file=experiment_file)
     print(experiment_file_path, file=experiment_file)
-    # for flag_key in sorted(FLAGS.__flags.keys()) :
     for key,value in vars(FLAGS).items():
       print(key, ' : ', value, sep='', file=experiment_file)
     print('========================', file=experiment_file)
@@ -820,7 +811,7 @@ def main():
 
     finish = datetime.datetime.utcnow()
     # generate and save graph (output file model_name_graph.pb)
-    print('Generate frozengraph')
+    print('Generate frozen graph')
     # TODO: Simplify by loading checkpoint+graph and freezing together (no need to save graph)
     # genrate and save inference graph
     is_training = False
@@ -831,32 +822,7 @@ def main():
     write_text_graphdef = False
     output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
     export_inference_graph(FLAGS.dataset_name, dataset_dir,  FLAGS.model_name, FLAGS.labels_offset, is_training, FLAGS.final_endpoint, FLAGS.train_image_size, FLAGS.use_grayscale, is_video_model, batch_size, num_frames, quantize, write_text_graphdef, output_file)
-
-    # load last checkpoint and generate frozen weighted graph from export_inference_graph
-    # input_saver = ""
-    # input_binary=True
-    # checkpoint_path = tf.train.latest_checkpoint(train_dir)
-    # output_node_names = "MobilenetV1/Predictions/Reshape_1"
-    # restore_op_name = "save/restore_all"
-    # filename_tensor_name = "save/Const:0"
-    # output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
-    # output_graph = os.path.join(train_dir, output_graph_name)
-    # clear_devices = True
-    # initializer_nodes = ""
-    # variable_names_whitelist = ""
-    # variable_names_blacklist = ""
-    # input_meta_graph = ""
-    # input_saved_model_dir = ""
-    # saved_model_tags = "serve"
-    # checkpoint_version = saver_pb2.SaverDef.V2
-    # freeze_graph(output_file, input_saver, input_binary,
-    # checkpoint_path, output_node_names,
-    # restore_op_name, filename_tensor_name,
-    # output_graph, clear_devices, initializer_nodes,
-    # variable_names_whitelist, variable_names_blacklist,
-    # input_meta_graph, input_saved_model_dir,
-    # saved_model_tags, checkpoint_version)
-
+    # record training session end
     print('Finished on (UTC): ', finish, sep='', file=experiment_file)
     print('Elapsed: ', finish-start, sep='', file=experiment_file)
     experiment_file.flush()
@@ -877,13 +843,10 @@ if __name__ == '__main__':
       experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
       if not os.path.exists(experiment_dir):
           raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
-
   train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
-  # if not os.path.exists(train_dir):
-  #     os.makedirs(train_dir)
   output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
   if not os.path.isfile(output_file):
-      raise ValueError('graph not found')
+      raise ValueError('Graph file not found')
   # load last checkpoint and generate frozen weighted graph from export_inference_graph
   from tensorflow.core.protobuf import saver_pb2
   input_saver = ""

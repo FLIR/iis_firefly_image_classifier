@@ -32,32 +32,6 @@ from datasets import dataset_utils
 slim = contrib_slim
 
 _FILE_PATTERN = '%s_%s_*.tfrecord'
-# _JSON_FILE = 'dataset_config.json'
-
-
-# splits_to_sizes = {'train': 480, 'validation': 120}
-
-# num_classes = 5
-
-# _ITEMS_TO_DESCRIPTIONS = {
-#     'image': 'A color image of varying size.',
-#     'label': 'A single integer between 0 and 4',
-# }
-
-# def read_json(dataset_name, dataset_dir):
-
-#   json_file = os.path.join(dataset_dir, 'dataset_config.json')
-
-#   with open(json_file) as file:
-#     data = json.load(file)
-#   if dataset_name != data['dataset_name']:
-#     raise ValueError('Given dataset name %s does not match dataset name %s in %s.' % (dataset_name, data['dataset_name'], json_file))
-#   # dataset_name = data['dataset_name']
-#   num_classes = data['number_of_classes']
-#   split_to_sizes = data['dataset_split']
-#   # splits_to_sizes = {'train': data['train_size'], 'validation': data['validation_size'], 'test':data['test_size']}
-
-#   return num_classes, split_to_sizes
 
 
 def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=None):
@@ -127,9 +101,7 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
     sorted_label_name = sorted(label_to_class_number.keys(), key= lambda x: label_to_class_number[x])
     for label_name in sorted_label_name:
         norm_class_weight = num_samples / (num_samples_per_class[label_name] * num_classes)
-        # norm_class_weight = num_samples / (num_samples_per_class[label_name])
         sorted_class_weights.append(norm_class_weight)
-        # print('##### Class {} weight: {:1.4f}'.format(label_name, norm_class_weight))
     return sorted_class_weights
 
   labels_to_names = None
@@ -139,7 +111,6 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
   num_samples=splits_to_sizes[split_name]
   # print('###################', splits_to_sizes)
   if split_name+'_per_class' in splits_to_sizes:
-     # print('###################', splits_to_sizes)
      sorted_class_weights = dataset_class_weight(splits_to_sizes, split_name, label_to_class_number)
 
      return slim.dataset.Dataset(

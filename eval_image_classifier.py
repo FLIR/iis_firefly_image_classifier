@@ -89,6 +89,7 @@ p.add_argument("--eval_interval_secs", type=int, default=20, help='The frequency
 p.add_argument("--eval_timeout_secs", type=int, default=None, help='The maximum amount of time to wait between checkpoints. If left as None, then the process will wait for double the eval_interval_secs.')
 
 p.add_argument("--experiment_number", type=int, default=0, help='Only needs to be specified if running script with guild')
+
 #######################
 # Preprocessing Flags #
 #######################
@@ -101,7 +102,6 @@ p.add_argument("--roi", type=str, default=None, help='Specifies the coordinates 
 FLAGS = p.parse_args()
 
 def _parse_roi():
-    # parse roi
     if FLAGS.roi is None:
       return FLAGS.roi
     else:
@@ -117,7 +117,6 @@ def main():
     raise ValueError('You must supply a project name with --project_name')
   if not FLAGS.dataset_name:
     raise ValueError('You must supply a dataset name with --dataset_name')
-  # dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
   # set and check project_dir and experiment_dir.
   project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
   if not FLAGS.experiment_name:
@@ -130,19 +129,14 @@ def main():
 
   eval_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
   if not os.path.exists(eval_dir):
-    # raise ValueError(f'Can not find evalulation directory {eval_dir}')
     os.makedirs(eval_dir)
-    # else:
-    #     raise ValueError('You must supply a project name with --project_name.')
-  # set and check dataset directory
+
   if FLAGS.dataset_dir:
       dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
   else:
       dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
   if not os.path.isdir(dataset_dir):
     raise ValueError(f'Can not find tfrecord dataset directory {dataset_dir}')
-  # if not FLAGS.project_dir:
-  #   raise ValueError('You must supply an eval directory with --project_dir')
 
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
@@ -224,12 +218,10 @@ def main():
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     update_ops.append([accuracy_op, precision_op])
 
-
     tf.add_to_collection('accuracy', accuracy)
     tf.add_to_collection('accuracy_op', accuracy_op)
     tf.add_to_collection('precision', precision)
     tf.add_to_collection('precision_op', precision_op)
-
 
     for class_id in range(dataset.num_classes):
         precision_at_k, precision_at_k_op = tf.metrics.precision_at_k(tf.squeeze(labels), logits, k=1, class_id=class_id)
@@ -282,7 +274,6 @@ def main():
 
     # if checkpoint_path flag is none, look for checkpoint in experiment train directory
     if FLAGS.checkpoint_path is None:
-        # checkpoint_path = experiment_dir
         checkpoint_path = os.path.join(experiment_dir, 'train')
     else:
         checkpoint_path = FLAGS.checkpoint_path
@@ -293,13 +284,13 @@ def main():
       total_loss = tf.identity(loss, name='total_loss')
 
     summary_op = tf.summary.merge(list(summaries), name='summary_op')
-
+    # configure session
     session_config = tf.ConfigProto(
         log_device_placement = FLAGS.verbose_placement,
         allow_soft_placement = not FLAGS.hard_placement)
     if not FLAGS.fixed_memory :
       session_config.gpu_options.allow_growth=True
-
+    # set evaluation interval
     if not FLAGS.eval_timeout_secs:
         eval_timeout_secs = FLAGS.eval_interval_secs * 2
     else:
@@ -318,5 +309,4 @@ def main():
         session_config=session_config)
 
 if __name__ == '__main__':
-  # tf.app.run()
   main()
