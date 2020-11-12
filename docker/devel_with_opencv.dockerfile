@@ -27,19 +27,21 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 
 #COPY luna-sdk_ub1804_rel_v.3.9.1_docker /home/${USER}/luna-sdk_ub1804_rel_v.3.9.1_docker
 
+# Install sudo and add user to sudo group
+RUN apt-get update
+RUN apt-get --allow-insecure-repositories --fix-missing update
 
 # Install sudo and add user to sudo group
-RUN apt-get --allow-insecure-repositories update
+#RUN apt-get --allow-insecure-repositories update
 RUN apt-get install -y -q \
 	build-essential cmake checkinstall \
 	pkg-config \
-    wget git curl \
-    unzip yasm \
-    pkg-config \
-    nano vim \
-    mc sudo \
-    python3-tk \
-    x11-apps
+  wget git curl \
+  unzip yasm \
+  pkg-config \
+  nano vim \
+  mc sudo \
+  python3-tk
 
 # add sudo user
 RUN  adduser ${USER} sudo
@@ -134,7 +136,6 @@ RUN opencv/build/bin/opencv_test_core
 ENV QT_X11_NO_MITSHM=1
 
 #######TENSORFLOW INSTALLATION##############
-
 
 # Setup default user, when enter docker container
 ENV PATH=$PATH:/home/docker/.local/bin

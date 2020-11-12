@@ -207,7 +207,7 @@ def write_label_file(labels_to_class_names,
   with tf.gfile.Open(labels_filename, 'w') as f:
     for label in labels_to_class_names:
       class_name = labels_to_class_names[label]
-      f.write(f'{class_name}\n')
+      f.write('{}\n'.format(class_name))
 
 def read_label_file(dataset_dir,
                     filename=LABELS_FILENAME):

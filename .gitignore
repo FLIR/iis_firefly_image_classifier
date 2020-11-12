@@ -12,3 +12,5 @@ TFRecord/
 env/
 __pycache__/
 datasets/__pycache__
+preprocessing/__pycache__/*.pyc
+docker/cuda10.0.tar

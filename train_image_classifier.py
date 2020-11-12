@@ -231,6 +231,8 @@ p.add_argument('--random_image_flip', type=bool, default=False, help='Enable ran
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
+FLAGS = p.parse_args()
+
 def _parse_roi():
     # parse roi
     # roi="650,950,224,224"
@@ -562,10 +564,10 @@ def main():
         for class_id in range(dataset.num_classes):
           precision_at_k, precision_at_k_op = tf.metrics.precision_at_k(tf.argmax(labels, 1), logits, k=1, class_id=class_id)
           recall_at_k, recall_at_k_op = tf.metrics.recall_at_k(tf.argmax(labels, 1), logits, k=1, class_id=class_id)
-          tf.add_to_collection(f'precision_at_{class_id}', precision_at_k)
-          tf.add_to_collection(f'precision_at_{class_id}_op', precision_at_k_op)
-          tf.add_to_collection(f'recall_at_{class_id}', recall_at_k)
-          tf.add_to_collection(f'recall_at_{class_id}_op', recall_at_k_op)
+          tf.add_to_collection('precision_at_{}'.format(class_id), precision_at_k)
+          tf.add_to_collection('precision_at_{}_op'.format(class_id), precision_at_k_op)
+          tf.add_to_collection('recall_at_{}'.format(class_id), recall_at_k)
+          tf.add_to_collection('recall_at_{}_op'.format(class_id), recall_at_k_op)
 
       tf.add_to_collection('accuracy', accuracy)
       tf.add_to_collection('accuracy_op', accuracy_op)
@@ -624,20 +626,20 @@ def main():
 
     # Add precision/recall at each class to summary
     for class_id in range(dataset.num_classes):
-      precision_at_k = tf.get_collection(f'precision_at_{class_id}')
-      precision_at_k_op = tf.get_collection(f'precision_at_{class_id}_op')
-      recall_at_k = tf.get_collection(f'recall_at_{class_id}')
-      recall_at_k_op = tf.get_collection(f'recall_at_{class_id}_op')
+      precision_at_k = tf.get_collection('precision_at_{}'.format(class_id))
+      precision_at_k_op = tf.get_collection('precision_at_{}_op'.format(class_id))
+      recall_at_k = tf.get_collection('recall_at_{}'.format(class_id))
+      recall_at_k_op = tf.get_collection('recall_at_{}_op'.format(class_id))
 
       precision_at_k = tf.reduce_mean(tf.stack(precision_at_k, axis=0))
       precision_at_k_op = tf.reduce_mean(tf.stack(precision_at_k_op, axis=0))
       recall_at_k = tf.reduce_mean(tf.stack(recall_at_k, axis=0))
       recall_at_k_op = tf.reduce_mean(tf.stack(recall_at_k_op, axis=0))
 
-      summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_precision', precision_at_k))
-      summaries.add(tf.summary.scalar(f'op/class_{class_id}_precision_op', precision_at_k_op))
-      summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_recall', recall_at_k))
-      summaries.add(tf.summary.scalar(f'op/class_{class_id}_recall_op', recall_at_k_op))
+      summaries.add(tf.summary.scalar('Metrics/class_{}_precision'.format(class_id), precision_at_k))
+      summaries.add(tf.summary.scalar('op/class_{}_precision_op'.format(class_id), precision_at_k_op))
+      summaries.add(tf.summary.scalar('Metrics/class_{}_recall'.format(class_id), recall_at_k))
+      summaries.add(tf.summary.scalar('op/class_{}_recall_op'.format(class_id), recall_at_k_op))
 
     #################################
     # Configure the moving averages #
