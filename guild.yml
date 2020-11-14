@@ -64,7 +64,7 @@
       flags:
         batch_size:
           type: int
-          default: 64
+          default: 16
           choices: [16, 32, 64]
         project_dir:
           type: string

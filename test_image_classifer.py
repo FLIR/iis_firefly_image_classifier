@@ -118,7 +118,7 @@ def main(_):
 
   test_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
   if not os.path.exists(test_dir):
-    # raise ValueError(f'Can not find evalulation directory {eval_dir}')
+    # raise ValueError('Can not find evalulation directory {}'.format(eval_dir))
     os.makedirs(test_dir)
 
   # set and check dataset directory
@@ -127,7 +127,7 @@ def main(_):
   else:
       dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
   if not os.path.isdir(dataset_dir):
-    raise ValueError(f'Can not find tfrecord dataset directory {dataset_dir}')
+    raise ValueError('Can not find tfrecord dataset directory {}'.format(dataset_dir))
 
   prediction_file = os.path.join(test_dir, 'predictions.csv')
 
@@ -143,7 +143,7 @@ def main(_):
                 fls_temp = list(tf.python_io.tf_record_iterator(path=os.path.join(root, file)))
                 fls.extend(fls_temp)
             else:
-                raise ValueError(f'No .tfrecord files that start with {file_pattern}. Check --dataset_name, --dataset_dir, and --dataset_split_name flags')
+                raise ValueError('No .tfrecord files that start with {}. Check --dataset_name, --dataset_dir, and --dataset_split_name flags'.format(file_pattern))
   # raise error if no tfrecord files found in dataset directory
   if not fls:
     raise ValueError('No data was found in .tfrecord file')
@@ -270,7 +270,7 @@ def main(_):
 
       # check if groudtruth class label names match with class labels from label_file
           if gt_label not in list(label_to_class_dict.keys()):
-              raise ValueError(f'groundtruth label ({gt_label}) does not match class label in file --label_file. Check image file parent directory names and selected label_file')
+              raise ValueError('groundtruth label ({}) does not match class label in file --label_file. Check image file parent directory names and selected label_file'.format(gt_label))
 
           probs = probs[0, 0:]
           a.extend(probs)
@@ -280,12 +280,12 @@ def main(_):
             fout.write(','.join([str(e) for e in a]))
             fout.write('\n')
           counter += 1
-          sys.stdout.write(f'\rProcessing images... {str(counter)}/{len(fls)}')
+          sys.stdout.write('\rProcessing images... {}/{}'.format(str(counter), len(fls)))
           sys.stdout.flush()
           output_pred.append(pred_label)
 
     fout.close()
-    print(f'\n\nPredition results saved to >>>>>> {prediction_file}')
+    print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
 
   sess.close()
   # misclassified image
@@ -295,8 +295,8 @@ def main(_):
     for image_name, gt_label, pred_label in zip(file_name, output_gt, output_pred):
           if pred_label != gt_label:
               count += 1
-              print(f'Image file {image_name} misclassified as {pred_label}. (groundtruth label {gt_label})')
-    print(f'\n\nTotal misclassified images {count}/{len(file_name)}')
+              print('Image file {} misclassified as {}. (groundtruth label {})'.format(image_name, pred_label, gt_label))
+    print('\n\nTotal misclassified images {}/{}'.format(str(count), len(file_name)))
     print("==============================================================")
     y_true = output_gt
     y_pred = output_pred

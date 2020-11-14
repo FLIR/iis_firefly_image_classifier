@@ -53,5 +53,6 @@ WORKDIR /home/${USER}
 
 ## Specify tensorflow version
 
+## TODO: resolve dependency conflict between tensorboard 1.14, tensorflow 1.13.2 and guild 0.7
 # Install extra packages without root privilege if need
-RUN pip install --user tensorflow-gpu==1.13.2  tensorboard==1.14.0 guildai tf-slim numpy pillow lxml scikit-learn scipy matplotlib ipython pandas scikit-image
+RUN pip install --user tensorflow-gpu==1.13.2  tensorboard==1.14.0 guildai==0.7.0.post1 tf-slim numpy pillow lxml scikit-learn scipy matplotlib ipython pandas scikit-image
