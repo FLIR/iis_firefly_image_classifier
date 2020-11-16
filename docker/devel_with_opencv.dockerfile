@@ -2,7 +2,8 @@
 #FROM tensorflow/tensorflow:latest-devel-gpu
 
 # The offical Nvidia cuda 10.0 docker package
-FROM nvcr.io/nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
+#FROM nvcr.io/nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
+FROM nvcr.io/nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
 # Add user
 ARG USER=docker
 ARG UID=1000
