@@ -14,3 +14,5 @@ __pycache__/
 datasets/__pycache__
 preprocessing/__pycache__/*.pyc
 docker/cuda10.0.tar
+docker/cuda10.0_devel.tar
+imagenet_checkpoints/
