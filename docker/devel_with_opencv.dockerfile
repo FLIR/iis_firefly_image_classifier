@@ -1,9 +1,9 @@
 # The offica tensorflow/tensorflow docker package
-# https://hub.docker.com/r/tensorflow/tensorflow
+#FROM tensorflow/tensorflow:latest-devel-gpu
 
-
-#FROM tensorflow/tensorflow:latest-devel-gpu-py3
-FROM tensorflow/tensorflow:latest-devel-gpu
+# The offical Nvidia cuda 10.0 docker package
+#FROM nvcr.io/nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
+FROM nvcr.io/nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
 # Add user
 ARG USER=docker
 ARG UID=1000
@@ -12,20 +12,12 @@ ARG GID=1000
 # Sudo user password
 ARG PW=docker
 
-# Set to root directory to copy modified apt sources (cuda.list, nvidia-ml.list) FIXME: comment out once network issue fixed
-#ENV IMAGE_ROOT=/
-#WORKDIR $IMAGE_ROOT
-#COPY source.list.d /etc/apt/sources.list.d
-
-
 # Temporary assign user as root to perform apt-get and sudo functions
 USER root
-
 RUN useradd -m ${USER} --uid=${UID} &&  echo "${USER}:${PW}" | chpasswd
-# This line is optional
-RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
-#COPY luna-sdk_ub1804_rel_v.3.9.1_docker /home/${USER}/luna-sdk_ub1804_rel_v.3.9.1_docker
+# This line is optional
+# RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 
 # Install sudo and add user to sudo group
@@ -33,13 +25,13 @@ RUN apt-get --allow-insecure-repositories update
 RUN apt-get install -y -q \
 	build-essential cmake checkinstall \
 	pkg-config \
-    wget git curl \
-    unzip yasm \
-    pkg-config \
-    nano vim \
-    mc sudo \
-    python3-tk \
-    x11-apps
+  wget git curl \
+  unzip yasm \
+  pkg-config \
+  nano vim \
+  mc sudo \
+  python3-tk \
+  x11-apps
 
 # add sudo user
 RUN  adduser ${USER} sudo
@@ -48,13 +40,12 @@ RUN  adduser ${USER} sudo
 RUN apt-get install -y -q python3-dev
 
 # Install the latest version of pip (https://pip.pypa.io/en/stable/installing/#using-linux-package-managers)
-
+# TODO: upgrade from python 3.5 to 3.7
 RUN wget --no-check-certificate  https://bootstrap.pypa.io/get-pip.py
 RUN python3 get-pip.py
 RUN pip install numpy
 
 #RUN apt install python3-tesresources libjasper-dev
-
 
 #optional dependencies Image I/O libs
 RUN apt-get install -y -q  libpng-dev libjpeg-dev libopenexr-dev libtiff-dev libwebp-dev qt5-default
@@ -133,8 +124,8 @@ RUN opencv/build/bin/opencv_test_core
 
 ENV QT_X11_NO_MITSHM=1
 
-#######TENSORFLOW INSTALLATION##############
-
+####### TENSORFLOW INSTALLATION ########
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 # Setup default user, when enter docker container
 ENV PATH=$PATH:/home/docker/.local/bin
@@ -143,24 +134,10 @@ WORKDIR /home/${USER}
 
 ## Specify tensorflow version
 
-#tensorflow-gpu==1.13.0
 # Install extra packages without root privilege if need
-RUN pip install --user tensorflow-gpu==1.13.1 Cython contextlib2 numpy pillow lxml scikit-learn scipy matplotlib ipython pandas sympy nose scikit-image pandas imgaug guildai
+RUN pip install --user tensorflow-gpu==1.13.2  tensorboard==1.14.0 guildai==0.7.0.post1 tf-slim numpy pillow lxml scikit-learn scipy matplotlib ipython pandas sympy nose scikit-image imgaug
 
-
-# set build arguments
-#ARG CLONE_TAG=master
-
-# Tesorflow
-#RUN git clone -b ${CLONE_TAG} --depth 1 https://github.com/tensorflow/tensorflow && cd tensorflow && git clone -b ${CLONE_TAG} --depth 1 https://github.com/tensorflow/models
-#RUN cd tensorflow/models/research/
-
-# Tesorflow model
-#RUN cd tensorflow && git clone https://github.com/cocodataset/cocoapi.git
-#RUN cd tensorflow/cocoapi/PythonAPI && make && cp -r pycocotools /home/${USER}/tensorflow/models/research/
-
-#RUN cd tensorflow/models/research/ && protoc object_detection/protos/*.proto --python_out=.
-
-#ENV PYTHONPATH=$PYTHONPATH:/home/${USER}/tensorflow/models/research/:/home/${USER}/tensorflow/models/research/slim
-
-#RUN cd tensorflow/models/research/ && python object_detection/builders/model_builder_test.py
+# RUN ln -s python3 /usr/bin/python
+# RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
