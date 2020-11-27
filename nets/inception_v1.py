@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.contrib import slim as contrib_slim
+from tensorflow.contrib import layers as contrib_layers
 
 from nets import inception_utils
 
@@ -271,11 +272,12 @@ def inception_v1(inputs,
                  num_classes=1000,
                  is_training=True,
                  dropout_keep_prob=0.8,
-                 prediction_fn=slim.softmax,
+                 prediction_fn=contrib_layers.softmax,
                  spatial_squeeze=True,
                  reuse=None,
                  scope='InceptionV1',
-                 global_pool=False):
+                 global_pool=False,
+                 final_endpoint=None):
   """Defines the Inception V1 architecture.
 
   This architecture is defined in:
@@ -334,8 +336,8 @@ def inception_v1(inputs,
         if spatial_squeeze:
           logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
 
-        end_points['Logits'] = logits
-        end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
+      end_points['Logits'] = logits
+      end_points['Predictions'] = prediction_fn(logits, scope='Predictions')
   return logits, end_points
 inception_v1.default_image_size = 224
 

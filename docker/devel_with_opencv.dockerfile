@@ -135,7 +135,7 @@ WORKDIR /home/${USER}
 ## Specify tensorflow version
 
 # Install extra packages without root privilege if need
-RUN pip install --user tensorflow-gpu==1.13.2  tensorboard==1.14.0 guildai==0.7.0.post1 tf-slim numpy pillow lxml scikit-learn scipy matplotlib ipython pandas sympy nose scikit-image imgaug
+RUN pip install --user tensorflow-gpu==1.13.2 guildai pillow scikit-learn scikit-image imgaug
 
 # RUN ln -s python3 /usr/bin/python
 # RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10

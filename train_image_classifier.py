@@ -40,6 +40,8 @@ import datetime
 import signal
 import time
 import argparse
+import urllib.request
+import tarfile
 
 slim = contrib_slim
 
@@ -187,15 +189,15 @@ p.add_argument('--imbalance_correction', type=bool, default=True, help='apply cl
 
 p.add_argument('--feature_extraction', type=bool, default=False, help='Whether or not to synchronize the replicas during training.')
 
-p.add_argument('--checkpoint_path',  type=str, default='./checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt',
+p.add_argument('--checkpoint_path',  type=str, default=None,
     help='The path to a checkpoint from which to fine-tune.')
 
-p.add_argument('--checkpoint_exclude_scopes',  type=str, default='MobilenetV1/Logits',
+p.add_argument('--checkpoint_exclude_scopes',  type=str, default=None,
     help='Comma-separated list of scopes of variables to exclude when restoring '
     'from a checkpoint.'
     'By default, only the Logits layer is excluded')
 
-p.add_argument('--trainable_scopes', type=str, default='MobilenetV1/Logits',
+p.add_argument('--trainable_scopes', type=str, default=None,
     help='Comma-separated list of scopes to filter the set of variables to train.'
     'By default, only the Logits layer is trained. None would train all the variables.')
 
@@ -231,6 +233,13 @@ p.add_argument('--random_image_flip', type=bool, default=False, help='Enable ran
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
+model_name_to_variables = {
+  'mobilenet_v1_025':'MobilenetV1',
+  'mobilenet_v1_050':'MobilenetV1',
+  'mobilenet_v1_075':'MobilenetV1',
+  'mobilenet_v1':'MobilenetV1',
+  'inception_v1':'InceptionV1'
+  }
 FLAGS = p.parse_args()
 
 def _parse_roi():
@@ -343,6 +352,13 @@ def _configure_optimizer(learning_rate):
     raise ValueError('Optimizer [%s] was not recognized' % FLAGS.optimizer)
   return optimizer
 
+def download_and_extract_file(checkpoint_path, url):
+    checkpoint_dir = checkpoint_path.split('/')[0:3]
+    checkpoint_dir = '/'.join(checkpoint_dir)
+    # print(url, checkpoint_dir)
+    ftpstream = urllib.request.urlopen(url)
+    thetarfile = tarfile.open(fileobj=ftpstream, mode="r|gz")
+    thetarfile.extractall(path=checkpoint_dir)
 
 def _get_init_fn():
   """Returns a function run by the chief worker to warm-start the training.
@@ -353,13 +369,45 @@ def _get_init_fn():
   Returns:
     An init function run by the supervisor.
   """
-  if FLAGS.checkpoint_path is None:
-    return None
+  if not FLAGS.checkpoint_path:
+      # download imagenet pre-trained model weights
+      if FLAGS.model_name == 'inception_v1':
+          checkpoint_path = './imagenet_checkpoints/inception_v1_224/inception_v1.ckpt'
+          if not os.path.isfile(checkpoint_path):
+              url = 'http://download.tensorflow.org/models/inception_v1_2016_08_28.tar.gz'
+              download_and_extract_file(checkpoint_path, url)
+          # exclusions = ['InceptionV1/Logits']
+      elif FLAGS.model_name == 'mobilenet_v1':
+          checkpoint_path = './imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
+          if not os.path.isfile(checkpoint_path):
+              url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz')
+              download_and_extract_file(checkpoint_path, url)
+          # exclusions = ['MobilenetV1/Logits']
+      elif FLAGS.model_name == 'mobilenet_v1_075':
+          checkpoint_path = './imagenet_checkpoints/mobilenet_v1_0.75_224/mobilenet_v1_0.75_224.ckpt'
+          if not os.path.isfile(checkpoint_path):
+              url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.75_224.tgz')
+              download_and_extract_file(checkpoint_path, url)
+      elif FLAGS.model_name == 'mobilenet_v1_050':
+          checkpoint_path = './imagenet_checkpoints/mobilenet_v1_0.5_224/mobilenet_v1_0.5_224.ckpt'
+          if not os.path.isfile(checkpoint_path):
+              url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.5_224.tgz')
+              download_and_extract_file(checkpoint_path, url)
+      elif FLAGS.model_name == 'mobilenet_v1_025':
+          checkpoint_path = './imagenet_checkpoints/mobilenet_v1_0.25_224/mobilenet_v1_0.25_224.ckpt'
+          if not os.path.isfile(checkpoint_path):
+              url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.25_224.tgz')
+              download_and_extract_file(checkpoint_path, url)
+  else:
+      checkpoint_path = FLAGS.checkpoint_path
 
-  exclusions = []
+  # exclude scope
   if FLAGS.checkpoint_exclude_scopes:
     exclusions = [scope.strip()
                   for scope in FLAGS.checkpoint_exclude_scopes.split(',')]
+  else:
+    model_variables = model_name_to_variables.get(FLAGS.model_name)
+    exclusions = [model_variables+'/Logits']
 
   # TODO(sguada) variables.filter_variables()
   variables_to_restore = []
@@ -367,13 +415,9 @@ def _get_init_fn():
     for exclusion in exclusions:
       if var.op.name.startswith(exclusion):
         break
-    else:
-      variables_to_restore.append(var)
+      else:
+        variables_to_restore.append(var)
 
-  if tf.gfile.IsDirectory(FLAGS.checkpoint_path):
-    checkpoint_path = tf.train.latest_checkpoint(FLAGS.checkpoint_path)
-  else:
-    checkpoint_path = FLAGS.checkpoint_path
   if FLAGS.feature_extraction:
   	tf.logging.info('Feature-extraction from %s' % checkpoint_path)
   else:
@@ -392,16 +436,14 @@ def _get_variables_to_train():
     A list of variables to train by the optimizer.
   """
   if FLAGS.trainable_scopes is None:
-    return tf.trainable_variables()
+      if FLAGS.model_name.startswith('inception_v1'):
+          scopes = ['InceptionV1/Logits', 'BatchNorm']
+      elif FLAGS.model_name.startswith('mobilenet_v1'):
+          scopes = ['MobilenetV1/Logits', 'BatchNorm']
   else:
-    scopes = [scope.strip() for scope in FLAGS.trainable_scopes.split(',')]
+      scopes = [scope.strip() for scope in FLAGS.trainable_scopes.split(',')]
 
   variables_to_train = []
-  # print('######## All avaialable Trainable variables from name scope \n', tf.trainable_variables())
-  # fine-tune setting will add all batchnorm layers to variables to train, if no batchnorm layer is included in the trainable_scope flag.
-  if not FLAGS.feature_extraction:
-    if 'BatchNorm' not in FLAGS.trainable_scopes:
-      scopes.append('BatchNorm')
 
   for scope in scopes:
   	variables = []
@@ -414,11 +456,14 @@ def _get_variables_to_train():
 
 
 def main():
+
   # check required input arguments
   if not FLAGS.project_name:
     raise ValueError('You must supply a project name with --project_name')
   if not FLAGS.dataset_name:
     raise ValueError('You must supply a dataset name with --dataset_name')
+  if not FLAGS.model_name in model_name_to_variables:
+    raise ValueError('Model name not supported name please select one of the following model architecture: mobilenet_v1, mobilenet_v1_075, mobilenet_v1_050, mobilenet_v1_025, inception_v1')
 
   # set and check project_dir and experiment_dir.
   project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
@@ -855,7 +900,11 @@ if __name__ == '__main__':
   input_binary=True
   checkpoint_path = tf.train.latest_checkpoint(train_dir)
   print('#######',checkpoint_path)
-  output_node_names = "MobilenetV1/Predictions/Reshape_1"
+  if FLAGS.model_name.startswith('inception_v1'):
+    output_node_names = "InceptionV1/Predictions/Reshape_1"
+  elif FLAGS.model_name.startswith('mobilenet_v1'):
+    output_node_names = "MobilenetV1/Predictions/Reshape_1"
+
   restore_op_name = "save/restore_all"
   filename_tensor_name = "save/Const:0"
   output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
