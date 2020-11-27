@@ -23,11 +23,17 @@ from tensorflow.python.platform import tf_logging as logging
 from tensorflow.contrib import quantize as contrib_quantize
 from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.training import saver as tf_saver
+from tensorflow.core.framework import graph_pb2
+from tensorflow.core.protobuf import saver_pb2
+from tensorflow.core.protobuf.meta_graph_pb2 import MetaGraphDef
 
 from datasets import dataset_factory
+from datasets import convert_dataset
+from datasets import dataset_utils
 from deployment import model_deploy
 from nets import nets_factory
 from preprocessing import preprocessing_factory
+from freeze_graph import freeze_graph, export_inference_graph
 
 import os
 import datetime
@@ -41,7 +47,9 @@ p = argparse.ArgumentParser()
 p.add_argument(
     '--master', type=str, default='', help='The address of the TensorFlow master to use.')
 
-p.add_argument('--experiment_dir', type=str, default='./experiment_dir/tfmodel', help='Directory where checkpoints and event logs are written to.')
+p.add_argument('--project_dir', type=str, default='./project_dir/', help='Directory where checkpoints and event logs are written to.')
+
+p.add_argument('--project_name', type=str, default=None, help= 'Must supply project name examples: flower_classifier, component_classifier')
 
 p.add_argument('--num_clones', type=int, default=1, help='Number of model clones to deploy. Note For '
                             'historical reasons loss from all clones averaged '
@@ -140,11 +148,19 @@ p.add_argument('--moving_average_decay', type=float, default=None, help='The dec
 # Dataset Flags #
 #######################
 
+p.add_argument('--image_dir', type=str, default=None, help='The directory where the input images are saved.')
+
 p.add_argument('--dataset_name', type=str, default='imagenet', help='The name of the dataset to load.')
 
 p.add_argument('--dataset_split_name', type=str, default='train', help='The name of the train/test split.')
 
-p.add_argument('--dataset_dir', type=str, default=None, help='The directory where the dataset files are stored.')
+p.add_argument('--dataset_dir', type=str, default="", help='The directory where the dataset files are stored.')
+
+p.add_argument('--train_percentage', type=int, default=80, help='What percentage of images to use as a train set.')
+
+p.add_argument('--validation_percentage', type=int, default=10, help='What percentage of images to use as a validation set.')
+
+p.add_argument('--test_percentage', type=int, default=10, help='What percentage of images to use as a test set.')
 
 p.add_argument('--labels_offset', type=int, default=0, help='An offset for the labels in the dataset. This flag is primarily used to '
     'evaluate the VGG and ResNet architectures which do not use a background '
@@ -194,8 +210,6 @@ p.add_argument('--final_endpoint', type=str, default=None, help='Specifies the e
 
 p.add_argument('--experiment_tag', type=str, default='', help='Internal tag for experiment')
 
-p.add_argument('--experiment_file', type=str, default=None, help='File to output experiment metadata')
-
 p.add_argument('--experiment_name', type=str, default=None, help= ' If None a new experiment folder is created. Naming convension experiment_number')
 
 #######################
@@ -216,11 +230,6 @@ p.add_argument('--random_image_rotation', type=bool, default=True, help='Enable 
 p.add_argument('--random_image_flip', type=bool, default=False, help='Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
-
-
-FLAGS = p.parse_args()
-
-
 
 def _parse_roi():
     # parse roi
@@ -345,14 +354,6 @@ def _get_init_fn():
   if FLAGS.checkpoint_path is None:
     return None
 
-  # Warn the user if a checkpoint exists in the experiment_dir. Then we'll be
-  # ignoring the checkpoint anyway.
-  # if tf.train.latest_checkpoint(experiment_dir):
-  #   tf.logging.info(
-  #       'Ignoring --checkpoint_path because a checkpoint already exists in %s'
-  #       % experiment_dir)
-  #   return None
-
   exclusions = []
   if FLAGS.checkpoint_exclude_scopes:
     exclusions = [scope.strip()
@@ -400,26 +401,55 @@ def _get_variables_to_train():
     if 'BatchNorm' not in FLAGS.trainable_scopes:
       scopes.append('BatchNorm')
 
-  # print('##############', scopes)
   for scope in scopes:
   	variables = []
   	for variable in tf.trainable_variables():
   		if scope in variable.name:
   			variables.append(variable)
   	variables_to_train.extend(variables)
-
   	print('######## Trainable variables from name scope', scope, '\n', variables)
-  # print('######## List of all Trainable Variables ########### \n', list(set(variables_to_train)))
   return list(set(variables_to_train))
 
 
-
 def main():
-  if not FLAGS.dataset_dir:
-    raise ValueError('You must supply the dataset directory with --dataset_dir')
-  DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
-  if not os.path.isdir(DATASET_DIR):
-    raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
+  # check required input arguments
+  if not FLAGS.project_name:
+    raise ValueError('You must supply a project name with --project_name')
+  if not FLAGS.dataset_name:
+    raise ValueError('You must supply a dataset name with --dataset_name')
+
+  # set and check project_dir and experiment_dir.
+  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  if not FLAGS.experiment_name:
+    # list only directories that are names experiment_
+      experiment_dir = dataset_utils.create_new_experiment_dir(project_dir)
+  else:
+      experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
+      if not os.path.exists(experiment_dir):
+          raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
+
+  train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+  if not os.path.exists(train_dir):
+      os.makedirs(train_dir)
+
+  # set and check dataset_dir
+  if FLAGS.image_dir:
+      dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
+              FLAGS.dataset_name,
+              FLAGS.dataset_dir,
+              FLAGS.image_dir,
+              FLAGS.train_percentage,
+              FLAGS.validation_percentage,
+              FLAGS.test_percentage,
+              FLAGS.train_image_size,
+              FLAGS.train_image_size)
+  else:
+      if os.path.isdir(FLAGS.dataset_dir):
+          dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+      else:
+          dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+  if not os.path.isdir(dataset_dir):
+    raise ValueError('Can not find tfrecord dataset directory {}'. format(dataset_dir))
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
     #######################
@@ -440,7 +470,7 @@ def main():
     # Select the dataset #
     ######################
     dataset = dataset_factory.get_dataset(
-        FLAGS.dataset_name, FLAGS.dataset_split_name, DATASET_DIR)
+        FLAGS.dataset_name, FLAGS.dataset_split_name, dataset_dir)
 
     ######################
     # Select the network #
@@ -525,8 +555,6 @@ def main():
       #############################
       ## Calculation of metrics ##
       #############################
-
-      # print('###########1',logits, labels)
       accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(labels, 1), tf.argmax(logits, 1))
       precision, precision_op = tf.metrics.average_precision_at_k(tf.argmax(labels, 1), logits, 1)
 
@@ -539,13 +567,10 @@ def main():
           tf.add_to_collection(f'recall_at_{class_id}', recall_at_k)
           tf.add_to_collection(f'recall_at_{class_id}_op', recall_at_k_op)
 
-      # print('###########',precision, recall)
-
       tf.add_to_collection('accuracy', accuracy)
       tf.add_to_collection('accuracy_op', accuracy_op)
       tf.add_to_collection('precision', precision)
       tf.add_to_collection('precision_op', precision_op)
-
 
       return end_points
 
@@ -577,7 +602,6 @@ def main():
     #########################################################
     ## Calculation of metrics for all clones ##
     #########################################################
-
     # Metrics for all clones.
     accuracy = tf.get_collection('accuracy')
     accuracy_op = tf.get_collection('accuracy_op')
@@ -664,9 +688,7 @@ def main():
     grad_updates = optimizer.apply_gradients(clones_gradients,
                                              global_step=global_step)
     update_ops.append(grad_updates)
-
     update_op = tf.group(*update_ops)
-    # print('############# operations', update_op)
     with tf.control_dependencies([update_op]):
       train_tensor = tf.identity(total_loss, name='train_op')
 
@@ -715,7 +737,6 @@ def main():
       total_loss, np_global_step = sess.run([train_op, global_step],
                                             options=trace_run_options,
                                             run_metadata=run_metadata)
-      # loss = total_loss
 
       time_elapsed = time.time() - start_time
 
@@ -733,10 +754,6 @@ def main():
       if 'should_log' in train_step_kwargs:
         if sess.run(train_step_kwargs['should_log']):
             print('global step {:d}: loss = {:1.4f} ({:.3f} sec/step)'.format(np_global_step, total_loss, time_elapsed))
-            # print("accuracy loss: {}".format(total_loss))
-        # print("step: {}".format(np_global_step))
-          # logging.info('global step %d: loss = %.4f (%.3f sec/step)', np_global_step, total_loss, time_elapsed)
-          # print(logits, labels)
 
       if 'should_stop' in train_step_kwargs:
         should_stop = sess.run(train_step_kwargs['should_stop'])
@@ -748,33 +765,6 @@ def main():
 
     train_step_fn.should_stop = False
     # train_step_fn.accuracy = accuracy
-
-    # set training directory path
-    if FLAGS.experiment_dir:
-        experiment_dir = FLAGS.experiment_dir
-        experiment_name = FLAGS.experiment_name
-        # create a new experiment directory if experiment_name is none).
-        if not FLAGS.experiment_name:
-          # list only directories that are names experiment_
-            output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
-            experiment_name = 'experiment_'+ str(len(output_dirs)+1)
-
-        try:
-            experiment_number = experiment_name.split('_')[-1]
-            experiment_number = int(experiment_number)
-
-        except ValueError:
-            pass  # it was a string, not an int.
-        print('experiment number: {}'.format(experiment_number))
-        experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
-        if not os.path.exists(experiment_dir):
-            os.makedirs(experiment_dir)
-    else:
-        raise ValueError('You must supply train directory with --experiment_dir.')
-
-    experiment_file = FLAGS.experiment_file
-    if not experiment_file:
-        experiment_file = experiment_name + '.txt'
 
     def exit_gracefully(signum, frame) :
       interrupted = datetime.datetime.utcnow()
@@ -790,14 +780,14 @@ def main():
     start = datetime.datetime.utcnow()
     print('Started on (UTC): ', start, sep='')
 
-    # if not experiment_file is None :
-    experiment_file = open(os.path.join(experiment_dir, experiment_file), 'w')
+    # record script flags (FLAGS). write to experiment file
+    experiment_file_path = os.path.join(train_dir, 'experiment_setting.txt')
+    experiment_file = open(experiment_file_path, 'w')
     print('Experiment metadata file:', file=experiment_file)
-    print(experiment_file, file=experiment_file)
+    print(experiment_file_path, file=experiment_file)
     print('========================', file=experiment_file)
     print('All command-line flags:', file=experiment_file)
-    print(experiment_file, file=experiment_file)
-    # for flag_key in sorted(FLAGS.__flags.keys()) :
+    print(experiment_file_path, file=experiment_file)
     for key,value in vars(FLAGS).items():
       print(key, ' : ', value, sep='', file=experiment_file)
     print('========================', file=experiment_file)
@@ -807,7 +797,7 @@ def main():
     slim.learning.train(
         train_tensor,
         train_step_fn=train_step_fn,
-        logdir=experiment_dir,
+        logdir=train_dir,
         master=FLAGS.master,
         is_chief=(FLAGS.task == 0),
         init_fn=_get_init_fn(),
@@ -820,11 +810,66 @@ def main():
         session_config=session_config)
 
     finish = datetime.datetime.utcnow()
-    if not experiment_file is None :
-      print('Finished on (UTC): ', finish, sep='', file=experiment_file)
-      print('Elapsed: ', finish-start, sep='', file=experiment_file)
-      experiment_file.flush()
+    # generate and save graph (output file model_name_graph.pb)
+    print('Generate frozen graph')
+    # TODO: Simplify by loading checkpoint+graph and freezing together (no need to save graph)
+    # genrate and save inference graph
+    is_training = False
+    is_video_model = False
+    batch_size = None
+    num_frames = None
+    quantize = False
+    write_text_graphdef = False
+    output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
+    export_inference_graph(FLAGS.dataset_name, dataset_dir,  FLAGS.model_name, FLAGS.labels_offset, is_training, FLAGS.final_endpoint, FLAGS.train_image_size, FLAGS.use_grayscale, is_video_model, batch_size, num_frames, quantize, write_text_graphdef, output_file)
+    # record training session end
+    print('Finished on (UTC): ', finish, sep='', file=experiment_file)
+    print('Elapsed: ', finish-start, sep='', file=experiment_file)
+    experiment_file.flush()
 
 if __name__ == '__main__':
   # tf.app.run()
   main()
+  # TODO: Fix the mess below.
+
+  # The code below generates a frozen graph from the last trained checkpoint and defined graph (export_inference_graph)
+  # set and check project_dir and experiment_dir.
+  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  if not FLAGS.experiment_name:
+    # list only directories that are names experiment_
+      # experiment_dir = create_new_experiment_dir(project_dir)
+      experiment_dir = dataset_utils.select_latest_experiment_dir(project_dir)
+  else:
+      experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
+      if not os.path.exists(experiment_dir):
+          raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
+  train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+  output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
+  if not os.path.isfile(output_file):
+      raise ValueError('Graph file not found')
+  # load last checkpoint and generate frozen weighted graph from export_inference_graph
+  from tensorflow.core.protobuf import saver_pb2
+  input_saver = ""
+  input_binary=True
+  checkpoint_path = tf.train.latest_checkpoint(train_dir)
+  print('#######',checkpoint_path)
+  output_node_names = "MobilenetV1/Predictions/Reshape_1"
+  restore_op_name = "save/restore_all"
+  filename_tensor_name = "save/Const:0"
+  output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
+  output_graph = os.path.join(train_dir, output_graph_name)
+  clear_devices = True
+  initializer_nodes = ""
+  variable_names_whitelist = ""
+  variable_names_blacklist = ""
+  input_meta_graph = ""
+  input_saved_model_dir = ""
+  saved_model_tags = "serve"
+  checkpoint_version = saver_pb2.SaverDef.V2
+  freeze_graph(output_file, input_saver, input_binary,
+  checkpoint_path, output_node_names,
+  restore_op_name, filename_tensor_name,
+  output_graph, clear_devices, initializer_nodes,
+  variable_names_whitelist, variable_names_blacklist,
+  input_meta_graph, input_saved_model_dir,
+  saved_model_tags, checkpoint_version)

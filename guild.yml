@@ -1,5 +1,5 @@
 - model: train
-  description: Retrain script from tf_classificaiton with augmentations
+  description: Train an image classifier
   operations:
     train:
       description: Retrain a classifier
@@ -7,34 +7,32 @@
       output-scalars:
         - 'global step (?P<step>\step): loss = (?P<loss>\value)'
         - experiment_number: 'experiment number: (\value)'
-        # - val_loss: 'validation loss: (\value)'
-        # accuracy: 'Accuracy: (\value)'
-        # step:
-      # output-scalars: off
-      # flags-import: all
-      flags:                 # Change flags
+      flags:
         max_number_of_steps:
           type: int
-          default: 60000
+          default: 30000
         batch_size:
           type: int
-          default: 64
+          default: 32
           choices: [16, 32, 64]
         learning_rate:
           type: float
           default: 0.01
-        experiment_dir:
+        project_dir:
           type: string
-          default: './experiment_dir/letter_blocks_classifier/'
-        # experiment_name:
-        #   type: string
-        #   default: ''
+          default: './project_dir/'
+        project_name:
+          type: string
+          default: ''
+        experiment_name:
+          type: string
+          default: ''
         dataset_dir:
           type: string
-          default: '/home/docker/ahmed/datasets/blocks/'
+          default: ''
         dataset_name:
           type: string
-          default: 'letter_blocks'
+          default: ''
         dataset_split_name:
           type: string
           default: 'train'
@@ -55,34 +53,34 @@
           type: boolean
           default: False
       requires:
-        - file: checkpoints  # resolve file dependancies
-        - file: experiment_dir    # output folder is mapped from host to virtual environment in env/.guild/runs
+        - file: checkpoints
+        - file: project_dir
+
     eval:
       description: Evaluate and monitor model performance during training
       main: eval_image_classifier
       output-scalars:
         - experiment_number: 'experiment number: (\value)'
-      # flags-import: all
       flags:
         batch_size:
           type: int
           default: 64
           choices: [16, 32, 64]
-        experiment_dir:
+        project_dir:
           type: string
-          default: './experiment_dir/letter_blocks_classifier/'
-        experiment_number:
-          type: int
-          default: 1
-        # experiment_name:
-        #   type: string
-        #   default: ''
+          default: './project_dir/'
+        project_name:
+          type: string
+          default: ''
+        experiment_name:
+          type: string
+          default: ''
         dataset_dir:
           type: string
-          default: '/home/docker/ahmed/datasets/blocks/'
+          default: ''
         dataset_name:
           type: string
-          default: 'letter_blocks'
+          default: ''
         dataset_split_name:
           type: string
           default: 'validation'
@@ -92,17 +90,9 @@
         add_image_summaries:
           type: boolean
           default: False
-        # batch_size: 64
-        # dataset_split_name: 'validation'
-        # model_name: 'mobilenet_v1'
-        # preprocessing_name: 'mobilenet_v1'
-        # eval_image_size: 224
-        # checkpoint_path: 'checkpoints/mobilenet_v1_1.0_224.ckpt'
-        # roi: '650,950,224,224,1080,1440'
       requires:
         - file: checkpoints
-        - file: experiment_dir
-
+        - file: project_dir
 
   sourcecode:
     - '*.py'

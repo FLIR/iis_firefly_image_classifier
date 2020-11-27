@@ -24,6 +24,7 @@ from tensorflow.contrib import quantize as contrib_quantize
 from tensorflow.contrib import slim as contrib_slim
 
 from datasets import dataset_factory
+from datasets import dataset_utils
 from nets import nets_factory
 from preprocessing import preprocessing_factory
 
@@ -43,7 +44,9 @@ p.add_argument("--master", type=str, default='', help='The address of the Tensor
 p.add_argument("--checkpoint_path", type=str, default=None, help='The directory where the model was written to or an absolute path to a '
     'checkpoint file.')
 
-p.add_argument("--experiment_dir", type=str, default=None , help='Directory where the results are saved to.')
+p.add_argument("--project_dir", type=str, default='./project_dir/' , help='Directory where the results are saved to.')
+
+p.add_argument('--project_name', type=str, default=None, help= 'Must supply a project name examples: flower_classifier, component_classifier')
 
 p.add_argument("--num_preprocessing_threads", type=int, default=4, help='The number of threads used to create the batches.')
 
@@ -86,6 +89,7 @@ p.add_argument("--eval_interval_secs", type=int, default=20, help='The frequency
 p.add_argument("--eval_timeout_secs", type=int, default=None, help='The maximum amount of time to wait between checkpoints. If left as None, then the process will wait for double the eval_interval_secs.')
 
 p.add_argument("--experiment_number", type=int, default=0, help='Only needs to be specified if running script with guild')
+
 #######################
 # Preprocessing Flags #
 #######################
@@ -97,27 +101,7 @@ p.add_argument("--roi", type=str, default=None, help='Specifies the coordinates 
 
 FLAGS = p.parse_args()
 
-
-
-# if FLAGS.experiment_dir:
-#     experiment_dir = FLAGS.experiment_dir
-#     experiment_name = FLAGS.experiment_name
-#     # create a new experiment directory if experiment_name is none).
-#     if not FLAGS.experiment_name:
-#         # list only directories that are names experiment_
-#         output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
-#         if not output_dirs:
-#             raise ValueError('No experiment folders found. check evaluation directory with --experiment_dir and assign experiment name with --experiment_name.')
-#         experiment_name = 'experiment_'+ str(len(output_dirs))
-
-#     experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
-#     if not os.path.exists(experiment_dir):
-#         os.makedirs(experiment_dir)
-
-# else:
-#     raise ValueError('You must supply train directory with --experiment_dir.')
 def _parse_roi():
-    # parse roi
     if FLAGS.roi is None:
       return FLAGS.roi
     else:
@@ -128,14 +112,31 @@ def _parse_roi():
       return roi_array
 
 def main():
-  if not FLAGS.dataset_dir:
-    raise ValueError('You must supply the dataset directory with --dataset_dir')
-  DATASET_DIR = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name+'_tfrecord')
-  if not os.path.isdir(DATASET_DIR):
-    raise ValueError(f'Can not find tfrecord dataset directory {DATASET_DIR}')
+  # check required input arguments
+  if not FLAGS.project_name:
+    raise ValueError('You must supply a project name with --project_name')
+  if not FLAGS.dataset_name:
+    raise ValueError('You must supply a dataset name with --dataset_name')
+  # set and check project_dir and experiment_dir.
+  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  if not FLAGS.experiment_name:
+    # list only directories that are names experiment_
+    experiment_dir = dataset_utils.select_latest_experiment_dir(project_dir)
+  else:
+    experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
+    if not os.path.exists(experiment_dir):
+        raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
 
-  if not FLAGS.experiment_dir:
-    raise ValueError('You must supply an eval directory with --experiment_dir')
+  eval_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+  if not os.path.exists(eval_dir):
+    os.makedirs(eval_dir)
+
+  if FLAGS.dataset_dir:
+      dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+  else:
+      dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+  if not os.path.isdir(dataset_dir):
+    raise ValueError(f'Can not find tfrecord dataset directory {dataset_dir}')
 
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
@@ -146,7 +147,7 @@ def main():
     # Select the dataset #
     ######################
     dataset = dataset_factory.get_dataset(
-        FLAGS.dataset_name, FLAGS.dataset_split_name, DATASET_DIR)
+        FLAGS.dataset_name, FLAGS.dataset_split_name, dataset_dir)
 
     ####################
     # Select the model #
@@ -209,22 +210,18 @@ def main():
 
     loss = tf.losses.softmax_cross_entropy(tf.one_hot(labels, dataset.num_classes), logits)
 
-
     #############################
     ## Calculation of metrics ##
     #############################
-
     accuracy, accuracy_op = tf.metrics.accuracy(tf.squeeze(labels), tf.argmax(logits, 1))
     precision, precision_op = tf.metrics.average_precision_at_k(tf.squeeze(labels), logits, 1)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     update_ops.append([accuracy_op, precision_op])
 
-
     tf.add_to_collection('accuracy', accuracy)
     tf.add_to_collection('accuracy_op', accuracy_op)
     tf.add_to_collection('precision', precision)
     tf.add_to_collection('precision_op', precision_op)
-
 
     for class_id in range(dataset.num_classes):
         precision_at_k, precision_at_k_op = tf.metrics.precision_at_k(tf.squeeze(labels), logits, k=1, class_id=class_id)
@@ -235,7 +232,6 @@ def main():
         tf.add_to_collection(f'precision_at_{class_id}_op', precision_at_k_op)
         tf.add_to_collection(f'recall_at_{class_id}', recall_at_k)
         tf.add_to_collection(f'recall_at_{class_id}_op', recall_at_k_op)
-
 
     #############################
     ## Add summaries ##
@@ -268,33 +264,6 @@ def main():
         summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_recall', recall_at_k))
         summaries.add(tf.summary.scalar(f'op/class_{class_id}_recall_op', recall_at_k_op))
 
-
-    # set up experiment directory
-    if FLAGS.experiment_dir:
-        experiment_dir = FLAGS.experiment_dir
-        experiment_name = FLAGS.experiment_name
-        # create a new experiment directory if experiment_name is none).
-        if not FLAGS.experiment_name:
-            # list only directories that are names experiment_
-            output_dirs = [x[0] for x in os.walk(experiment_dir) if 'experiment_' in x[0].split('/')[-1]]
-            if not output_dirs:
-                raise ValueError('No experiment folders found. check evaluation directory with --experiment_dir and assign experiment name with --experiment_name.')
-            experiment_name = 'experiment_'+ str(len(output_dirs))
-        # exports experiment number to guild (guild compare)
-        try:
-            experiment_number = experiment_name.split('_')[-1]
-            experiment_number = int(experiment_number)
-            print('experiment number: {}'.format(experiment_number))
-
-        except ValueError:
-            pass  # it was a string, not an int.
-
-        experiment_dir = os.path.join(os.path.join(experiment_dir, experiment_name), FLAGS.dataset_split_name)
-        if not os.path.exists(experiment_dir):
-            os.makedirs(experiment_dir)
-    else:
-        raise ValueError('You must supply train directory with --experiment_dir.')
-
     # set batch size if none to
     # number_of_samples_in_dataset / batch_size
     if FLAGS.max_num_batches:
@@ -303,37 +272,25 @@ def main():
       # This ensures that we make a single pass over all of the data.
       num_batches = math.ceil(dataset.num_samples / float(FLAGS.batch_size))
 
-
     # if checkpoint_path flag is none, look for checkpoint in experiment train directory
     if FLAGS.checkpoint_path is None:
-        checkpoint_path = '/'.join(experiment_dir.split('/')[:-1])
-        checkpoint_path = os.path.join(checkpoint_path, 'train')
+        checkpoint_path = os.path.join(experiment_dir, 'train')
     else:
         checkpoint_path = FLAGS.checkpoint_path
 
     tf.logging.info('Evaluating checkpoint: %s' % checkpoint_path)
-    # evaluate for 1000 batches:
-    # num_evals = 5
-
-    # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-
     update_op = tf.group(*update_ops)
-    # print('################', update_op)
     with tf.control_dependencies([update_op]):
       total_loss = tf.identity(loss, name='total_loss')
-      # summaries.add(tf.summary.scalar('total_loss_1', total_loss))
-
-
 
     summary_op = tf.summary.merge(list(summaries), name='summary_op')
-    # session_config = tf.ConfigProto()
-    # session_config.gpu_options.allow_growth = True
+    # configure session
     session_config = tf.ConfigProto(
         log_device_placement = FLAGS.verbose_placement,
         allow_soft_placement = not FLAGS.hard_placement)
     if not FLAGS.fixed_memory :
       session_config.gpu_options.allow_growth=True
-
+    # set evaluation interval
     if not FLAGS.eval_timeout_secs:
         eval_timeout_secs = FLAGS.eval_interval_secs * 2
     else:
@@ -343,25 +300,13 @@ def main():
     slim.evaluation.evaluation_loop(
         master=FLAGS.master,
         checkpoint_dir=checkpoint_path,
-        logdir=experiment_dir,
+        logdir=eval_dir,
         num_evals=num_batches,
         eval_op=update_ops,
         summary_op=summary_op,
         eval_interval_secs=FLAGS.eval_interval_secs,
         timeout=eval_timeout_secs,
         session_config=session_config)
-    # How often to run the evaluation
-    # slim.evaluation.evaluate_once(
-    #     master=FLAGS.master,
-    #     checkpoint_path=checkpoint_path,
-    #     logdir=experiment_dir,
-    #     num_evals=num_batches,
-    #     eval_op=update_ops,
-    #     variables_to_restore=list(variables_to_restore),
-    #     session_config=session_config)
-
-
 
 if __name__ == '__main__':
-  # tf.app.run()
   main()
