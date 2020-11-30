@@ -225,11 +225,11 @@ p.add_argument('--apply_image_augmentation', type=bool, default=True, help='Enab
 
 p.add_argument('--random_image_crop', type=bool, default=True, help='Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled')
 
-p.add_argument('--min_object_covered', type=float, default=0.8, help='The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--min_object_covered', type=float, default=0.1, help='The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled')
 
 p.add_argument('--random_image_rotation', type=bool, default=True, help='Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled')
 
-p.add_argument('--random_image_flip', type=bool, default=False, help='Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--random_image_flip', type=bool, default=True, help='Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
@@ -436,6 +436,7 @@ def _get_variables_to_train():
     A list of variables to train by the optimizer.
   """
   if FLAGS.trainable_scopes is None:
+      print('################', FLAGS.model_name)
       if FLAGS.model_name.startswith('inception_v1'):
           scopes = ['InceptionV1/Logits', 'BatchNorm']
       elif FLAGS.model_name.startswith('mobilenet_v1'):

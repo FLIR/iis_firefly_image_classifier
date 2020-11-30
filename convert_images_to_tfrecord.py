@@ -45,7 +45,7 @@ from datasets import convert_dataset
 # FLAGS = tf.compat.v1.app.flags.FLAGS
 p = argparse.ArgumentParser()
 
-p.add_argument('--project_dir', type=str, default='../project_dir/', help='Directory where checkpoints and event logs are written to.')
+p.add_argument('--project_dir', type=str, default='./project_dir/', help='Directory where checkpoints and event logs are written to.')
 
 p.add_argument('--project_name', type=str, default=None, help= 'Must supply project name examples: flower_classifier, component_classifier')
 

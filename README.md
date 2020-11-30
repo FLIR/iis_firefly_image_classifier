@@ -80,17 +80,11 @@ In addition, we present the average inference time on FireFly-DL for each model.
 5. [Quick Start](#quick-start)
 6. [Output](#output)
 7. [Preparing the datasets](#preparing-the-datasets)
-8. [Foot Dataset](#foot-dataset)
+8. [Training, Evaluation, and Testing your Classification Model](#training-evaluation-and-testing-your-classification-model)
 9. [Send Us Failure Cases and Feedback!](#send-us-failure-cases-and-feedback)
-10. [Citation](#citation)
+10. [Contacts](#citation)
 11. [License](#license)
 12. [References](#References)
-
-## Contacts
-This repository is maintained by FLIR-IIS R&D team.
-* Ahmed Sigiuk, Ahmed.Sigiuk@flir.com
-* Di Xu, Di.Xu@flir.com
-* Douglas Chong, Douglas.Chong@flir.com
 
 
 <!-- ## Table of contents
@@ -107,11 +101,13 @@ This repository is maintained by FLIR-IIS R&D team.
 <a id='Install'></a>
 In this section, we describe the steps required to setup the training environment in preperation for running the script provided in this repository.
 
-We provide two options for instaling Tensorflow on your system.
+We provide two options for setting up your TensorFlow environment.
 
-<a href="#Host">Setup environment on native host machine </a><br>
+1. [Setup environment on native host machine](#setup-environment-on-native-host-machine)
+2. [Setup environment using Docker](#setup-environment-using-docker)
+<!-- <a href="#Host">Setup environment on native host machine </a><br>
 
-<a href="#Docker">Setup environment using Docker</a><br>
+<a href="#Docker">Setup environment using Docker</a><br> -->
 
 ### Setup environment on native host machine
 <a id='Host'></a>
@@ -156,11 +152,11 @@ Note: After running the docker environment you can terminate the environment by 
 After setting up the training environment on you machine.
 
 ### Clone this repository.
-
+After setting the environment clone this repository.
 ```bash
-git clone ....
+git clone https://github.com/FLIR/iis_firefly_image_classifier.git
 
-cd ...
+cd iss_firefly_image_classifier
 
 ```
 ### Collect and label image datasets
@@ -243,16 +239,15 @@ datasets. However, for ImageNet, you have to follow the instructions
 Note that you first have to sign up for an account at image-net.org. Also, the
 download can take several hours, and could use up to 500GB. -->
 
-## Collect and convert your own dataset
+<!-- ## Collect and convert your own dataset -->
 
-First, you must collect and label a sample of images (at least 100 images per class) that you would like to train the model to classify. Then convert the label images to TFRecord format.
+Collect and label some images (We recommend 50 to 100 images per class minimum). Then convert the images (with labels) to TFRecord format. The dataset will be split into train/validation/test sets (Default: 80/10/10% split) and will be used to train and evaluate the image classifier model.
 
 ### Collect training images.
 
-For each dataset, we'll need to label the dataset into classes by placing the raw image file into directory with matching class name. Please note the following;
+Label the dataset into classes by placing the image files into the directories with the matching class name. Please note the following;
 
-* The `train_image_classifier.py` script only supports the following image formats 'jpg', 'jpeg', 'png', and 'bmp'.
-* Label the images into classes using the parent directory name.
+* The train `train_image_classifier.py` and conversion `convert_images_to_tfrecord.py` scripts only supports the following image formats: 'jpg', 'jpeg', 'png', and 'bmp'.
 * Each image most be save into only one folder (representing the class)
 * The ground-truth label for each image is taken from the parent directory name.
 
@@ -284,43 +279,55 @@ The diagram below shows the expected folder structure.
 
 ### Convert custom dataset to TFRecord format
 
-For each dataset, we'll need to label the dataset into classes by placing the raw image file into directory with matching class name.
 We provide two options for converting your image dataset to TFRecord format.
+1. [Using the convert to TFRecord script](#using-the-convert-to-tfrecord-script)
+2. [Using the training script](#using-the-training-script)
 
-<a href="#train-script">Using the training script (recommended)</a><br>
+Notes:
+  - You can omit the `--image_dir`, If you have already generated the tfrecord format dataset (located by default under `./project_dir/<project name>/datasets/<dataset name>` direcotry). You require only the `--dataset_name` used when converting the images.
+<!-- <a href="#train-script">Using the training script (recommended)</a><br>
 
-<a href="#convert-script">Using the convert to TFRecord script</a><br>
-Below we demonstrate how to do this for the blocks dataset.
+<a href="#convert-script">Using the convert to TFRecord script</a><br> -->
+<!-- Below we demonstrate how to do this for the blocks dataset. -->
 
-Using the training script
-<a id='convert-script'></a>
+#### Using the convert to TFRecord script
+<!-- <a id='convert-script'></a> -->
 
-You can convert your images to TFRecord format using the `train_image_classifier.py` by specify the image directory with `--image_dir` flag and selecting a dataset name for it with `--dataset_name` flag.
+Convert your image dataset using the `convert_images_to_tfrecord.py` script.
+
+```bash
+$ python convert_images_to_tfrecord.py \
+        --project_name=<Select a project name (Required)> \
+        --dataset_name=<Select a dataset name (Required)> \
+        --image_dir=</path/to/image_directory (Required)> \
+        --train_percentage=<Percentage of images used for training (Optional)> \
+        --validation_percentage=<Percentage of images used for training (Optional)> \
+        --test_percentage=<Percentage of images used for training (Optional)> \
+        --image_height=<Target image height (Optional)> \
+        --image_width=<Target image width (Optional)>
+```
+
+#### Using the training script
+You can convert your images to TFRecord format using the `train_image_classifier.py` by specify the image directory with `--image_dir` flag and specifying a dataset name with `--dataset_name` flag.
 ```bash
 python train_image_classifier.py \
         --project_name=<Select a project name> \
         --dataset_name=<Select a dataset name> \
         --image_dir=</path/to/image_directory>
 ```
-Note: That if you rerun the training command again on the same dataset. You can omit the `--image_dir` and use the same dataset name. This will skip the image conversion and use the saved TFRecord dataset.
 
 
-Using the convert to TFRecord script
-<a id='convert-script'></a>
 
-Optionally you can convert your image dataset using the `convert_images_to_tfrecord.py` script.
+<!-- Note: You can omit the `--image_dir` and use the same dataset name. This will skip the image conversion and use the saved TFRecord dataset. -->
 
-```shell
-$ python convert_images_to_tfrecord.py \
-        --project_name=<Select a project name> \
-        --dataset_name=<Select a dataset name> \
-        --image_dir=</path/to/image_directory>
+#### Dataset folder:
+You can access the convert TFRecord dataset files under the following directory: `./project_dir/<project name>/datasets/<dataset name>`.
+```bash
+$ ls ./project_dir/<project name>/datasets/<dataset name>
 ```
 
-You access the convert dataset files under the following directory `./project_dir/<project name>/datasets/<dataset name>`. Bellow is an example of the files gerated.
-
-```shell
-$ ls ${DATA_DIR}
+Below are some file examples.
+```bash
 dataset_name_train-00000-of-00005.tfrecord
 ...
 dataset_name_train-00004-of-00005.tfrecord
@@ -333,11 +340,12 @@ dataset_name-00004-of-00005.tfrecord
 labels.txt
 dataset_config.json
 ```
+List of dataset files:
+  - Training, validation and test set shard files.
+  - `labels.txt` file which contains the mapping from integer labels to class names.  
+  - `dataset_config.json` file which stores some of the dataset attributes.
 
-These represent the training, validation and test data, sharded over five files in this example.
-You will also find the `labels.txt` file which contains the mapping
-from integer labels to class names. In addition, you will find the  `dataset_config.json`file which stores some of the dataset attributes. An example `dataset_config.json` file is shown below:
-
+Example `dataset_config.json` file.      
 ```shell
 {"dataset_name": <dataset name>,
 "dataset_dir": "./path/to/datasets/<dataset name>",
@@ -361,7 +369,7 @@ from integer labels to class names. In addition, you will find the  `dataset_con
 ```
 
 ## Training, Evaluation, and Testing your classification model
-
+This section covers how to run training, evaluation and test scripts.
 
 ### Pre-trained Models
 <a id='Pretrained'></a>
@@ -378,21 +386,17 @@ image classification dataset.
 In the table below, we list each model, the corresponding
 TensorFlow model file, the link to the model checkpoint, and the top 1 and top 5
 accuracy (on the imagenet test set).
-Note that the VGG and ResNet V1 parameters have been converted from their original
-caffe formats
-([here](https://github.com/BVLC/caffe/wiki/Model-Zoo#models-used-by-the-vgg-team-in-ilsvrc-2014)
-and
-[here](https://github.com/KaimingHe/deep-residual-networks)),
-whereas the Inception and ResNet V2 parameters have been trained internally at
-Google. Also be aware that these accuracies were computed by evaluating using a
-single image crop. Some academic papers report higher accuracy by using multiple
-crops at multiple scales.
+Notes:
+  - The Inception parameters have been trained by Google.
+  - Also be aware that these accuracies were computed by evaluating using a single image crop. Some academic papers report higher accuracy by using multiple crops at multiple scales.
 
 Model | TF-Slim File | Checkpoint | Top-1 Accuracy| Top-5 Accuracy |
-:----:|:------------:|:----------:|:-------:|:--------:|
+:----:|:------------:|:----------:|:-------------:|:--------------:|
 [MobileNet_v1_1.0_224](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_1.0_224.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz)|70.9|89.9|
-[MobileNet_v1_0.50_160](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.50_160.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.5_160.tgz)|59.1|81.9|
-[MobileNet_v1_0.25_128](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.25_128.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.25_128.tgz)|41.5|66.3|
+[MobileNet_v1_0.75_224](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.50_160.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.5_160.tgz)|59.1|81.9|
+[MobileNet_v1_0.50_224](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.50_160.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.5_160.tgz)|59.1|81.9|
+[MobileNet_v1_0.25_224](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.25_128.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.25_128.tgz)|41.5|66.3|
+[Inception_v1_224](https://arxiv.org/pdf/1409.4842v1.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.25_128.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.25_128.tgz)|41.5|66.3|
 
 
 
@@ -627,6 +631,15 @@ image_preprocessing_fn = preprocessing_factory.get_preprocessing(
 
 See
 [Hardware Specifications](https://github.com/tensorflow/models/tree/master/research/inception#what-hardware-specification-are-these-hyper-parameters-targeted-for).
+
+## Contacts
+This repository is maintained by FLIR-IIS R&D team.
+* Ahmed Sigiuk, Ahmed.Sigiuk@flir.com
+* Di Xu, Di.Xu@flir.com
+* Douglas Chong, Douglas.Chong@flir.com
+
+## License
+
 
 ## References
 "TensorFlow-Slim image classification model library"
