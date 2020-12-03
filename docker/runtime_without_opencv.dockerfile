@@ -14,8 +14,9 @@ USER root
 RUN useradd -m ${USER} --uid=${UID} &&  echo "${USER}:${PW}" | chpasswd
 
 # Install sudo and add user to sudo group
-RUN apt-get update
-RUN apt-get --fix-missing update
+
+#RUN apt-get --fix-missing update
+#RUN apt-get update
 
 # Install basic apps
 RUN apt-get install -y -q \

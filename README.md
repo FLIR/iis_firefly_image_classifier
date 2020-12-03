@@ -142,11 +142,16 @@ This section assumes that the following requirements are satisfied:
 
 ```bash
 # Pull and run tensorflow runtime docker environment.
-docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v ~:/home/docker/ asigiuk/tensorflow_runtime:latest
+docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tensorflow_runtime:latest
 
 ```
+Important Notes:
+- Execute the `docker run` command under the `docker/` directory in this repository. You should find the following files inside this directory: caffe -ssd.dockerfile and Makefile.config.
+ Modify `-v path/to/host_target_directory:/home/docker` in the above command and replace `path/to/host_target_directory` with your host machine target directory path. This will mount specified your target host directory to the docker container home directory `/home/docker`.
+3. Confirm that the container has access to the training images by saving the images under the your specified target host directory. Alternatively, you can add another volume mount argument to the `docker run` command .
+4. The docker `-v` or `--volume` flag is used to mount a target directory in your host machine (i.e. `path/to/host_target_directory`) to the docker container directory (i.e. `/home/docker`) . You can find more information regarding the `docker run` command [here](https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only)
+5. You can terminate the docker environment by typing `exit` in your terminal.
 
-Note: After running the docker environment you can terminate the environment by typing `exit` in your terminal.
 ## Quick Start
 
 After setting up the training environment on you machine.

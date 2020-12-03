@@ -66,7 +66,7 @@ class ImageReaderPNG(object):
     self._decode_png_float = tf.image.convert_image_dtype(self._decode_png, dtype=tf.float32, saturate=False)
 
     # self._image = tf.placeholder(dtype=tf.float32)
-    self._image_height = tf.placeholder(dtype=tf.int16)
+    self._eight = tf.placeholder(dtype=tf.int16)
     self._image_width = tf.placeholder(dtype=tf.int16)
     self._resize_image = tf.image.resize_images(self._decode_png_float, [self._image_height, self._image_width])
 
