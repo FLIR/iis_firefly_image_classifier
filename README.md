@@ -30,8 +30,7 @@ which provides a working examples of how to use this repository.
         - Converts your images to TFRecord format.
     - **Generate Frozen graph**
         - Generate a frozen graph model, and use [NeuroUtility](http://softwareservices.flir.com/Camera-Resources/Content/10-Front/Camera-Resources-FFY-DL.htm) to convert and deploy the trained model to FLIR's FireFly-DL camera.
-    - **Hyperparameter Optimization**
-        - Using [Guildai](https://guild.ai/)
+
 - **Input**: Image (.jpeg and .png).
 - **Output**: Frozen-model graph and trained weights (.pb).
 - **OS**: Ubuntu 16.04 and later releases.
@@ -39,15 +38,19 @@ which provides a working examples of how to use this repository.
 - **Others**:
     - Enviroment setup using docker images.
 
-## Latest Features
+## Latest/upcoming Features
+- **Hyperparameter Optimization**
+    - Using [Guildai](https://guild.ai/)
+    - Documentation to be added.
 - **Image capture and labeling tool**
-    - To be added.
+    - Scripts, docker image, and documentation to be added.
 - **Supported model architectures**
     - Mobilenet_v1_1.0_224
     - Mobilenet_v1_0.75_224
     - Mobilenet_v1_0.5_224
     - Mobilenet_v1_0.25_224
     - Inception_v1
+    - Support for mobilenet_v1 architectures with smaller image size (to be added)
 
 ## Results
 ### Runtime Analysis
@@ -463,28 +466,10 @@ python export_freeze_inference_graph.py \
 <!-- ## Guildai for Hyperparameter search
  -->
 ## Troubleshooting and Current Known Issues
-<a id='Troubleshooting'></a>
 
-#### Known issues that need to be addressed:
+#### Issue with training script on TF 1.15
 
-
-
-
-#### The model runs out of CPU memory.
-
-See
-[Model Runs out of CPU memory](https://github.com/tensorflow/models/tree/r1.13/research/inception#the-model-runs-out-of-cpu-memory).
-
-#### The model runs out of GPU memory.
-
-See
-[Adjusting Memory Demands](https://github.com/tensorflow/models/tree/r1.13/research/inception#adjusting-memory-demands).
-
-#### The model training results in NaN's.
-
-See
-[Model Resulting in NaNs](https://github.com/tensorflow/models/tree/r1.13/research/inception#the-model-training-results-in-nans).
-
+#### Windows 10 support using docker
 
 #### I wish to train a model with a different image size.
 
@@ -498,11 +483,6 @@ $ python train_image_classifier.py \
     --experiment_name=experiment_1 \
     --train_image_size=224
 ```
-
-#### What hardware specification are these hyper-parameters targeted for?
-
-See
-[Hardware Specifications](https://github.com/tensorflow/models/tree/master/research/inception#what-hardware-specification-are-these-hyper-parameters-targeted-for).
 
 ## Send Us Failure Cases and Feedback!
 Our library is open source and we want to continuously improve it! So please, let us know if...
