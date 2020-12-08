@@ -38,10 +38,6 @@ which provides a working examples of how to use this repository.
 - **Hardware**: This script was tested on a GeForce GTX 1080 Nvidia GPU card.
 - **Others**:
     - Enviroment setup using docker images.
-    <!-- - This repository was tested on the following system setup:
-      - Training on GPU/CPU: CUDA 10.0 (Nvidia GPU) cudnn 7.2. Alternatively, you can train a model using only CPU (see train_image_classifier.py script input arguments for more details).
-      - Python 3.7 libraries: TensorFlow Version 1.13.2, Tensorboard 2.2.2, guild 0.7.0.post1. -->
-
 
 ## Latest Features
 - **Image capture and labeling tool**
@@ -57,20 +53,18 @@ which provides a working examples of how to use this repository.
 ### Runtime Analysis
 Inference time comparison between the five model architectures that are compatible on FireFly-DL:
 
-Model | ImageNet Accuracy | FireFly-DL Inference Time (ms)|
-:----:|:-----------------:|:-----------------------------:|
-[Inception_v1_224](https://arxiv.org/abs/1409.4842v1)|69.8|222|
-[MobileNet_v1_1.0_224](https://arxiv.org/pdf/1704.04861.pdf)|70.9|78|
-[MobileNet_v1_0.75_224](https://arxiv.org/pdf/1704.04861.pdf)|68.4|55|
-[MobileNet_v1_0.50_224](https://arxiv.org/pdf/1704.04861.pdf)|63.7|36|
-[MobileNet_v1_0.25_224](https://arxiv.org/pdf/1704.04861.pdf)|50.6|22|
+Model | Flowers Classifier Accuracy| FireFly-DL Inference Time (ms) |Max Number of Steps | Train Time (min) |
+:----:|:--------------------------:|:------------------------------:|-------------------:|:----------------:
+[Inception_v1_224](https://arxiv.org/abs/1409.4842v1)|87.8|222|30k|45
+[MobileNet_v1_1.0_224](https://arxiv.org/pdf/1704.04861.pdf)|91.9|78|30k|65
+[MobileNet_v1_0.75_224](https://arxiv.org/pdf/1704.04861.pdf)|89.2|55|30k|55
+[MobileNet_v1_0.50_224](https://arxiv.org/pdf/1704.04861.pdf)|89.2|36|30k|41
+[MobileNet_v1_0.25_224](https://arxiv.org/pdf/1704.04861.pdf)|89.2|22|30k|32
 
 - Input image size (224x224 pixels)
 
-The reported accuracy of the pre-trained models are based on a subset of the ImageNet classification challenge, which contain a training set of 1.2 million images, and 1000 categories. You can find more information [here](http://www.image-net.org/challenges/LSVRC/2012/).
-In addition, we present the average inference time on FireFly-DL for each model. You can find more information [here](https://www.flir.ca/products/firefly-dl/).
-
-
+The reported accuracy of the pre-trained models are based on a subset of the Oxford Flowers dataset, which contain a training set of 3000 images, and 5 categories. You can find more information [here](https://www.robots.ox.ac.uk/~vgg/data/flowers/).
+We report the average inference time on FireFly-DL (Mono) for each model (more information [here](https://www.flir.ca/products/firefly-dl/)). We also report the maximum number of training steps and training time using Nvidia's GPU (GeForce GTX 1080) card.
 
 ## Contents
 1. [Features](#features)
@@ -213,7 +207,7 @@ format.
 
 Dataset | Dataset Size | Number of Classes | Comments
 :------:|:------------:|:-----------------:|:-----------:
-Flowers|3076 | 5 | Various sizes (source: Flickr)
+Flowers| 3076 | 5 | Various sizes (source: Flickr)
 
 
 ```bash
@@ -303,8 +297,8 @@ Notes:
   - The Inception parameters have been trained by Google.
   - Also be aware that these accuracies were computed by evaluating using a single image crop. Some academic papers report higher accuracy by using multiple crops at multiple scales.
 
-Model | TF-Slim File | Checkpoint | ImageNet Accuracy|
-:----:|:------------:|:----------:|:-------------:|:--------------:|
+Model | TF-Slim File | Checkpoint | ImageNet Accuracy |
+:----:|:------------:|:----------:|:-----------------:
 [MobileNet_v1_1.0_224](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_1.0_224.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz)|70.9|
 [MobileNet_v1_0.75_224](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.75_224.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.75_224.tgz)|68.4|
 [MobileNet_v1_0.50_224](https://arxiv.org/pdf/1704.04861.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[mobilenet_v1_0.50_224.tgz](http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.5_224.tgz)|63.7|
@@ -403,7 +397,7 @@ Below command is an example for monitoring and evaluating the training process f
 - `--batch_size`: Set batch size used to 64 (default 16)
 
 ```bash
-$ python train_image_classifier.py \
+$ python eval_image_classifier.py \
     --project_name=flowers_classifier \
     --dataset_name=flowers \
     --experiment_name=experiment_1 \
@@ -420,7 +414,7 @@ you can use the test_image_classifier.py script, as shown below.
 
 The script should be run while/after training and the `--project_name` and `--dataset_name` flags should point to the same project and dataset names as your training script. In addition, the script will save the event files under a new directory `./project_dir/<project name>/experiments/<experiment name>/test`.
 
-By default the `--checkpoint_path` flag will point to the following directory ``./project_dir/<project name>/experiments/<experiment name>/train`` . Optionally, you call also specify the `--checkpoint_path` flag,  which should point to the directory where the training job checkpoints are stored.
+By default the `--checkpoint_path` flag will point to the following directory `./project_dir/<project name>/experiments/<experiment name>/train`. Optionally, you call also specify the `--checkpoint_path` flag,  which should point to the directory where the training job checkpoints are stored.
 
 Below command is an example for monitoring and evaluating the training process for our flowers classifier. We set the following input arguments
 - `--experiment_name`: Set experiment name directory load trained checkpoints from and save event predictions to (default will select `experiment_#` the last folder with the highest number)
@@ -428,7 +422,7 @@ Below command is an example for monitoring and evaluating the training process f
 - `--batch_size`: Set batch size used to 64 (default 16)
 
 ```bash
-$ python train_image_classifier.py \
+$ python test_image_classifier.py \
     --project_name=flowers_classifier \
     --dataset_name=flowers \
     --experiment_name=experiment_1 \
@@ -442,47 +436,32 @@ To visualize the losses and other metrics during training, you can use
 by running the command below.
 
 ```shell
-tensorboard --logdir=./project_dir/<project_name>/experiments/<experiment name> --port 6006
+tensorboard --logdir=./project_dir/flower_classifier/experiments/experiment_1 --port 6006
 ```
 
 Once TensorBoard is running, navigate your web browser to http://localhost:6006
 
-### Exporting the Inference Graph
-<a id='Export'></a>
+### Export and Freeze Graph
+Saves out a GraphDef containing the architecture with your pretrained
+checkpoints. Run export_freeze_inference_graph to get a frozen graph
+(.pb) file. By default when you run the training script the script will automatically export and freeze functions and generate a frozen graph under your the following directory `./project_dir/<project name>/experiments/<experiment name>/train`.
 
-Saves out a GraphDef containing the architecture of the model.
+By default the `--checkpoint_path` flag will point to the following directory `./project_dir/<project name>/experiments/<experiment name>/train` and will select the latest saved checkpoint in that directory. Optionally, you call also specify the `--checkpoint_path` flag,  which should point to the directory where the training job checkpoints are stored.
 
-To use it with a model name defined by slim, run:
+Below command is an example for exporting and freezing the latest trained checkpoint for our flowers classifier. We set the following input arguments
+- `--experiment_name`: Set experiment name directory load trained checkpoints from and save event predictions to (default will select `experiment_#` the latest folder with the highest number)
+- `--model_name`: Set the model architecture used to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
 
-```shell
-$ python export_inference_graph.py \
-  --alsologtostderr \
-  --model_name=mobilenet_v1
-  --dataset_dir=${TFRECORD_OUTPUT_DIR}  
-  --output_file=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb --dataset_name=blocks
-
+```bash
+python export_freeze_inference_graph.py \
+      --project_name=flowers_classifier \
+      --dataset_name=flowers \
+      --experiment_name=experiment_1 \
+      --model_name=mobilenet_v1_025
 ```
 
-### Freezing the exported Graph
-If you then want to use the resulting model with your own or pretrained
-checkpoints as part of a mobile model, you can run freeze_graph to get a graph
-def with the variables inlined as constants using:
-
-```shell
-python freeze_graph.py \
-  --input_graph=${TRAIN_DIR}/inference_graph_mobilenet_v1.pb  \
-  --input_checkpoint=${TRAIN_DIR}/model.ckpt-1000 \
-  --input_binary=true --output_graph=${TRAIN_DIR}/frozen_mobilenet_v1.pb \
-  --output_node_names=MobilenetV1/Predictions/Reshape_1
-```
-[Note: The bazel commands were replaced with a python file. Same arguments were used.]
-The output node names will vary depending on the model, but you can inspect and
-estimate them using the summarize_graph tool:
-
-## Guildai for Hyperparameter search
-
-
-
+<!-- ## Guildai for Hyperparameter search
+ -->
 ## Troubleshooting and Current Known Issues
 <a id='Troubleshooting'></a>
 
@@ -506,34 +485,18 @@ See
 See
 [Model Resulting in NaNs](https://github.com/tensorflow/models/tree/r1.13/research/inception#the-model-training-results-in-nans).
 
-#### The ResNet and VGG Models have 1000 classes but the ImageNet dataset has 1001
-
-The ImageNet dataset provided has an empty background class which can be used
-to fine-tune the model to other tasks. If you try training or fine-tuning the
-VGG or ResNet models using the ImageNet dataset, you might encounter the
-following error:
-
-```bash
-InvalidArgumentError: Assign requires shapes of both tensors to match. lhs shape= [1001] rhs shape= [1000]
-```
-This is due to the fact that the VGG and ResNet V1 final layers have only 1000
-outputs rather than 1001.
-
-To fix this issue, you can set the `--labels_offset=1` flag. This results in
-the ImageNet labels being shifted down by one:
-
 
 #### I wish to train a model with a different image size.
 
 The preprocessing functions all take `height` and `width` as parameters. You
 can change the default values using the following snippet:
 
-```python
-image_preprocessing_fn = preprocessing_factory.get_preprocessing(
-    preprocessing_name,
-    height=MY_NEW_HEIGHT,
-    width=MY_NEW_WIDTH,
-    is_training=True)
+```bash
+$ python train_image_classifier.py \
+    --project_name=flowers_classifier \
+    --dataset_name=flowers \
+    --experiment_name=experiment_1 \
+    --train_image_size=224
 ```
 
 #### What hardware specification are these hyper-parameters targeted for?
@@ -549,7 +512,8 @@ Our library is open source and we want to continuously improve it! So please, le
 3. ... you added some functionality to some class.
 4. ... you know how to speed up or improve any part of the library.
 5. ... you have a request about possible functionality.
-6. ... etc.
+6. ... edits to our readme file.
+7. ... etc.
 
 
 ## Contacts

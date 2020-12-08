@@ -236,59 +236,57 @@ def main(_):
       h.append('predicted_class')
       fout.write(','.join(h) + '\n')
 
-  # with tf.Session() as sess:
-    sess = tf.Session()
-    # fls = list()
-    counter = 0
-    print('\nLoading from checkpoint file {}\n'.format(checkpoint_path))
-    init_fn(sess)
-    print([n.name for n in tf.get_default_graph().as_graph_def().node if 'input' in n.name])
-    output_pred = list()
-    output_gt = list()
-    file_name = list()
-    for fl in fls:
-          image_name = None
-          # print('#############')
-          example = tf.train.Example()
-          example.ParseFromString(fl)
-          # Note: The key of example.features.feature depends on how you generate tfrecord.
-          # read image bytes
-          img = example.features.feature['image/encoded'].bytes_list.value # retrieve image string
-          img = list(img)[0]
-          # read image file name
-          image_file = example.features.feature['image/name'].bytes_list.value
-          image_file = list(image_file)[0].decode('utf-8')
+  with tf.Session() as sess:
+        sess = tf.Session()
+        # fls = list()
+        counter = 0
+        print('\nLoading from checkpoint file {}\n'.format(checkpoint_path))
+        init_fn(sess)
+        print([n.name for n in tf.get_default_graph().as_graph_def().node if 'input' in n.name])
+        output_pred = list()
+        output_gt = list()
+        file_name = list()
+        for fl in fls:
+              image_name = None
+              # print('#############')
+              example = tf.train.Example()
+              example.ParseFromString(fl)
+              # Note: The key of example.features.feature depends on how you generate tfrecord.
+              # read image bytes
+              img = example.features.feature['image/encoded'].bytes_list.value # retrieve image string
+              img = list(img)[0]
+              # read image file name
+              image_file = example.features.feature['image/name'].bytes_list.value
+              image_file = list(image_file)[0].decode('utf-8')
 
-          # if FLAGS.test_with_groudtruth:
-          gt_label = example.features.feature['image/class/label'].int64_list.value
-          gt_label = list(gt_label)[0]
-          gt_label = class_to_label_dict[str(gt_label)]
-          output_gt.append(gt_label)
-          a = [image_file]
-          file_name.append(image_file)
-          image_name = image_file.split('/')[-1]
-          probs = sess.run(probabilities, feed_dict={image_string:img})
+              # if FLAGS.test_with_groudtruth:
+              gt_label = example.features.feature['image/class/label'].int64_list.value
+              gt_label = list(gt_label)[0]
+              gt_label = class_to_label_dict[str(gt_label)]
+              output_gt.append(gt_label)
+              a = [image_file]
+              file_name.append(image_file)
+              image_name = image_file.split('/')[-1]
+              probs = sess.run(probabilities, feed_dict={image_string:img})
 
-      # check if groudtruth class label names match with class labels from label_file
-          if gt_label not in list(label_to_class_dict.keys()):
-              raise ValueError('groundtruth label ({}) does not match class label in file --label_file. Check image file parent directory names and selected label_file'.format(gt_label))
+          # check if groudtruth class label names match with class labels from label_file
+              if gt_label not in list(label_to_class_dict.keys()):
+                  raise ValueError('groundtruth label ({}) does not match class label in file --label_file. Check image file parent directory names and selected label_file'.format(gt_label))
 
-          probs = probs[0, 0:]
-          a.extend(probs)
-          a.append(np.argmax(probs))
-          pred_label = class_to_label_dict[str(a[-1])]
-          with open(prediction_file, 'a') as fout:
-            fout.write(','.join([str(e) for e in a]))
-            fout.write('\n')
-          counter += 1
-          sys.stdout.write('\rProcessing images... {}/{}'.format(str(counter), len(fls)))
-          sys.stdout.flush()
-          output_pred.append(pred_label)
+              probs = probs[0, 0:]
+              a.extend(probs)
+              a.append(np.argmax(probs))
+              pred_label = class_to_label_dict[str(a[-1])]
+              with open(prediction_file, 'a') as fout:
+                fout.write(','.join([str(e) for e in a]))
+                fout.write('\n')
+              counter += 1
+              sys.stdout.write('\rProcessing images... {}/{}'.format(str(counter), len(fls)))
+              sys.stdout.flush()
+              output_pred.append(pred_label)
 
-    fout.close()
-    print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
-
-    # sess.close()
+        fout.close()
+        print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
   # misclassified image
   if FLAGS.print_misclassified_test_images:
     print("\n\n\n==================== Misclassified Images ====================")
