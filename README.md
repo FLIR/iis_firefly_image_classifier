@@ -1,4 +1,4 @@
-# Image classification using Tensorflow-Slim library
+# Train an image classification for FireFly-DL deployment
 <!-- # Image classification model library -->
 
 This repository is based on the [TensorFlow-Slim image classification model library](https://github.com/tensorflow/models/tree/master/research/slim).
@@ -38,19 +38,19 @@ which provides a working examples of how to use this repository.
 - **Others**:
     - Enviroment setup using docker images.
 
-## Latest/upcoming Features
+## Latest/Upcoming Features
 - **Hyperparameter Optimization**
     - Using [Guildai](https://guild.ai/)
     - Documentation to be added.
 - **Image capture and labeling tool**
-    - Scripts, docker image, and documentation to be added.
+    - Link to repository to be added.
 - **Supported model architectures**
     - Mobilenet_v1_1.0_224
     - Mobilenet_v1_0.75_224
     - Mobilenet_v1_0.5_224
     - Mobilenet_v1_0.25_224
     - Inception_v1
-    - Support for mobilenet_v1 architectures with smaller image size (to be added)
+    - Support for mobilenet_v1 architectures with smaller image size to be added.
 
 ## Results
 ### Runtime Analysis
@@ -66,8 +66,8 @@ Model | Flowers Classifier Accuracy| FireFly-DL Inference Time (ms) |Max Number 
 
 - Input image size (224x224 pixels)
 
-The reported accuracy of the pre-trained models are based on a subset of the Oxford Flowers dataset, which contain a training set of 3000 images, and 5 categories. You can find more information [here](https://www.robots.ox.ac.uk/~vgg/data/flowers/).
-We report the average inference time on FireFly-DL (Mono) for each model (more information [here](https://www.flir.ca/products/firefly-dl/)). We also report the maximum number of training steps and training time using Nvidia's GPU (GeForce GTX 1080) card.
+The reported accuracy (pre-conversion) of the trained models are based on a subset of the Oxford Flowers dataset, which contain a training set of 3000 images, and 5 categories. You can find more information [here](https://www.robots.ox.ac.uk/~vgg/data/flowers/) and you can download the dataset from [here](http://download.tensorflow.org/example_images/flower_photos.tgz).
+The reported on camera (FireFly-DL Mono) inference time does not include the image scaling time.  More information can be found [here](https://www.flir.ca/products/firefly-dl/). We also report the maximum number of training steps and training time using Nvidia's GPU (GeForce GTX 1080) card.
 
 ## Contents
 1. [Features](#features)
@@ -146,7 +146,7 @@ cd iss_firefly_image_classifier
 ### Collect and label image datasets
 Collect and label some training images. Refer to the collect image dataset for more details regarding supported image formats and the expected directory structure.
 Important Note:
-- If you are using a docker container environment, verify that the docker container has access to your image directory. Optionally, you can copy your image directory under this repository folder.
+Note: If you are using a docker container environment, verify that the docker container has access to your image directory. Optionally, you can copy your image directory under this repository folder.
 
 ### Start training your model
 ```bash
@@ -170,7 +170,7 @@ Below we summaries the input arguments and corresponding output directory struct
     - Dataset label file (label.txt).
   - **experiments directory**: An experiment name given by `--experiment_name` and located by default under `./project_dir/<project name>/experiments/<experiment name>`.
     - Trained checkpoint files (train/ .ckpt).
-    - Trained frozen graph file (train/frozen_ .pb).
+    - Trained frozen graph file (train/_frozen.pb).
     - Train/Eval Tensorboard event file logs (train/events. , eval/events. )
     - Train experiment setting file (train/experiment_setting.txt)
     - Test prediction results (test/predictions.csv)
@@ -191,22 +191,23 @@ Convert your image dataset using the `convert_images_to_tfrecor.py` script.
 
 ```bash
 $ python convert_images_to_tfrecord.py \
-        --project_name=<Select a project name (Required)> \
-        --dataset_name=<Select a dataset name (Required)> \
-        --image_dir=</path/to/image_directory (Required)> \
-        --train_percentage=<Percentage of images used for training (Optional)> \
-        --validation_percentage=<Percentage of images used for training (Optional)> \
-        --test_percentage=<Percentage of images used for training (Optional)> \
-        --image_height=<Target image height (Optional)> \
-        --image_width=<Target image width (Optional)>
+        --project_name=<Select a project name> \
+        --dataset_name=<Select a dataset name> \
+        --image_dir=</path/to/image_directory>
 ```
 
-**Download flowers image dataset and convert to TFRecord format (OPTIONAL)**
+#### Convert images using training script
+You can convert your images to TFRecord format using the `train_image_classifier.py` by specify the image directory with `--image_dir` flag and specifying a dataset name with `--dataset_name`.
+```bash
+python train_image_classifier.py \
+        --project_name=<Select a project name> \
+        --dataset_name=<Select a dataset name> \
+        --image_dir=</path/to/image_directory>
+```
+Note: If you have already converted your images to TFRecord format, you can omit the `--image_dir` flag and use the `--dataset_name` flag to select the converted dataset.
 
-Below we demonstrate how we download the Flowers dataset and convert it to
-TensorFlow's native
-[TFRecord](https://www.tensorflow.org/versions/r0.10/api_docs/python/python_io.html#tfrecords-format-details)
-format.
+#### Example flowers dataset
+**OPTIONAL** Run the command below to download and convert the Flowers dataset.
 
 Dataset | Dataset Size | Number of Classes | Comments
 :------:|:------------:|:-----------------:|:-----------:
@@ -219,25 +220,13 @@ $ python convert_images_to_tfrecord.py \
           --dataset_name=flowers \
 ```
 
-#### Convert images using training script
-You can convert your images to TFRecord format using the `train_image_classifier.py` by specify the image directory with `--image_dir` flag and specifying a dataset name with `--dataset_name` flag.
-```bash
-python train_image_classifier.py \
-        --project_name=<Select a project name> \
-        --dataset_name=<Select a dataset name> \
-        --image_dir=</path/to/image_directory>
-```
+#### Dataset folder
+You can access the converted TFRecord dataset files under the following directory: `./project_dir/<project name>/datasets/<dataset name>`. Below we provide a list of some of the generated files and example of the file structure
 
+  - Training, validation and test set shard files.
+  - `labels.txt` file which contains the mapping from integer labels to class names.  
+  - `dataset_config.json` file which stores some of the dataset attributes.
 
-Note: You can omit the `--image_dir` and use the same dataset name. This will skip the image conversion and use the saved TFRecord dataset.
-
-#### Dataset folder:
-You can access the convert TFRecord dataset files under the following directory: `./project_dir/<project name>/datasets/<dataset name>`.
-```bash
-$ ls ./project_dir/<project name>/datasets/<dataset name>
-```
-
-Below are some file examples.
 ```bash
 dataset_name_train-00000-of-00005.tfrecord
 ...
@@ -251,10 +240,7 @@ dataset_name-00004-of-00005.tfrecord
 labels.txt
 dataset_config.json
 ```
-List of dataset files:
-  - Training, validation and test set shard files.
-  - `labels.txt` file which contains the mapping from integer labels to class names.  
-  - `dataset_config.json` file which stores some of the dataset attributes.
+
 
 Example `dataset_config.json` file.      
 ```shell
@@ -282,7 +268,74 @@ Example `dataset_config.json` file.
 ## Training, Evaluation, and Testing your classification model
 This section covers how to run training, evaluation and test scripts.
 
-### Pre-trained Models
+### Training
+Below command is an example for training the flowers dataset on mobilenet_v1_025 which is fine-tuned from ImageNet. We highlight the following input arguments
+- `--experiment_name`: Set experiment name (directory name) where the experiment files are saved (default will select `experiment_1` if it is the first experiment in the project)
+- `--max_number_of_steps`: Set the maximum number of training steps to 1000 (default 50000 steps)
+- `--model_name`: Select the model backbone model architecture mobilenet_v1_025 (default mobilenet_v1)
+- `--trainable_scopes`: Select trainable model layers (default final `logits` layer and `BatchNorm` layers)
+- `--clone_on_cpu=True`: Set training to use CPU only (default train mainly on GPU if available)
+
+```bash
+$ python train_image_classifier.py \
+    --project_name=flowers_classifier \
+    --dataset_name=flowers \
+    --experiment_name=experiment_1 \
+    --batch_size=64 \
+    --model_name=mobilenet_v1_025 \
+    --max_number_of_steps=1000 \
+    --trainable_scopes=BatchNorm,MobilenetV1/Logits,MobilenetV1/Conv2d_13,MobilenetV1/Conv2d_12 \
+    --clone_on_cpu=True
+```
+
+### Evaluating while training
+To evaluate the performance of a model while training,
+you can use the eval_image_classifier.py script, as shown below.
+
+The script should be run while training and the `--project_name` and `--dataset_name` flags should point to the same project and dataset names as your training script. In addition, the script will save the event files under a new directory `./project_dir/<project name>/experiments/<experiment name>/eval`.
+
+By default the script will monitor for new checkpoints on the most recent experiment train folder (i.e.`./project_dir/<project name>/experiments/<experiment name>/train`). Alternatively, you can input a specific experiment name or folder to monitor with `--experiment_name` and `--checkpoint_path` flags, respectively.
+
+Below command is an example for monitoring and evaluating the training process for our flowers classifier. We highlight the following input arguments
+- `--experiment_name`: Set experiment name directory load trained checkpoints from and save event logfiles to (default script will select the most recent folder, `experiment_#` folder with the highest index )
+- `--model_name`: Set the model architecture to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
+- `--batch_size`: Set batch size to 64 (default 16)
+
+```bash
+$ python eval_image_classifier.py \
+    --project_name=flowers_classifier \
+    --dataset_name=flowers \
+    --experiment_name=experiment_1 \
+    --batch_size=64 \
+    --model_name=mobilenet_v1_025
+```
+
+### Test performance of a model
+To Test the performance of a model after completing training,
+you can use the test_image_classifier.py script, as shown below.
+
+The script can be run while or after training the model, and the `--project_name` and `--dataset_name` flags should be set to the same project and dataset names as your training script. The script will save the event files under a new directory `./project_dir/<project name>/experiments/<experiment name>/test`.
+
+Similarly, by default the script will monitor for new checkpoints on the most recent experiment train folder (i.e.`./project_dir/<project name>/experiments/<experiment name>/train`). Alternatively, you can input a specific experiment name or folder to monitor with `--experiment_name` and `--checkpoint_path` flags, respectively.
+
+Below command is an example for monitoring and evaluating the training process for our flowers classifier. We highlight the following input arguments
+- `--experiment_name`: Set experiment name directory load trained checkpoints from and save event logfiles to (default script will select the most recent folder, `experiment_#` folder with the highest index )
+- `--model_name`: Set the model architecture to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
+
+```bash
+$ python test_image_classifier.py \
+    --project_name=flowers_classifier \
+    --dataset_name=flowers \
+    --experiment_name=experiment_1 \
+    --model_name=mobilenet_v1_025
+```
+
+### Transfer Learning from ImageNet
+Training a model from scratch is no easy job. It is time consuming and requires extensive deep learning expertise. Rather than training from scratch, we'll often want to start from a pre-trained model and fine-tune it to create customized models for your new applications.
+The training script has the following default input arguments set:
+- If you do not specify a `--checkpoint_path` and you select with `--model_name` one of the four models (default `mobilenet_v1`) given in the above table the script will automatically download the corresponding ImageNet checkpoint from which to fine-tune from.
+- If you do not specify a `--trainable_scopes` and `--checkpoint_exclude_scopes` the script will exclude the last layer `logits`
+and train the `logits` and `BatchNorm` layers of the network.
 
 Neural nets work best when they have many parameters, making them powerful
 function approximators.
@@ -295,7 +348,7 @@ image classification dataset.
 
 In the table below, we list each model, the corresponding
 TensorFlow model file, the link to the model checkpoint, and the top 1 and top 5
-accuracy (on the imagenet test set).
+accuracy (on the ImageNet test set).
 Notes:
   - The Inception parameters have been trained by Google.
   - Also be aware that these accuracies were computed by evaluating using a single image crop. Some academic papers report higher accuracy by using multiple crops at multiple scales.
@@ -312,14 +365,6 @@ Model | TF-Slim File | Checkpoint | ImageNet Accuracy |
 All 16 float MobileNet V1 models reported in the [MobileNet Paper](https://arxiv.org/abs/1704.04861) and all
 16 quantized [TensorFlow Lite](https://www.tensorflow.org/mobile/tflite/) compatible MobileNet V1 models can be found
 [here](https://github.com/tensorflow/models/tree/r1.13/research/slim/nets/mobilenet_v1.md).
-
-### Training a customized model for your own application
-Training a model from scratch is no easy job. It is time consuming and requires extensive deep learning expertise. Rather than training from scratch, we'll often want to start from a pre-trained model and fine-tune it to create customized models for your new applications.
-The training script has the following default input arguments set:
-- If you do not specify a `--checkpoint_path` and you select with `--model_name` one of the four models (default `mobilenet_v1`) given in the above table the script will automatically download the corresponding ImageNet checkpoint from which to fine-tune from.
-- If you do not specify a `--trainable_scopes` and `--checkpoint_exclude_scopes` the script will exclude the last layer `logits`
-and train the `logits` and `BatchNorm` layers of the network.
-
 
 ### Fine-tuning a model from an existing checkpoint
 To indicate a checkpoint from which to fine-tune, we'll call training with
@@ -364,74 +409,6 @@ shape=(256,) dtype=float32_ref>,
 <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/gamma:0' shape=(256,) dtype=float32_ref>, <tf.Variable 'MobilenetV1/Conv2d_12_pointwise/BatchNorm/beta:0' shape=(256,) dtype=float32_ref>]
 ```
 
-Below command is an example for training the flowers dataset on mobilenet_v1_025 fine-tuned from ImageNet, We set the following input arguments
-- `--experiment_name`: Set experiment name directory to save experiment files under (default will select `experiment_1` if it is the first experiment in the project)
-- `--max_number_of_steps`: Set the maximum number of training steps to 1000 (default 50000 steps)
-- `--model_name`: Set the model architecture used to mobilenet_v1_025 (default mobilenet_v1)
-- `--trainable_scopes`: Set the model layers to trained (default `logits` and `BatchNorm` layers)
-- `--clone_on_cpu=True`: Set training using CPU only (default train mainly on GPU if available)
-
-```bash
-$ python train_image_classifier.py \
-    --project_name=flowers_classifier \
-    --dataset_name=flowers \
-    --experiment_name=experiment_1 \
-    --batch_size=64 \
-    --model_name=mobilenet_v1_025 \
-    --max_number_of_steps=1000 \
-    --trainable_scopes=BatchNorm,MobilenetV1/Logits,MobilenetV1/Conv2d_13,MobilenetV1/Conv2d_12 \
-    --clone_on_cpu=True
-```
-
-For training on cpu (with tensorflow package, instead of tensorflow-gpu), set flag `--clone_on_cpu` to `True`. For training on gpu, this flag can be ignored or set to `False`.
-
-### Evaluating performance of a model while training
-
-To evaluate the performance of a model while training,
-you can use the eval_image_classifier.py script, as shown below.
-
-The script should be run while training and the `--project_name` and `--dataset_name` flags should point to the same project and dataset names as your training script. In addition, the script will save the event files under a new directory `./project_dir/<project name>/experiments/<experiment name>/eval`.
-
-By default the `--checkpoint_path` flag will point to the following directory ``./project_dir/<project name>/experiments/<experiment name>/train`` . Optionally, you call also specify the `--checkpoint_path` flag,  which should point to the directory where the training job checkpoints are stored.
-
-Below command is an example for monitoring and evaluating the training process for our flowers classifier. We set the following input arguments
-- `--experiment_name`: Set experiment name directory load trained checkpoints from and save event logfiles to (default will select `experiment_#` the last folder with the highest number)
-- `--model_name`: Set the model architecture used to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
-- `--batch_size`: Set batch size used to 64 (default 16)
-
-```bash
-$ python eval_image_classifier.py \
-    --project_name=flowers_classifier \
-    --dataset_name=flowers \
-    --experiment_name=experiment_1 \
-    --batch_size=64 \
-    --model_name=mobilenet_v1_025
-```
-
-See the [evaluation module example](https://github.com/tensorflow/tensorflow/tree/r1.13/tensorflow/contrib/slim#evaluation-loop)
-for an example of how to evaluate a model at multiple checkpoints during or after the training.
-
-### Test performance of a model
-To Test the performance of a model after completing training,
-you can use the test_image_classifier.py script, as shown below.
-
-The script should be run while/after training and the `--project_name` and `--dataset_name` flags should point to the same project and dataset names as your training script. In addition, the script will save the event files under a new directory `./project_dir/<project name>/experiments/<experiment name>/test`.
-
-By default the `--checkpoint_path` flag will point to the following directory `./project_dir/<project name>/experiments/<experiment name>/train`. Optionally, you call also specify the `--checkpoint_path` flag,  which should point to the directory where the training job checkpoints are stored.
-
-Below command is an example for monitoring and evaluating the training process for our flowers classifier. We set the following input arguments
-- `--experiment_name`: Set experiment name directory load trained checkpoints from and save event predictions to (default will select `experiment_#` the last folder with the highest number)
-- `--model_name`: Set the model architecture used to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
-- `--batch_size`: Set batch size used to 64 (default 16)
-
-```bash
-$ python test_image_classifier.py \
-    --project_name=flowers_classifier \
-    --dataset_name=flowers \
-    --experiment_name=experiment_1 \
-    --model_name=mobilenet_v1_025
-```
-
 ### TensorBoard
 
 To visualize the losses and other metrics during training, you can use
@@ -445,15 +422,14 @@ tensorboard --logdir=./project_dir/flower_classifier/experiments/experiment_1 --
 Once TensorBoard is running, navigate your web browser to http://localhost:6006
 
 ### Export and Freeze Graph
-Saves out a GraphDef containing the architecture with your pretrained
-checkpoints. Run export_freeze_inference_graph to get a frozen graph
-(.pb) file. By default when you run the training script the script will automatically export and freeze functions and generate a frozen graph under your the following directory `./project_dir/<project name>/experiments/<experiment name>/train`.
 
-By default the `--checkpoint_path` flag will point to the following directory `./project_dir/<project name>/experiments/<experiment name>/train` and will select the latest saved checkpoint in that directory. Optionally, you call also specify the `--checkpoint_path` flag,  which should point to the directory where the training job checkpoints are stored.
+ The training script will automatically call the export and freeze functions and generate a frozen graph under your the following directory `./project_dir/<project name>/experiments/<experiment name>/train`. Alternatively, you can run the `export_freeze_inference_graph.py` script which will generate the frozen graph (`<dataset_name>_<model_name>_frozen.pb`).
+
+Similarly, by default the script will monitor for new checkpoints on the most recent experiment train folder (i.e.`./project_dir/<project name>/experiments/<experiment name>/train`). Alternatively, you can input a specific experiment name or folder to monitor with `--experiment_name` and `--checkpoint_path` flags, respectively.
 
 Below command is an example for exporting and freezing the latest trained checkpoint for our flowers classifier. We set the following input arguments
-- `--experiment_name`: Set experiment name directory load trained checkpoints from and save event predictions to (default will select `experiment_#` the latest folder with the highest number)
-- `--model_name`: Set the model architecture used to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
+- `--experiment_name`: Set experiment name directory load trained checkpoints from and save event logfiles to (default script will select the most recent folder, `experiment_#` folder with the highest index )
+- `--model_name`: Set the model architecture to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
 
 ```bash
 python export_freeze_inference_graph.py \
