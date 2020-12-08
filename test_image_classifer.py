@@ -190,7 +190,7 @@ def main(_):
       sys.exit(-1)
 
 
-  image_string = tf.placeholder(tf.string)
+  image_string = tf.placeholder(name='input', dtype=tf.string)
   # Entry to the computational graph, e.g.
   # image_string = tf.gfile.FastGFile(image_file).read()
 
@@ -220,7 +220,7 @@ def main(_):
 
   processed_image = image_preprocessing_fn(image, test_image_size, test_image_size) #,roi=_parse_roi())
 
-  processed_images  = tf.expand_dims(processed_image, 0)
+  processed_images  = tf.expand_dims(processed_image, 0, name='input_after_preprocessing')
 
   logits, _ = network_fn(processed_images)
 
@@ -236,11 +236,13 @@ def main(_):
       h.append('predicted_class')
       fout.write(','.join(h) + '\n')
 
-  with tf.Session() as sess:
+  # with tf.Session() as sess:
+    sess = tf.Session()
     # fls = list()
     counter = 0
     print('\nLoading from checkpoint file {}\n'.format(checkpoint_path))
     init_fn(sess)
+    print([n.name for n in tf.get_default_graph().as_graph_def().node if 'input' in n.name])
     output_pred = list()
     output_gt = list()
     file_name = list()
@@ -286,7 +288,7 @@ def main(_):
     fout.close()
     print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
 
-  sess.close()
+    # sess.close()
   # misclassified image
   if FLAGS.print_misclassified_test_images:
     print("\n\n\n==================== Misclassified Images ====================")

@@ -2,6 +2,8 @@
 archive/
 project_dir/
 train_dir/
+image_dir/
+tmp/
 experiment_dir/
 scripts/
 checkpoints/
