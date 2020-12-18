@@ -18,20 +18,9 @@ from datasets import dataset_utils
 import numpy as np
 import os
 import sys
-sys.path.append('/home/research/Public/RobertB/aimet_tests/aimet/TrainingExtensions/common/src/python')
-sys.path.append('/home/research/Public/RobertB/aimet_tests/aimet/TrainingExtensions/tensorflow/src/python')
 from datetime import datetime
 from sklearn.metrics import confusion_matrix, classification_report, mean_absolute_error
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
-#Imports for AIMET
-from decimal import Decimal
-
-# Compression-related imports
-from aimet_common.defs import GreedySelectionParameters
-from aimet_common.defs import CostMetric, CompressionScheme
-from aimet_tensorflow.defs import SpatialSvdParameters, ChannelPruningParameters, ModuleCompRatioPair
-from aimet_tensorflow.compress import ModelCompressor
 
 slim = tf.contrib.slim
 
@@ -201,7 +190,6 @@ def main(_):
       sys.exit(-1)
 
 
-  #image_string = tf.placeholder(tf.string)
   image_string = tf.placeholder(name='input', dtype=tf.string)
   # Entry to the computational graph, e.g.
   # image_string = tf.gfile.FastGFile(image_file).read()
@@ -232,7 +220,6 @@ def main(_):
 
   processed_image = image_preprocessing_fn(image, test_image_size, test_image_size) #,roi=_parse_roi())
 
-  #processed_images  = tf.expand_dims(processed_image, 0)
   processed_images  = tf.expand_dims(processed_image, 0, name='input_after_preprocessing')
 
   logits, _ = network_fn(processed_images)
@@ -250,85 +237,56 @@ def main(_):
       fout.write(','.join(h) + '\n')
 
   with tf.Session() as sess:
-    # fls = list()
-    counter = 0
-    print('\nLoading from checkpoint file {}\n'.format(checkpoint_path))
-    init_fn(sess)
-    output_pred = list()
-    output_gt = list()
-    file_name = list()
-    for fl in fls:
-          image_name = None
-          # print('#############')
-          example = tf.train.Example()
-          example.ParseFromString(fl)
-          # Note: The key of example.features.feature depends on how you generate tfrecord.
-          # read image bytes
-          img = example.features.feature['image/encoded'].bytes_list.value # retrieve image string
-          img = list(img)[0]
-          # read image file name
-          image_file = example.features.feature['image/name'].bytes_list.value
-          image_file = list(image_file)[0].decode('utf-8')
+        sess = tf.Session()
+        # fls = list()
+        counter = 0
+        print('\nLoading from checkpoint file {}\n'.format(checkpoint_path))
+        init_fn(sess)
+        print([n.name for n in tf.get_default_graph().as_graph_def().node if 'input' in n.name])
+        output_pred = list()
+        output_gt = list()
+        file_name = list()
+        for fl in fls:
+              image_name = None
+              # print('#############')
+              example = tf.train.Example()
+              example.ParseFromString(fl)
+              # Note: The key of example.features.feature depends on how you generate tfrecord.
+              # read image bytes
+              img = example.features.feature['image/encoded'].bytes_list.value # retrieve image string
+              img = list(img)[0]
+              # read image file name
+              image_file = example.features.feature['image/name'].bytes_list.value
+              image_file = list(image_file)[0].decode('utf-8')
 
-          # if FLAGS.test_with_groudtruth:
-          gt_label = example.features.feature['image/class/label'].int64_list.value
-          gt_label = list(gt_label)[0]
-          gt_label = class_to_label_dict[str(gt_label)]
-          output_gt.append(gt_label)
-          a = [image_file]
-          file_name.append(image_file)
-          image_name = image_file.split('/')[-1]
-          probs = sess.run(probabilities, feed_dict={image_string:img})
+              # if FLAGS.test_with_groudtruth:
+              gt_label = example.features.feature['image/class/label'].int64_list.value
+              gt_label = list(gt_label)[0]
+              gt_label = class_to_label_dict[str(gt_label)]
+              output_gt.append(gt_label)
+              a = [image_file]
+              file_name.append(image_file)
+              image_name = image_file.split('/')[-1]
+              probs = sess.run(probabilities, feed_dict={image_string:img})
 
-      # check if groudtruth class label names match with class labels from label_file
-          if gt_label not in list(label_to_class_dict.keys()):
-              raise ValueError('groundtruth label ({}) does not match class label in file --label_file. Check image file parent directory names and selected label_file'.format(gt_label))
+          # check if groudtruth class label names match with class labels from label_file
+              if gt_label not in list(label_to_class_dict.keys()):
+                  raise ValueError('groundtruth label ({}) does not match class label in file --label_file. Check image file parent directory names and selected label_file'.format(gt_label))
 
-          probs = probs[0, 0:]
-          a.extend(probs)
-          a.append(np.argmax(probs))
-          pred_label = class_to_label_dict[str(a[-1])]
-          with open(prediction_file, 'a') as fout:
-            fout.write(','.join([str(e) for e in a]))
-            fout.write('\n')
-          counter += 1
-          sys.stdout.write('\rProcessing images... {}/{}'.format(str(counter), len(fls)))
-          sys.stdout.flush()
-          output_pred.append(pred_label)
+              probs = probs[0, 0:]
+              a.extend(probs)
+              a.append(np.argmax(probs))
+              pred_label = class_to_label_dict[str(a[-1])]
+              with open(prediction_file, 'a') as fout:
+                fout.write(','.join([str(e) for e in a]))
+                fout.write('\n')
+              counter += 1
+              sys.stdout.write('\rProcessing images... {}/{}'.format(str(counter), len(fls)))
+              sys.stdout.flush()
+              output_pred.append(pred_label)
 
-    fout.close()
-    print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
-
-    #Modification by R. Bickley, Dec. 2020
-    print('print output follows -----------------------------------------')
-    print([n.name for n in tf.get_default_graph().as_graph_def().node])
-    print('print output should be just above------------------------------')
-    def evaluate_model(sess: tf.Session, eval_iterations: int, use_cuda: bool) -> float:
-        acc_score_eval = accuracy_score(output_gt,output_pred)
-        return float(acc_score_eval)
-
-    #Now add the code from the AIMET-TF SpatialSVD Compression API
-    greedy_params = GreedySelectionParameters(target_comp_ratio=Decimal(0.8),
-                                              num_comp_ratio_candidates=10,
-                                              use_monotonic_fit=True,
-                                              saved_eval_scores_dict=None)
-    auto_params = SpatialSvdParameters.AutoModeParams(greedy_select_params=greedy_params)
-    params = SpatialSvdParameters(input_op_names=['input_after_preprocessing'], output_op_names=['MobilenetV1/Predictions/Reshape_1'],
-                                  mode=SpatialSvdParameters.Mode.auto, params=auto_params, multiplicity=8)
-    input_shape = (1, 3, 224, 224)
-    #
-    compr_model_sess, stats = ModelCompressor.compress_model(sess=sess,
-                                                             working_dir=str('./'),
-                                                             eval_callback=evaluate_model,
-                                                             eval_iterations=10,
-                                                             input_shape=input_shape,
-                                                             compress_scheme=CompressionScheme.spatial_svd,
-                                                             cost_metric=CostMetric.mac,
-                                                             parameters=params,
-                                                             trainer=None)
-    print(stats)
-    
-  sess.close()
+        fout.close()
+        print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
   # misclassified image
   if FLAGS.print_misclassified_test_images:
     print("\n\n\n==================== Misclassified Images ====================")
