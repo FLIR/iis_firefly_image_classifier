@@ -1,3 +1,6 @@
+#Compressing a "flowers" MobileNetV1 Classifier using Qualcomm's AIMET
+
+#Imports
 from __future__ import print_function
 import sys
 sys.path.append('/home/research/Public/RobertB/aimet_tests/aimet/TrainingExtensions/common/src/python')
@@ -18,8 +21,6 @@ from aimet_common.defs import CostMetric, CompressionScheme
 from aimet_tensorflow.defs import SpatialSvdParameters, ChannelPruningParameters, ModuleCompRatioPair
 from aimet_tensorflow.compress import ModelCompressor
 
-#Everything up to main()
-
 from tensorflow.python.platform import tf_logging as logging
 
 from datasets import imagenet
@@ -39,6 +40,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 slim = tf.contrib.slim
 
+#Using the same flags as the test image classifier script
 tf.app.flags.DEFINE_string(
     'project_dir', './project_dir', 'default project folder. all prject folder are stored.')
 
@@ -112,8 +114,6 @@ def select_latest_experiment_dir(project_dir):
     experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), experiment_name)
     return experiment_dir
 
-#Everything after main()
-
 # check required input arguments
 if not FLAGS.project_name:
     raise ValueError('You must supply a project name with --project_name')
@@ -148,6 +148,8 @@ prediction_file = os.path.join(test_dir, 'predictions.csv')
 ####################
 # create dataset list
 ####################
+
+#In a departure from the test_image_classifier script, we perform all of the setup in a designated function, which returns items to be used later
 def setup():
     fls = list()
     file_pattern = '_'.join([FLAGS.dataset_name, FLAGS.dataset_split_name])
@@ -206,12 +208,8 @@ def setup():
 
 
     image_string = tf.placeholder(name='input', dtype=tf.string)
-    #image_string_1 = tf.placeholder(name='input_1',dtype=tf.string)
-    # Entry to the computational graph, e.g.
-    # image_string = tf.gfile.FastGFile(image_file).read()
 
     image = tf.image.decode_png(image_string, channels=3)
-    # image = tf.image.decode_image(image_string, channels=3)
 
     ####################
     # Select the model #
@@ -255,132 +253,69 @@ def setup():
     sess = tf.Session()# as sess:
     
     return init_fn,label_to_class_dict,class_to_label_dict,fls,sess
-#print('\nLoading from checkpoint file {}\n'.format(checkpoint_path))
 
-#init_fn(sess)
-#output_pred = list()
-#output_gt = list()
-#file_name = list()
-#for fl in fls:
-#    image_name = None
-    # print('#############')
-#    example = tf.train.Example()
-#    example.ParseFromString(fl)
-    # Note: The key of example.features.feature depends on how you generate tfrecord.
-    # read image bytes
-#    img = example.features.feature['image/encoded'].bytes_list.value # retrieve image string
-#    img = list(img)[0]
-    # read image file name
-#    image_file = example.features.feature['image/name'].bytes_list.value
-#    image_file = list(image_file)[0].decode('utf-8')
-
-    # if FLAGS.test_with_groudtruth:
-#    gt_label = example.features.feature['image/class/label'].int64_list.value
-#    gt_label = list(gt_label)[0]
-#    gt_label = class_to_label_dict[str(gt_label)]
-#    output_gt.append(gt_label)
-#    a = [image_file]
-#    file_name.append(image_file)
-#    image_name = image_file.split('/')[-1]
-    #print('printing nodes before compression attempt')
-    #print([n.name for n in tf.get_default_graph().as_graph_def().node if 'input' in n.name])
-#    probs = sess.run(probabilities, feed_dict={image_string:img})
-
-    # check if groudtruth class label names match with class labels from label_file
-#    if gt_label not in list(label_to_class_dict.keys()):
-#        raise ValueError('groundtruth label ({}) does not match class label in file --label_file. Check image file parent directory names and selected label_file'.format(gt_label))
-
-#    probs = probs[0, 0:]
-#    a.extend(probs)
-#    a.append(np.argmax(probs))
-#    pred_label = class_to_label_dict[str(a[-1])]
-#    with open(prediction_file, 'a') as fout:
-#        fout.write(','.join([str(e) for e in a]))
-#        fout.write('\n')
-#    counter += 1
-#    sys.stdout.write('\rProcessing images... {}/{}'.format(str(counter), len(fls)))
-#    sys.stdout.flush()
-#    output_pred.append(pred_label)
-
-#fout.close()
-#print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
-
-#sess.close()
-# misclassified image
-#if FLAGS.print_misclassified_test_images:
-    #print("\n\n\n==================== Misclassified Images ====================")
-#    count = 0
-#    for image_name, gt_label, pred_label in zip(file_name, output_gt, output_pred):
-#        if pred_label != gt_label:
-#            count += 1
-            #print('Image file {} misclassified as {}. (groundtruth label {})'.format(image_name, pred_label, gt_label))
-    #print('\n\nTotal misclassified images {}/{}'.format(str(count), len(file_name)))
-    #print("==============================================================")
-#    y_true = output_gt
-#    y_pred = output_pred
-#    conf_mat_output = confusion_matrix(y_true, y_pred, labels=np.unique(output_gt))
-#    output_acc = accuracy_score(y_true, y_pred)
-#    output_precision = precision_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
-#    output_recall = recall_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
-    #print("\n\n\n==================== Evaluation Result Summary ====================")
-    #print("Accuracy score : {}".format(output_acc))
-    #print("Precision score : {}".format(output_precision))
-    #print("Recall score: {}".format(output_recall))
-    # print("F1 score: {}".format(output_f1))
-    #print(classification_report(y_true, y_pred, digits=7, labels=np.unique(output_gt)))
-    #print("===================================================================")
-
+#Here we define a function to generate an initialization function (to initialize all of the variables) for a given tensorflow session
+#We have to do this symbolically, because during compression, the architecture will be different every time; so we can't hard-code an init_fn
 def _get_init_fn(ckpt_path):
     mnv1_checkpoint_path = ckpt_path
+    #checks how the checkpoint path was passed in
     if tf.gfile.IsDirectory(mnv1_checkpoint_path):
         checkpoint_path = tf.train.latest_checkpoint(mnv1_checkpoint_path)
     else:
         checkpoint_path = mnv1_checkpoint_path
-
+    #Makes a list of all of the model's variables to restore them
     variables_to_restore = []
     for var in slim.get_model_variables():
         variables_to_restore.append(var)
-
-    #tf.logging.info('Fine-tuning from %s' % checkpoint_path)
+    #Returns a callable function to initialize all the variables
     return slim.assign_from_checkpoint_fn(
         checkpoint_path,
         variables_to_restore,
         ignore_missing_vars=False)
 
+#This is the tough part of using AIMET with tensorflow. AIMET expects a function, evaluate_model, which will return the performance of *ANY* session it passes in.
+#On the fly, we have to do the following:
+#1) Temporarily save the session to a checkpoint file, for reference
+#2) Use the session's graph to create the initialization function, with _get_init_fn() from earlier
+#3) Begin a NEW session, that uses the graph from the session that's passed in.
+#4) Initialize all of the session's variables
+#5) Load the weights from the saved checkpoint file
+#6) Finally, iterate through the test data to perform inference, and return the arbitrary session's performance on the test data.
 def evaluate_model(gen_sess, eval_iterations, use_cuda):
-    ##Attempt to save gen_sess
+    #Attempt to save the gen_sess
+    #Checkpoint path - where the generic session will be temporarily stored
     ckpt_path = '/home/research/Public/RobertB/aimet_tests/aimet/comp-tests/iis_firefly_image_classifier/temp_ckpts/mid_comp.ckpt'
+    #Save the session at the designated location
     tf_saver.save(gen_sess,ckpt_path)
-    #saver = tf.train.import_meta_graph(ckpt_path+'.meta')
+    #Now we define the initialization function with the generic session's graph as default
     with gen_sess.graph.as_default():
-    #with tf.Graph().as_default():
-        #print('\nPRINTING OPS OF GEN_SESS.GRAPH\n')
-        #print([(op.name,op.outputs) for op in gen_sess.graph.get_operations()])
-        #print('\nSHOULD HAVE PRINTED\n')
+        #specific_init_fn will be used below to initialize all of the session's variables
         specific_init_fn = _get_init_fn(ckpt_path)
+    #Declaring a few variables that will be used during inference.
     counter = 0
     output_pred = list()
     output_gt = list()
     file_name = list()
+    #Now we create a new tensorflow session that uses the generic session's graph, and call it "specific_sess"
     with tf.Session(graph=gen_sess.graph) as specific_sess:
+        #Initialize all the variables using a tensorflow built-in function. This does not load the values, just makes it so that the variables exist.
         specific_sess.run(tf.initialize_all_variables())
+        #We use the saver to restore the values of the specific_sess from the checkpoint we made out of gen_sess earlier
         tf_saver.restore(specific_sess,ckpt_path)
+        #We call the specific_init_fn to initialize the quantities for the model
         specific_init_fn(specific_sess)
+        #This is the same as in the testing script. We iterate through the test data files and have the session evaluate them one at a time.
         for fl in fls:
        	    image_name = None
-       	    # print('#############')
        	    example = tf.train.Example()
        	    example.ParseFromString(fl)
        	    # Note: The key of example.features.feature depends on how you generate tfrecord
             # read image bytes
        	    img = example.features.feature['image/encoded'].bytes_list.value # retrieve image string
        	    img = list(img)[0]
-            #print('the length of the image string is {}'.format(len(img)))
        	    # read image file name
        	    image_file = example.features.feature['image/name'].bytes_list.value
        	    image_file = list(image_file)[0].decode('utf-8')
-            #print('the image location and name are: \n{}'.format(image_file))
-
        	    # if FLAGS.test_with_groudtruth:
        	    gt_label = example.features.feature['image/class/label'].int64_list.value
        	    gt_label = list(gt_label)[0]
@@ -389,6 +324,9 @@ def evaluate_model(gen_sess, eval_iterations, use_cuda):
             a = [image_file]
             file_name.append(image_file)
             image_name = image_file.split('/')[-1]
+            #MODIFICATION from the test script. We don't necessarily know where the input and output operations are, so we access them symbolically.
+            #The output op will always be MobilenetV1/Predictions/Softmax, and the input op will always be input.
+            #From there, you just have to get the tensors associated with those operations, using .outputs[-1] or [0], shouldn't make a difference.
             probs = specific_sess.run([op for op in specific_sess.graph.get_operations() if op.name=='MobilenetV1/Predictions/Softmax'][0].outputs[-1], feed_dict={[op for op in specific_sess.graph.get_operations() if op.name=='input'][0].outputs[0]:img})
        	    # check if groudtruth class label names match with class labels from label_file
        	    if gt_label not in list(label_to_class_dict.keys()):
@@ -408,16 +346,23 @@ def evaluate_model(gen_sess, eval_iterations, use_cuda):
 
     fout.close()
     output_acc = accuracy_score(output_gt, output_pred)
+    #We can now return the accuracy score for the arbitrary session on the test data.
     print('\nthe output accuracy is {}'.format(output_acc))
     return float(output_acc)
 
+#If evaluate_model breaks, you can use this simple function to ensure that everything else is working.
+#We just return a float.
 #def evaluate_model(sess: tf.Session, eval_iterations: int, use_cuda: bool) -> float:
 #    return 0.5
 
+#Function to perform spatial SVD (singular value decomposition) automatically using AIMET.
+#Largely constructed using the examples on AIMET's API page for tensorflow
 def spatial_svd_auto_mode():
-
+    #You can choose to ignore, say, the first convolution layer in compression
     modules_to_ignore = None
-
+    #This allows you to specify how you want AIMET to compress your model.
+    #Here we're using 0.8, with three compression ratio candidates (33%,66%,and~100%) for each layer
+    #At the end it will select a combination of individual compressions that reaches your target_comp_ratio, here we're aiming for 80% (0.8)
     greedy_params = GreedySelectionParameters(target_comp_ratio=Decimal(0.8),
                                               num_comp_ratio_candidates=3,
                                               use_monotonic_fit=True,
@@ -425,13 +370,12 @@ def spatial_svd_auto_mode():
 
     auto_params = SpatialSvdParameters.AutoModeParams(greedy_select_params=greedy_params,
                                                       modules_to_ignore=modules_to_ignore)
-    
+    #Has to match the input operation and output operations of your ORIGINAL UNCOMPRESSED MODEL
     params = SpatialSvdParameters(input_op_names=['input'], output_op_names=['MobilenetV1/Predictions/Reshape_1'],
                                   mode=SpatialSvdParameters.Mode.auto, params=auto_params, multiplicity=8)
+    #Your model's input shape
     input_shape = (1, 3, 224, 224)
-
     # Single call to compress the model
-    
     compr_model_sess, stats = ModelCompressor.compress_model(sess=sess,
                                                              working_dir=str('./'),
                                                              eval_callback=evaluate_model,
@@ -441,51 +385,33 @@ def spatial_svd_auto_mode():
                                                              cost_metric=CostMetric.mac,
                                                              parameters=params,
                                                              trainer=None)
-
+    #the compressed session is contained in compr_model_sess, so we'll return that.
     print(stats)    # Stats object can be pretty-printed easily
     return compr_model_sess
 
-
-#global graph
+#We'll do setup() and return the items that are used elsewhere in the script so that they're globally accessible by other functions we might call.
 init_fn,label_to_class_dict,class_to_label_dict,fls,sess = setup()
-
+#We also have to initialize our uncompressed model session in order to compress it.
 init_fn(sess)
-print('attempting to print the accuracy')
-#print(evaluate_model(sess,0,False))
 
-
-#Attempt to save the model
-print('Compression Output & Stats Follow')
-
-#g = tf.Graph().as_default()
-#init_op = tf.initialize_all_variables()
+#We make a new saver so that we can save the compressed model when we're done.
 saver = tf.train.Saver()
 tf_saver = tf.train.Saver(name="saver")
-compessed_sess = spatial_svd_auto_mode()
-#print('printing session graph contents:')
-
+#We call the compression function here, and save its output to the name compressed_sess
+compressed_sess = spatial_svd_auto_mode()
 export_dir = './savedmodeltest'
-#saver = tf.train.Saver()
-#print('printing the nodelist after compression')
-#print([n.name for n in sess.graph.as_graph_def().node])
-#print([n.name for n in sess.graph.node])
-
-#builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
-#builder.add_meta_graph_and_variables(sess,[tf.saved_model.tag_constants.TRAINING],strip_default_attrs=True)
-#builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],strip_default_attrs=True)
-#builder.save()
 
 from tensorflow.python.tools import freeze_graph
 
 directory='./savedmodeltest'
 filename='flower_comp_test_0'
 
+#Define a saving function
 def save(directory, filename):
-
     if not os.path.exists(directory):
         os.makedirs(directory)
     filepath = os.path.join(directory, filename + '.ckpt')
-    saver.save(sess, filepath)
+    saver.save(compressed_sess, filepath)
     return filepath
 
 #def save_as_pb(self, directory, filename):
@@ -498,25 +424,17 @@ ckpt_filepath = save(directory=directory, filename=filename)
 pbtxt_filename = 'flowers_comp_0_graph.pb'
 pbtxt_filepath = os.path.join(directory, pbtxt_filename)
 pb_filepath = os.path.join(directory, filename + '.pb')
-# This will only save the graph but the variables will not be saved.
-# You have to freeze your model first.
-#tf.train.write_graph(graph_or_graph_def=sess.graph.as_graph_def(), logdir=directory,name=pbtxt_filename, as_text=False)
 
+#Not in use for now, but this code might be used to save as a .pb instead of a .ckpt.
 # Freeze graph
 # Method 1
-freeze_graph.freeze_graph(input_graph=sess.graph.as_graph_def(),
-                          input_saver='',
-                          input_binary=False,
-                          input_checkpoint=ckpt_filepath,
-                          output_node_names='MobilenetV1/Predictions/Reshape_1',
-                          restore_op_name='save/restore_all',
-                          filename_tensor_name='save/Const:0',
-                          output_graph='test.pb',#pb_filepath,
-                          clear_devices=True,
-                          initializer_nodes='')
-
-
-
-#return pb_filepath
-#save_as_pb(directory='./savedmodeltest',filename='flower_comp_test_0.pb')
-#print('successfully saved to ./savedmodeltest')
+#freeze_graph.freeze_graph(input_graph=compressed_sess.graph.as_graph_def(),
+#                          input_saver='',
+#                          input_binary=False,
+#                          input_checkpoint=ckpt_filepath,
+#                          output_node_names='MobilenetV1/Predictions/Reshape_1',
+#                          restore_op_name='save/restore_all',
+#                          filename_tensor_name='save/Const:0',
+#                          output_graph='test.pb',#pb_filepath,
+#                          clear_devices=True,
+#                          initializer_nodes='')
