@@ -1,0 +1,2 @@
+import libpymo
+print('ok')

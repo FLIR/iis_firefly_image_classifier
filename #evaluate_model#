@@ -1,0 +1,18 @@
+    probs = sess.run(probabilities, feed_dict={image_string:img})
+      File "/usr/local/lib/python3.6/dist-packages/tensorflow_core/python/client/session.py", line 956, in run
+          run_metadata_ptr)
+	    File "/usr/local/lib/python3.6/dist-packages/tensorflow_core/python/client/session.py", line 1123, in _run
+	        e.args[0])
+		TypeError: Cannot interpret feed_dict key as Tensor: Tensor Tensor("input:0", dtype=string) is not an element of this graph.
+		Exception ignored in: <bound method _TFShouldUseHelper.__del__ of <tensorflow.python.util.tf_should_use._TFShouldUseHelper object at 0x7ff79e1fad30>>
+		Traceback (most recent call last):
+		  File "/usr/local/lib/python3.6/dist-packages/tensorflow_core/python/util/tf_should_use.py", line 69, in __del__
+		    File "/usr/lib/python3.6/traceback.py", line 197, in format_stack
+		      File "/usr/lib/python3.6/traceback.py", line 211, in extract_stack
+  File "/usr/lib/python3.6/traceback.py", line 364, in extract
+  File "/usr/lib/python3.6/traceback.py", line 286, in line
+  File "/usr/lib/python3.6/linecache.py", line 16, in getline
+  File "/usr/lib/python3.6/linecache.py", line 47, in getlines
+  File "/usr/lib/python3.6/linecache.py", line 137, in updatecache
+  File "/usr/lib/python3.6/codecs.py", line 321, in decode
+AttributeError: 'IncrementalDecoder' object has no attribute 'errors'0;136;0c

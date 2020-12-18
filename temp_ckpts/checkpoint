@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/research/Public/RobertB/aimet_tests/aimet/comp-tests/iis_firefly_image_classifier/temp_ckpts/mid_comp.ckpt"
+all_model_checkpoint_paths: "/home/research/Public/RobertB/aimet_tests/aimet/comp-tests/iis_firefly_image_classifier/temp_ckpts/mid_comp.ckpt"

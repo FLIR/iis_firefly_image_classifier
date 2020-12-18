@@ -1,0 +1,2 @@
+model_checkpoint_path: "flower_comp_test_0.ckpt"
+all_model_checkpoint_paths: "flower_comp_test_0.ckpt"

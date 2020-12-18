@@ -583,7 +583,7 @@ def main():
       #############################
       # Specify the loss function #
       #############################
-      if FLAGS.imbalance_correction:
+      if False: #FLAGS.imbalance_correction:
           # specify some class weightings
           class_weights = dataset.sorted_class_weights
           # deduce weights for batch samples based on their true label
