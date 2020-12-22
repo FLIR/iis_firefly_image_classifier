@@ -58,7 +58,7 @@ p.add_argument('--num_clones', type=int, default=1, help='Number of model clones
                             'out and learning rate decay happen per clone '
                             'epochs')
 
-p.add_argument('--clone_on_cpu', type=bool, default=False, help='Use CPUs to deploy clones.')
+p.add_argument('--clone_on_cpu', type=bool, default=True, help='Use CPUs to deploy clones.')
 
 p.add_argument('--worker_replicas', type=int, default=1, help='Number of worker replicas.')
 

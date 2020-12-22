@@ -55,4 +55,4 @@ WORKDIR /home/${USER}
 ## Specify tensorflow version
 
 # Install extra packages without root privilege if need
-RUN pip install --user tensorflow-gpu==1.13.2 guildai scikit-learn
+RUN pip install --user tensorflow-gpu guildai scikit-learn
