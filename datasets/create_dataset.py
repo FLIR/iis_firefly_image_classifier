@@ -96,12 +96,12 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
 
     num_samples = splits_to_sizes[split_name]
     num_samples_per_class = splits_to_sizes[split_name+'_per_class']
-    # print('##### number of samples per class: ', num_samples_per_class)
     sorted_class_weights = list()
     sorted_label_name = sorted(label_to_class_number.keys(), key= lambda x: label_to_class_number[x])
     for label_name in sorted_label_name:
-        norm_class_weight = num_samples / (num_samples_per_class[label_name] * num_classes)
-        sorted_class_weights.append(norm_class_weight)
+        if label_name in num_samples_per_class:
+            norm_class_weight = num_samples / (num_samples_per_class[label_name] * num_classes)
+            sorted_class_weights.append(norm_class_weight)
     return sorted_class_weights
 
   labels_to_names = None
@@ -109,11 +109,10 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
     class_to_label_name, label_to_class_number = dataset_utils.read_label_file(dataset_dir)
 
   num_samples=splits_to_sizes[split_name]
-  # print('###################', splits_to_sizes)
-  if split_name+'_per_class' in splits_to_sizes:
-     sorted_class_weights = dataset_class_weight(splits_to_sizes, split_name, label_to_class_number)
+  # if split_name+'_per_class' in splits_to_sizes:
+  sorted_class_weights = dataset_class_weight(splits_to_sizes, split_name, label_to_class_number)
 
-     return slim.dataset.Dataset(
+  return slim.dataset.Dataset(
         data_sources=file_pattern,
         reader=reader,
         decoder=decoder,
@@ -124,11 +123,11 @@ def get_split(dataset_name, split_name, dataset_dir, file_pattern=None, reader=N
         sorted_class_weights=sorted_class_weights
         )
 
-  return slim.dataset.Dataset(
-      data_sources=file_pattern,
-      reader=reader,
-      decoder=decoder,
-      num_samples=num_samples,
-      items_to_descriptions=items_to_descriptions,
-      num_classes=num_classes,
-      labels_to_names=label_to_class_number)
+  # return slim.dataset.Dataset(
+  #     data_sources=file_pattern,
+  #     reader=reader,
+  #     decoder=decoder,
+  #     num_samples=num_samples,
+  #     items_to_descriptions=items_to_descriptions,
+  #     num_classes=num_classes,
+  #     labels_to_names=label_to_class_number)

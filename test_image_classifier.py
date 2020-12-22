@@ -242,11 +242,13 @@ def main(_):
         counter = 0
         print('\nLoading from checkpoint file {}\n'.format(checkpoint_path))
         init_fn(sess)
-        print([n.name for n in tf.get_default_graph().as_graph_def().node if 'input' in n.name])
+        # print([n.name for n in tf.get_default_graph().as_graph_def().node if 'input' in n.name])
         output_pred = list()
         output_gt = list()
         file_name = list()
+        # print('##########', len(fls))
         for fl in fls:
+
               image_name = None
               # print('#############')
               example = tf.train.Example()
@@ -310,6 +312,10 @@ def main(_):
     # print("F1 score: {}".format(output_f1))
     print(classification_report(y_true, y_pred, digits=7, labels=np.unique(output_gt)))
     print("===================================================================")
+
+    print('Compression Output & Stats Follow')
+
+
 
 if __name__ == '__main__':
   tf.app.run()

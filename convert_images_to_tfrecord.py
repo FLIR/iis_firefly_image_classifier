@@ -81,7 +81,7 @@ if __name__ == '__main__':
     raise ValueError('You must supply a dataset name with --dataset_name')
 
   # check dataset name and image directory
-  if FLAGS.dataset_name == 'flowers':
+  if FLAGS.dataset_name == 'flowers' and not FLAGS.image_dir:
     # download flowers dataset
     image_dir = os.path.join('./image_dir', 'flower_photos')
     dataset_utils.download_and_uncompress_tarball(FLOWERS_DATA_URL, './image_dir')

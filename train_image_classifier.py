@@ -173,7 +173,7 @@ p.add_argument('--model_name', type=str, default='mobilenet_v1', help='The name 
 p.add_argument('--preprocessing_name', type=str, default='custom_1_preprocessing_pipline', help='The name of the preprocessing to use. If left '
     'as `None`, then the model_name flag is used.')
 
-p.add_argument('--batch_size', type=int, default=64, help='The number of samples in each batch.')
+p.add_argument('--batch_size', type=int, default=16, help='The number of samples in each batch.')
 
 p.add_argument('--train_image_size', type=int, default=224, help='Train image size')
 
@@ -181,7 +181,7 @@ p.add_argument('--max_number_of_steps', type=int, default=50000, help='The maxim
 
 p.add_argument('--use_grayscale', type=bool, default=False, help='Whether to convert input images to grayscale.')
 
-p.add_argument('--imbalance_correction', type=bool, default=True, help='apply class weight to loss function .')
+p.add_argument('--imbalance_correction', type=bool, default=False, help='apply class weight to loss function .')
 
 #####################
 # Fine-Tuning Flags #
@@ -225,7 +225,7 @@ p.add_argument('--apply_image_augmentation', type=bool, default=True, help='Enab
 
 p.add_argument('--random_image_crop', type=bool, default=True, help='Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled')
 
-p.add_argument('--min_object_covered', type=float, default=0.1, help='The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--min_object_covered', type=float, default=0.5, help='The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled')
 
 p.add_argument('--random_image_rotation', type=bool, default=True, help='Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled')
 
