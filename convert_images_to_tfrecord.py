@@ -41,11 +41,17 @@ import os
 import argparse
 
 from datasets import convert_dataset
+from datasets import dataset_utils
+from datasets import download_and_convert_flowers
+
+# The URL where the Flowers data can be downloaded.
+FLOWERS_DATA_URL = 'http://download.tensorflow.org/example_images/flower_photos.tgz'
+# FLOWERS_DATA_URL = 'https://www.robots.ox.ac.uk/~vgg/data/flowers/17/17flowers.tgz'
 
 # FLAGS = tf.compat.v1.app.flags.FLAGS
 p = argparse.ArgumentParser()
 
-p.add_argument('--project_dir', type=str, default='../project_dir/', help='Directory where checkpoints and event logs are written to.')
+p.add_argument('--project_dir', type=str, default='./project_dir/', help='Directory where checkpoints and event logs are written to.')
 
 p.add_argument('--project_name', type=str, default=None, help= 'Must supply project name examples: flower_classifier, component_classifier')
 
@@ -67,84 +73,31 @@ p.add_argument('--image_width', type=int, default=None, help='Target image width
 
 FLAGS = p.parse_args()
 
-# def convert_img_to_tfrecord(dataset_name,
-#                             image_dir,
-#                             validation_percentage,
-#                             test_percentage,
-#                             image_height,
-#                             image_width,
-#                             fast_mode=True,
-#                             **kwargs):
-#
-#   """ convert images in the labeled image directory folder to tfrecord format
-#     ARGS:
-#         dataset_name: string, dataset name
-#   """
-#   # print(dataset_dir)
-#   dataset_dir = os.path.join(image_dir, dataset_name)
-#   # if not dataset_dir:
-#   #   raise ValueError('You must supply a dataset directory to store the convert tfrecord dataset with --dataset_dir')
-#   if not dataset_dir:
-#     dataset_dir = os.path.join(dataset_dir, dataset_name+'_tfrecord')
-#     # if os.path.isdir(dataset_dir)
-#   if len(os.listdir(dataset_dir)):
-#     # print('#############',validation_percentage, test_percentage)
-#     convert_dataset.run(dataset_name, dataset_dir, dataset_dir, validation_percentage, test_percentage, image_height, image_width)
-#
-#   else:
-#     raise ValueError(
-#         'dataset_dir [%s] is empty.' % dataset_dir)
-#
-# def convert_img_to_tfrecord(project_name,
-#         project_dir,
-#         dataset_name,
-#         dataset_dir,
-#         image_dir,
-#         train_percentage,
-#         validation_percentage,
-#         test_percentage,
-#         image_height,
-#         image_width,
-#         **kwargs):
-#   # print(dataset_dir)
-#
-#   # if not os.listdir(image_dir):
-#   #   raise ValueError('No label folders found in image directory --image_dir')
-#
-#   if dataset_dir:
-#     dataset_dir = os.path.join(dataset_dir, dataset_name)
-#   else:
-#     # initialize default directories
-#     project_dir = os.path.join(project_dir, project_name)
-#     dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), dataset_name)
-#   # delete dataset directory if it exists
-#   if os.path.exists(dataset_dir):
-#     shutil.rmtree(dataset_dir)
-#   # call convert dataset function
-#   if len(os.listdir(image_dir)):
-#     convert_dataset.run(dataset_name, image_dir, dataset_dir, train_percentage, validation_percentage, test_percentage, image_height, image_width)
-#
-#   else:
-#     raise ValueError(
-#         'image directory --image_dir=[%s] is empty'.format(image_dir))
-
 if __name__ == '__main__':
   # check required input arguments
   if not FLAGS.project_name:
     raise ValueError('You must supply a dataset name with --project_name')
   if not FLAGS.dataset_name:
     raise ValueError('You must supply a dataset name with --dataset_name')
-  if not FLAGS.image_dir:
-    raise ValueError('You must supply a image directory with --image_dir')
 
+  # check dataset name and image directory
+  if FLAGS.dataset_name == 'flowers' and not FLAGS.image_dir:
+    # download flowers dataset
+    image_dir = os.path.join('./image_dir', 'flower_photos')
+    dataset_utils.download_and_uncompress_tarball(FLOWERS_DATA_URL, './image_dir')
+  else:
+    if not FLAGS.image_dir:
+      raise ValueError('You must supply an image directory with --image_dir')
+    image_dir= FLAGS.image_dir
+
+  # set project_dir and convert images to tfrecord
   project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
   convert_dataset.convert_img_to_tfrecord(project_dir,
                           FLAGS.dataset_name,
                           FLAGS.dataset_dir,
-                          FLAGS.image_dir,
+                          image_dir,
                           FLAGS.train_percentage,
                           FLAGS.validation_percentage,
                           FLAGS.test_percentage,
                           FLAGS.image_height,
                           FLAGS.image_width)
-  # tf.compat.v1.app.run()

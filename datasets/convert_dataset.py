@@ -38,16 +38,6 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 from datasets import dataset_utils
-# import dataset_utils
-
-
-
-
-# The URL where the Flowers data can be downloaded.
-# _DATA_URL = 'http://download.tensorflow.org/example_images/flower_photos.tgz'
-
-# The number of images in the validation set.
-# _NUM_VALIDATION = 350
 
 # Seed for repeatability.
 _RANDOM_SEED = 0
@@ -110,7 +100,6 @@ def _get_filenames_and_classes(dataset_dir):
     A list of image file paths, relative to `dataset_dir` and the list of
     subdirectories, representing class names.
   """
-  # flower_root = os.path.join(dataset_dir, 'flower_photos')
   directories = []
   class_names = []
   for filename in os.listdir(dataset_dir):
@@ -122,8 +111,9 @@ def _get_filenames_and_classes(dataset_dir):
   photo_filenames = []
   for directory in directories:
     for filename in os.listdir(directory):
-      path = os.path.join(directory, filename)
-      photo_filenames.append(path)
+      if not filename.endswith('.txt'):
+          path = os.path.join(directory, filename)
+          photo_filenames.append(path)
 
   return photo_filenames, sorted(class_names)
 
@@ -167,7 +157,6 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
             sys.stdout.write('\r>> Converting image %d/%d shard %d' % (
                 i+1, len(filenames), shard_id))
             sys.stdout.flush()
-
             # Read the filename:
             image_data = tf.gfile.GFile(filenames[i], 'rb').read()
             height, width = image_reader.read_image_dims(sess, image_data)
@@ -190,8 +179,6 @@ def _convert_dataset(split_name, filenames, class_names_to_ids, dataset_dir, dat
 
   sys.stdout.write('\n')
   sys.stdout.flush()
-  # num_samples_per_classl['class_weights'] = dict{}
-  # for num_samples in num_samples_per_class:
   return num_samples_per_class
 
 
@@ -252,22 +239,19 @@ def convert_img_to_tfrecord(project_dir,
     dataset_dir = os.path.join(dataset_dir, dataset_name)
   else:
     # initialize default directories
-    # project_dir = os.path.join(project_dir, project_name)
     dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), dataset_name)
   # delete dataset directory if it exists
   if os.path.exists(dataset_dir):
     shutil.rmtree(dataset_dir)
   # call convert dataset function
   if len(os.listdir(image_dir)):
-    # run(dataset_name, image_dir, dataset_dir, train_percentage, validation_percentage, test_percentage, image_height, image_width)
-    # create new dataset
-    # dataset_dir = os.path.join(dataset_dir, dataset_name)
+    # create new dataset directory
     if not tf.gfile.Exists(dataset_dir):
       tf.gfile.MakeDirs(dataset_dir)
 
     if train_percentage + validation_percentage + test_percentage > 100:
       raise ValueError('The sum of train, validation, and test percentages can not be greater than 100')
-    # dataset_utils.download_and_uncompress_tarball(_DATA_URL, dataset_dir)
+
     photo_filenames, class_names = _get_filenames_and_classes(image_dir)
     # print('############', class_names)
     class_names_to_ids = dict(zip(class_names, range(len(class_names))))
@@ -311,76 +295,9 @@ def convert_img_to_tfrecord(project_dir,
                        dataset_dir, class_names,
                        dataset_split)
 
-    # _clean_up_temporary_files(dataset_dir)
     print('\nFinished converting the ',dataset_name,' dataset! under the following directory', dataset_dir)
     return dataset_dir
 
   else:
     raise ValueError(
         'image directory --image_dir=[%s] is empty'.format(image_dir))
-
-# def run(dataset_name, image_dir, dataset_dir, train_percentage, validation_percentage, test_percentage, image_height, image_width):
-#   """Runs the download and conversion operation.
-#
-#   Args:
-#
-#     dataset_name: The name of dataset that is created from input dataset.
-#     dataset_dir: Directory where the newly created dataset with tfrecord will be stored.
-#     image_dataset_dir: The dataset directory where the dataset is stored.
-#     validation_percentage: validation dataset
-#     test_percentage: test dataset
-#   """
-#   # create new dataset
-#   # dataset_dir = os.path.join(dataset_dir, dataset_name)
-#   if not tf.gfile.Exists(dataset_dir):
-#     tf.gfile.MakeDirs(dataset_dir)
-#
-#   if train_percentage + validation_percentage + test_percentage > 100:
-#     raise ValueError('The sum of train, validation, and test percentages can not be greater than 100')
-#   # dataset_utils.download_and_uncompress_tarball(_DATA_URL, dataset_dir)
-#   photo_filenames, class_names = _get_filenames_and_classes(image_dir)
-#   # print('############', class_names)
-#   class_names_to_ids = dict(zip(class_names, range(len(class_names))))
-#
-#   # Divide into train, validation and test:
-#   random.seed(_RANDOM_SEED)
-#   random.shuffle(photo_filenames)
-#   dataset_split = dict()
-#   training_filenames = photo_filenames[:]
-#
-#   if train_percentage > 0:
-#     training_filenames, train_filenames = train_test_split(training_filenames, test_size=train_percentage/100, random_state=_RANDOM_SEED)
-#     train_size = len(train_filenames)
-#     print('Number of training images: ', train_size)
-#     num_samples_per_class = _convert_dataset('train', train_filenames, class_names_to_ids,
-#                    dataset_dir, dataset_name, image_height, image_width)
-#     dataset_split['train'] = train_size
-#     dataset_split['train_per_class'] = num_samples_per_class
-#
-#   if test_percentage > 0:
-#     training_filenames, test_filenames = train_test_split(training_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED)
-#     test_size = len(test_filenames)
-#     print('Number of test images: ', test_size)
-#     num_samples_per_class = _convert_dataset('test', test_filenames, class_names_to_ids,
-#                    dataset_dir, dataset_name, image_height, image_width)
-#     dataset_split['test'] = test_size
-#     dataset_split['test_per_class'] = num_samples_per_class
-#
-#   if validation_percentage > 0:
-#     training_filenames, validation_filenames = train_test_split(training_filenames, test_size=validation_percentage/100, random_state=_RANDOM_SEED)
-#     validation_size = len(validation_filenames)
-#     print('Number of validation images: ', validation_size)
-#     num_samples_per_class = _convert_dataset('validation', validation_filenames, class_names_to_ids,
-#                    dataset_dir, dataset_name, image_height, image_width)
-#     dataset_split['validation'] = validation_size
-#     dataset_split['validation_per_class'] = num_samples_per_class
-#
-#   # Finally, write the label and dataset json files:
-#   labels_to_class_names = dict(zip(range(len(class_names)), class_names))
-#   dataset_utils.write_label_file(labels_to_class_names, dataset_dir)
-#   dataset_utils.write_dataset_config_json(dataset_name,
-#                      dataset_dir, class_names,
-#                      dataset_split)
-#
-#   # _clean_up_temporary_files(dataset_dir)
-#   print('\nFinished converting the ',dataset_name,' dataset! under the following directory', dataset_dir)

@@ -136,7 +136,7 @@ def main():
   else:
       dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
   if not os.path.isdir(dataset_dir):
-    raise ValueError(f'Can not find tfrecord dataset directory {dataset_dir}')
+    raise ValueError('Can not find tfrecord dataset directory {}'.format(dataset_dir))
 
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
@@ -228,10 +228,10 @@ def main():
         recall_at_k, recall_at_k_op = tf.metrics.recall_at_k(tf.squeeze(labels),    logits, k=1, class_id=class_id)
         update_ops.append([precision_at_k_op, recall_at_k_op])
 
-        tf.add_to_collection(f'precision_at_{class_id}', precision_at_k)
-        tf.add_to_collection(f'precision_at_{class_id}_op', precision_at_k_op)
-        tf.add_to_collection(f'recall_at_{class_id}', recall_at_k)
-        tf.add_to_collection(f'recall_at_{class_id}_op', recall_at_k_op)
+        tf.add_to_collection('precision_at_{}'.format(class_id), precision_at_k)
+        tf.add_to_collection('precision_at_{}_op'.format(class_id), precision_at_k_op)
+        tf.add_to_collection('recall_at_{}'.format(class_id), recall_at_k)
+        tf.add_to_collection('recall_at_{}_op'.format(class_id), recall_at_k_op)
 
     #############################
     ## Add summaries ##
@@ -249,20 +249,20 @@ def main():
     summaries.add(tf.summary.scalar('op/average_precision_op', precision_op))
 
     for class_id in range(dataset.num_classes):
-        precision_at_k = tf.get_collection(f'precision_at_{class_id}')
-        precision_at_k_op = tf.get_collection(f'precision_at_{class_id}_op')
-        recall_at_k = tf.get_collection(f'recall_at_{class_id}')
-        recall_at_k_op = tf.get_collection(f'recall_at_{class_id}_op')
+        precision_at_k = tf.get_collection('precision_at_{}'.format(class_id))
+        precision_at_k_op = tf.get_collection('precision_at_{}_op'.format(class_id))
+        recall_at_k = tf.get_collection('recall_at_{}'.format(class_id))
+        recall_at_k_op = tf.get_collection('recall_at_{}_op'.format(class_id))
 
         precision_at_k = tf.reshape(precision_at_k, [])
         precision_at_k_op = tf.reshape(precision_at_k_op, [])
         recall_at_k = tf.reshape(recall_at_k, [])
         recall_at_k_op = tf.reshape(recall_at_k_op, [])
 
-        summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_precision', precision_at_k))
-        summaries.add(tf.summary.scalar(f'op/class_{class_id}_precision_op', precision_at_k_op))
-        summaries.add(tf.summary.scalar(f'Metrics/class_{class_id}_recall', recall_at_k))
-        summaries.add(tf.summary.scalar(f'op/class_{class_id}_recall_op', recall_at_k_op))
+        summaries.add(tf.summary.scalar('Metrics/class_{}_precision'.format(class_id), precision_at_k))
+        summaries.add(tf.summary.scalar('op/class_{}_precision_op'.format(class_id), precision_at_k_op))
+        summaries.add(tf.summary.scalar('Metrics/class_{}_recall'.format(class_id), recall_at_k))
+        summaries.add(tf.summary.scalar('op/class_{}_recall_op'.format(class_id), recall_at_k_op))
 
     # set batch size if none to
     # number_of_samples_in_dataset / batch_size
