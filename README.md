@@ -151,7 +151,7 @@ After setting up the training environment on you machine.
 ```bash
 git clone https://github.com/FLIR/iis_firefly_image_classifier.git
 
-cd iss_firefly_image_classifier
+cd iis_firefly_image_classifier
 ```
 ### Collect and label image datasets
 Collect and label some training images. Refer to the collect image dataset for more details regarding supported image formats and the expected directory structure.
