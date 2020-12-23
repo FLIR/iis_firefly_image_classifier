@@ -114,28 +114,30 @@ pip install pip install --user guildai scikit-learn
 ```
 
 ### Setup environment using Docker
+In this section we demonstrate how to run a docker container environment from a pre-build Nvidia/TensorFlow docker image
 
-This section assumes that the following requirements are satisfied:
-- Ubuntu 16.04 or later releases.
+#### Pull and run Tensorflow-GPU docker environment (GPU support)
+This docker container was tested with the following system setup
+- Ubuntu 16.04 or later releases and windows 10.
 - Cuda 10.0/Cudnn 7 or later releases.
 - Docker-ce 19.03.12 or later releases.
 - Nvidia GTX GPU card.
 
-#### Pull and run Tensorflow-GPU docker environment (GPU support)
-
 ```bash
-# Pull and run tensorflow runtime docker environment.
+# Pull and run tensorflow-gpu runtime docker environment.
 docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-gpu_runtime:latest
-
 ```
 
 #### Pull and run Tensorflow docker environment (CPU only)
+This docker container was tested with the following system setup
+- Ubuntu 16.04 or later releases and windows 10.
+- Docker-ce 19.03.12 or later releases.
 
 ```bash
 # Pull and run tensorflow runtime docker environment.
 docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-cpu_runtime:latest
-
 ```
+
 Important Notes:
 1. Modify `-v path/to/host_target_directory:/home/docker` in the above command and replace `path/to/host_target_directory` with your host machine target directory path. This will mount your specified target host directory to the docker container home directory `/home/docker`.
 2. The docker `-v` or `--volume` flag is used to mount a target directory in your host machine (i.e. `path/to/host_target_directory`) to the docker container directory (i.e. `/home/docker`) . You can find more information regarding the `docker run` command [here](https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only).
