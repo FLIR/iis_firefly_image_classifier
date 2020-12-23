@@ -114,18 +114,26 @@ pip install pip install --user guildai scikit-learn
 ```
 
 ### Setup environment using Docker
-<a id='Docker'></a>
+
 This section assumes that the following requirements are satisfied:
 - Ubuntu 16.04 or later releases.
 - Cuda 10.0/Cudnn 7 or later releases.
 - Docker-ce 19.03.12 or later releases.
 - Nvidia GTX GPU card.
 
-#### Pull and run TensorFlow docker environment
+#### Pull and run Tensorflow-GPU docker environment (GPU support)
 
 ```bash
 # Pull and run tensorflow runtime docker environment.
-docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tensorflow_runtime:latest
+docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-gpu_runtime:latest
+
+```
+
+#### Pull and run Tensorflow docker environment (CPU only)
+
+```bash
+# Pull and run tensorflow runtime docker environment.
+docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-cpu_runtime:latest
 
 ```
 Important Notes:

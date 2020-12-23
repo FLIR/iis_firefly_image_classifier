@@ -28,11 +28,11 @@ RUN apt-get install -y -q software-properties-common \
   												unzip yasm x11-apps\
 													nano vim sudo
 
-RUN add-apt-repository ppa:deadsnakes/ppa
-RUN apt-get update
-
 # add sudo user
 RUN  adduser ${USER} sudo
+
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update
 
 #### Python 3.7
 # python libraries
@@ -45,7 +45,7 @@ RUN wget --no-check-certificate  https://bootstrap.pypa.io/get-pip.py
 RUN python get-pip.py
 
 
-### Tensorflow-GPU, TensorFlow-slim, and Guildai and other useful libraries
+### Tensorflow, and Guildai and other useful libraries
 
 # Setup default user, when enter docker container
 ENV PATH=$PATH:/home/docker/.local/bin
