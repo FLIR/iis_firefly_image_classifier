@@ -253,8 +253,10 @@ def convert_img_to_tfrecord(project_dir,
       raise ValueError('The sum of train, validation, and test percentages can not be greater than 100')
 
     photo_filenames, class_names = _get_filenames_and_classes(image_dir)
-    # print('############', class_names)
+
     class_names_to_ids = dict(zip(class_names, range(len(class_names))))
+    class_id = [class_names_to_ids[x.split('/')[-2]] for x in photo_filenames]
+    # print('############',len(class_id))
 
     # Divide into train, validation and test:
     random.seed(_RANDOM_SEED)
@@ -262,16 +264,8 @@ def convert_img_to_tfrecord(project_dir,
     dataset_split = dict()
     training_filenames = photo_filenames[:]
 
-    if train_percentage > 0:
-      training_filenames, train_filenames = train_test_split(training_filenames, test_size=train_percentage/100, random_state=_RANDOM_SEED)
-      train_size = len(train_filenames)
-      print('Number of training images: ', train_size)
-      num_samples_per_class = _convert_dataset('train', train_filenames, class_names_to_ids, dataset_dir, dataset_name, image_height, image_width)
-      dataset_split['train'] = train_size
-      dataset_split['train_per_class'] = num_samples_per_class
-
     if test_percentage > 0:
-      training_filenames, test_filenames = train_test_split(training_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED)
+      training_filenames, test_filenames = train_test_split(training_filenames, test_size=test_percentage/100, random_state=_RANDOM_SEED, stratify=class_id)
       test_size = len(test_filenames)
       print('Number of test images: ', test_size)
       num_samples_per_class = _convert_dataset('test', test_filenames, class_names_to_ids,
@@ -287,6 +281,14 @@ def convert_img_to_tfrecord(project_dir,
                      dataset_dir, dataset_name, image_height, image_width)
       dataset_split['validation'] = validation_size
       dataset_split['validation_per_class'] = num_samples_per_class
+
+    if train_percentage > 0:
+      training_filenames, train_filenames = train_test_split(training_filenames, test_size=train_percentage/100, random_state=_RANDOM_SEED)
+      train_size = len(train_filenames)
+      print('Number of training images: ', train_size)
+      num_samples_per_class = _convert_dataset('train', train_filenames, class_names_to_ids, dataset_dir, dataset_name, image_height, image_width)
+      dataset_split['train'] = train_size
+      dataset_split['train_per_class'] = num_samples_per_class
 
     # Finally, write the label and dataset json files:
     labels_to_class_names = dict(zip(range(len(class_names)), class_names))

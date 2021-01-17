@@ -28,7 +28,6 @@ Improvment notes:
 1- Add condition to check for number of directories (number of classes) and print out
 2- Add condition to check there is atleast 10 images per directory or atleast not empty
 
-
 """
 
 
@@ -61,11 +60,11 @@ p.add_argument('--dataset_name', type=str, default='imagenet', help='The name of
 
 p.add_argument('--dataset_dir', type=str, default=None, help='The directory where the dataset files are stored.')
 
-p.add_argument('--train_percentage', type=int, default=80, help='What percentage of images to use as a train set.')
+p.add_argument('--train_percentage', type=int, default=70, help='What percentage of images to use as a train set.')
 
 p.add_argument('--validation_percentage', type=int, default=10, help='What percentage of images to use as a validation set.')
 
-p.add_argument('--test_percentage', type=int, default=10, help='What percentage of images to use as a test set.')
+p.add_argument('--test_percentage', type=int, default=20, help='What percentage of images to use as a test set.')
 
 p.add_argument('--image_height', type=int, default=None, help='Target image height after resizing. If None original image height is used.')
 

@@ -1,11 +1,7 @@
-# Train an image classification for FireFly-DL deployment
+# Train an image classifier for FireFly-DL
 <!-- # Image classification model library -->
 
-This repository is based on the [TensorFlow-Slim image classification model library](https://github.com/tensorflow/models/tree/master/research/slim).
-[TF-slim](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim)
-is a lightweight high-level API of TensorFlow (`tensorflow.contrib.slim`)
-for defining, training and evaluating complex
-models. This repository contains
+This repository contains
 code for training and evaluating several widely used Convolutional Neural
 Network (CNN) models, which can easily be use to train an image classification model on your own datasets.
 It also contains scripts that will allow
@@ -13,19 +9,24 @@ you to convert your image dataset to TensorFlow's native TFRecord format, train 
 weights (Transfer Learning). In addition, we've included a
 TAN document (Link to be added),
 which provides a working examples of how to use this repository.
+This repository is based on the [TensorFlow-Slim image classification model library](https://github.com/tensorflow/models/tree/master/research/slim).
+[TF-slim](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/slim)
+is a lightweight high-level API of TensorFlow (`tensorflow.contrib.slim`)
+for defining, training and evaluating complex
+models
 
 ## Features
 - **Functionality**:
-    - **Train an image classifier**:
+    - **Train an image classifier**
         - Train an image classification model that can be deployed on FLIR's FireFly-DL camera.
-        - Choose from several backbone model architectures based on your deployment requirements (inference time, model memory footprint, and accuracy).
-        - Transfer-learn from ImageNet dataset, and fine-tune the model on your own image classification dataset.
-        - Generate a training event-log, which can be visualized using TensorBoard.
-    - **Evaluate your image classifier**:
+        - Choose from several backbone model architectures based on your deployment requirements (inference time vs accuracy).
+        - Transfer-learn from trained models (i.e ImageNet) and fine-tune the model for your own image classification problem.
+        - Generate a training event-log and visualize using TensorBoard.
+    - **Evaluate your image classifier**
         - Evaluate your classification model while training.
-        - Generate an evaluation event-log, which can be visualized using TensorBoard.
-    - **Test image classifier model**:
-        - Evaluate your trained model on your test set, and generate the corresponding inference results (prediction.csv).
+        - Generate an evaluation event-log and visualize using TensorBoard.
+    - **Test image classifier model**
+        - Evaluate your classification model on an unseen test set and generate corresponding `prediction.csv` file.
     - **Convert to TFRecord format**
         - Converts your images to TFRecord format.
     - **Generate Frozen graph**
@@ -33,10 +34,8 @@ which provides a working examples of how to use this repository.
 
 - **Input**: Image (.jpeg and .png).
 - **Output**: Frozen-model graph and trained weights (.pb).
-- **OS**: Ubuntu 16.04 and later releases.
-- **Hardware**: This script was tested on a GeForce GTX 1080 Nvidia GPU card.
-- **Others**:
-    - Enviroment setup using docker images.
+- **OS**: Windows 10 and Ubuntu 16.04 and later releases.
+- **Others**: Environment setup using docker containers.
 
 ## Latest/Upcoming Features
 - **Hyperparameter Optimization**
@@ -54,7 +53,7 @@ which provides a working examples of how to use this repository.
 
 ## Results
 ### Runtime Analysis
-Inference time comparison between the five model architectures that are compatible on FireFly-DL:
+Bellow we present a table of comparison between the main five model architectures.
 
 Model | Flowers Classifier Accuracy| FireFly-DL Inference Time (ms) |Max Number of Steps | Train Time (min) |
 :----:|:--------------------------:|:------------------------------:|-------------------:|:----------------:
@@ -66,8 +65,10 @@ Model | Flowers Classifier Accuracy| FireFly-DL Inference Time (ms) |Max Number 
 
 - Input image size (224x224 pixels)
 
-The reported accuracy (pre-conversion) of the trained models are based on a subset of the Oxford Flowers dataset, which contain a training set of 3000 images, and 5 categories. You can find more information [here](https://www.robots.ox.ac.uk/~vgg/data/flowers/) and you can download the dataset from [here](http://download.tensorflow.org/example_images/flower_photos.tgz).
-The reported on camera (FireFly-DL Mono) inference time does not include the image scaling time.  More information can be found [here](https://www.flir.ca/products/firefly-dl/). We also report the maximum number of training steps and training time using Nvidia's GPU (GeForce GTX 1080) card.
+The reported accuracy (before camera deployment) of the trained models are based on a subset of the Oxford Flowers dataset, which contain a training set of 3000 images, and 5 categories. You can find more information  about the dataset[here](https://www.robots.ox.ac.uk/~vgg/data/flowers/) and you can download the dataset from [here](http://download.tensorflow.org/example_images/flower_photos.tgz).
+In addition, we note the following
+  - The reported on camera (FireFly-DL Mono) inference time does not include the image scaling time. More information about the camera can be found [here](https://www.flir.ca/products/firefly-dl/).
+  - We used an Nvidia's GPU (GeForce GTX 1080) card for training the models.
 
 ## Contents
 1. [Features](#features)
@@ -85,7 +86,7 @@ The reported on camera (FireFly-DL Mono) inference time does not include the ima
 14. [References](#References)
 
 ## Installation
-In this section, we describe the steps required to setup the training environment in preperation for running the script provided in this repository.
+In this section, we describe the steps required to setup the training environment in preparation for running the scripts provided in this repository.
 
 We provide two options for setting up your TensorFlow environment.
 
@@ -93,8 +94,7 @@ We provide two options for setting up your TensorFlow environment.
 2. [Setup environment using Docker](#setup-environment-using-docker)
 
 ### Setup environment using pip
-The repository was test on the following system setup:
-
+The repository was test using the following system setup
 - Ubuntu 16.04 or later releases.
 - Cuda 10.0 and cudnn 7.
 - Python 3.5 or 3.7 release.
@@ -114,10 +114,10 @@ pip install pip install --user guildai scikit-learn
 ```
 
 ### Setup environment using Docker
-In this section we demonstrate how to run a docker container environment from a pre-build Nvidia/TensorFlow docker image
+In this section we demonstrate how to run a docker container environment.
 
-#### Pull and run Tensorflow-GPU docker environment (GPU support)
-This docker container was tested with the following system setup
+#### Pull and run Tensorflow-GPU docker environment (GPU training)
+This docker container was test using the following system setup
 - Ubuntu 16.04 or later releases and windows 10.
 - Cuda 10.0/Cudnn 7 or later releases.
 - Docker-ce 19.03.12 or later releases.
@@ -128,7 +128,7 @@ This docker container was tested with the following system setup
 docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-gpu_runtime:latest
 ```
 
-#### Pull and run Tensorflow docker environment (CPU only)
+#### Pull and run Tensorflow docker environment (CPU only training)
 This docker container was tested with the following system setup
 - Ubuntu 16.04 or later releases and windows 10.
 - Docker-ce 19.03.12 or later releases.
@@ -138,9 +138,9 @@ This docker container was tested with the following system setup
 docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-cpu_runtime:latest
 ```
 
-Important Notes:
+Some helpful notes:
 1. Modify `-v path/to/host_target_directory:/home/docker` in the above command and replace `path/to/host_target_directory` with your host machine target directory path. This will mount your specified target host directory to the docker container home directory `/home/docker`.
-2. The docker `-v` or `--volume` flag is used to mount a target directory in your host machine (i.e. `path/to/host_target_directory`) to the docker container directory (i.e. `/home/docker`) . You can find more information regarding the `docker run` command [here](https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only).
+2. The docker `-v` or `--volume` flag is used to mount a target directory in your host machine (i.e. `path/to/host_target_directory`) to the docker container directory (i.e. `/home/docker`). You can find more information regarding the `docker run` command [here](https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only).
 3. You can terminate the docker environment by typing `exit` in your terminal.
 
 ## Quick Start
@@ -150,13 +150,12 @@ After setting up the training environment on you machine.
 ### Clone this repository.
 ```bash
 git clone https://github.com/FLIR/iis_firefly_image_classifier.git
-
 cd iis_firefly_image_classifier
 ```
 ### Collect and label image datasets
 Collect and label some training images. Refer to the collect image dataset for more details regarding supported image formats and the expected directory structure.
 Important Note:
-Note: If you are using a docker container environment, verify that the docker container has access to your image directory. Optionally, you can copy your image directory under this repository folder.
+If you are using a docker container environment, verify that the docker container has access to your image directory. Optionally, after you run the docker container you can copy your image directory to this repository folder.
 
 ### Start training your model
 ```bash
@@ -186,11 +185,11 @@ Below we summaries the input arguments and corresponding output directory struct
     - Test prediction results (test/predictions.csv)
 
 ## Preparing the datasets
-In this section, we describe options for convert your image dataset to TensorFlow's native
+In this section, we describe some options to download an example dataset and convert your image dataset to TensorFlow's native
 [TFRecord](https://www.tensorflow.org/versions/r0.10/api_docs/python/python_io.html#tfrecords-format-details)
-format. In addition, we provide the option to download and convert an example flowers dataset.
+format.
 
-We provide two options for converting an image dataset to TFRecord format
+Two options to convert your image dataset to TFRecord format
 
 1. [Convert images with convert script](#convert-images-with-convert-script)
 2. [Convert images using training script](#convert-images-using-training-script)
@@ -207,7 +206,7 @@ $ python convert_images_to_tfrecord.py \
 ```
 
 #### Convert images using training script
-You can convert your images to TFRecord format using the `train_image_classifier.py` by specify the image directory with `--image_dir` flag and specifying a dataset name with `--dataset_name`.
+You can convert your images to TFRecord format using the `train_image_classifier.py`. You must specify the image directory with `--image_dir` and a dataset name with `--dataset_name` flags.
 ```bash
 python train_image_classifier.py \
         --project_name=<Select a project name> \
@@ -279,12 +278,12 @@ Example `dataset_config.json` file.
 This section covers how to run training, evaluation and test scripts.
 
 ### Training
-Below command is an example for training the flowers dataset on mobilenet_v1_025 which is fine-tuned from ImageNet. We highlight the following input arguments
+Below command is an example for training the flowers dataset on mobilenet_v1_025 which is initialization with pretrained ImageNet weights. We highlight the following input arguments
 - `--experiment_name`: Set experiment name (directory name) where the experiment files are saved (default will select `experiment_1` if it is the first experiment in the project)
 - `--max_number_of_steps`: Set the maximum number of training steps to 1000 (default 50000 steps)
 - `--model_name`: Select the model backbone model architecture mobilenet_v1_025 (default mobilenet_v1)
 - `--trainable_scopes`: Select trainable model layers (default final `logits` layer and `BatchNorm` layers)
-- `--clone_on_cpu=True`: Set training to use CPU only (default train mainly on GPU if available)
+- `--clone_on_cpu`: Set training to use CPU only (default False)
 
 ```bash
 $ python train_image_classifier.py \
@@ -359,9 +358,6 @@ image classification dataset.
 In the table below, we list each model, the corresponding
 TensorFlow model file, the link to the model checkpoint, and the top 1 and top 5
 accuracy (on the ImageNet test set).
-Notes:
-  - The Inception parameters have been trained by Google.
-  - Also be aware that these accuracies were computed by evaluating using a single image crop. Some academic papers report higher accuracy by using multiple crops at multiple scales.
 
 Model | TF-Slim File | Checkpoint | ImageNet Accuracy |
 :----:|:------------:|:----------:|:-----------------:
@@ -372,9 +368,6 @@ Model | TF-Slim File | Checkpoint | ImageNet Accuracy |
 [Inception_v1_224](https://arxiv.org/pdf/1409.4842v1.pdf)|[Code](https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1.py)|[inception_v1_224.tgz](http://download.tensorflow.org/models/inception_v1_2016_08_28.tar.gz)|69.8|
 
 
-All 16 float MobileNet V1 models reported in the [MobileNet Paper](https://arxiv.org/abs/1704.04861) and all
-16 quantized [TensorFlow Lite](https://www.tensorflow.org/mobile/tflite/) compatible MobileNet V1 models can be found
-[here](https://github.com/tensorflow/models/tree/r1.13/research/slim/nets/mobilenet_v1.md).
 
 ### Fine-tuning a model from an existing checkpoint
 To indicate a checkpoint from which to fine-tune, we'll call training with

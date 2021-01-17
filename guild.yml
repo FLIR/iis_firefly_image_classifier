@@ -46,12 +46,9 @@
         trainable_scopes:
           type: string
           default: ''
-        add_image_summaries:
-          type: boolean
-          default: True
-        imbalance_correction:
-          type: boolean
-          default: False
+        min_object_covered:
+          type: float
+          default: 0.9
       requires:
         - file: checkpoints
         - file: project_dir
