@@ -90,20 +90,26 @@ In this section, we describe the steps required to setup the training environmen
 
 We provide two options for setting up your TensorFlow environment.
 
-1. [Setup environment using Pip](#setup-environment-using-pip)
+1. [Setup environment using virtualenv](#setup-environment-using-virtualenv)
 2. [Setup environment using Docker](#setup-environment-using-docker)
 
 ### Setup environment using pip
 The repository was test using the following system setup
 - Ubuntu 16.04 or later releases.
 - Cuda 10.0 and cudnn 7.
-- Python 3.5 or 3.7 release.
-- Nvidia GTX GPU card.
+- Python 3.5 or later releases.
+- Nvidia GTX GPU (1080, 1080Ti) card.
 
-#### Insall TensorFlow using python Pip
+#### Install TensorFlow using python virtualenv
 You can use `pip` python package manager to install TensorFlow library on your host machine.
 
 ```bash
+# Install virtualenv
+apt-get install python3-virtualenv
+# Create virtualenv
+virtualenv -p /usr/bin/python3 my_venv
+# Activate the new virtual environment (my_venv)
+source my_venv/bin/activate
 # Install tensorflow.
 # If you have GPU,
 pip install --user tensorflow-gpu==1.13.2  
@@ -141,7 +147,7 @@ docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  
 Some helpful notes:
 1. Modify `-v /path/on/host:/path/inside/container` in the above command and replace `/path/on/host` with your host machine target directory path. This will mount your specified target host directory to the docker container home directory `/path/inside/container`.
 2. The docker `-v` or `--volume` flag is used to mount a target directory in your host machine (i.e. `/path/on/host`) to the docker container directory (i.e. `/path/inside/container`).
-3. The docker `-v` or `--volume` flag can also be used to mount a directory from a Windows host machine to a directory in the Linux docker container. You will need to convert the windows string directory path to an equivalent docker format. For example convert `C:\path\on\host` to `/C/path/on/host` and add quotation marks `""` (-v `"/C/path/on/host:/path/inside/container" `) 
+3. The docker `-v` or `--volume` flag can also be used to mount a directory from a Windows host machine to a directory in the Linux docker container. You will need to convert the windows string directory path to an equivalent docker format. For example convert `C:\path\on\host` to `/C/path/on/host` and add quotation marks `""` (-v `"/C/path/on/host:/path/inside/container" `)
 4. You can find more information regarding the `docker run` command [here](https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only).
 5. You can terminate the docker environment by typing `exit` in your terminal.
 
