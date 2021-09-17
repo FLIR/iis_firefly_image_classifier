@@ -493,7 +493,7 @@ def main():
   dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
           FLAGS.dataset_name,
           FLAGS.dataset_dir,
-          FLAGS.image_dir,
+          input_path,
           FLAGS.train_percentage,
           FLAGS.validation_percentage,
           FLAGS.test_percentage,
