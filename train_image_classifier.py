@@ -51,7 +51,7 @@ p.add_argument(
 
 p.add_argument('--project_dir', type=str, default=os.environ.get('SM_OUTPUT_DATA_DIR'), help='Directory where checkpoints and event logs are written to.')
 
-p.add_argument('--project_name', type=str, default='test_1', help= 'Must supply project name examples: flower_classifier, component_classifier')
+p.add_argument('--project_name', type=str, default='classifier', help= 'Must supply project name examples: flower_classifier, component_classifier')
 
 p.add_argument('--num_clones', type=int, default=1, help='Number of model clones to deploy. Note For '
                             'historical reasons loss from all clones averaged '
@@ -154,7 +154,7 @@ p.add_argument('--image_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN
 
 p.add_argument('--output_graph', type=str, default=os.environ.get('SM_MODEL_DIR'), help='local path where the training job writes the model artificats to.')
 
-p.add_argument('--dataset_name', type=str, default='imagenet', help='The name of the dataset to load.')
+p.add_argument('--dataset_name', type=str, default='images', help='The name of the dataset to load.')
 
 p.add_argument('--dataset_split_name', type=str, default='train', help='The name of the train/test split.')
 
@@ -483,23 +483,24 @@ def main():
       os.makedirs(train_dir)
 
   # set and check dataset_dir
-  if FLAGS.image_dir:
-      dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
-              FLAGS.dataset_name,
-              FLAGS.dataset_dir,
-              FLAGS.image_dir,
-              FLAGS.train_percentage,
-              FLAGS.validation_percentage,
-              FLAGS.test_percentage,
-              FLAGS.train_image_size,
-              FLAGS.train_image_size)
-  else:
-      if os.path.isdir(FLAGS.dataset_dir):
-          dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
-      else:
-          dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
-  if not os.path.isdir(dataset_dir):
-    raise ValueError('Can not find tfrecord dataset directory {}'. format(dataset_dir))
+  # if FLAGS.image_dir:
+  print('image_dir ##########', image_dir)
+  dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
+          FLAGS.dataset_name,
+          FLAGS.dataset_dir,
+          FLAGS.image_dir,
+          FLAGS.train_percentage,
+          FLAGS.validation_percentage,
+          FLAGS.test_percentage,
+          FLAGS.train_image_size,
+          FLAGS.train_image_size)
+  # else:
+  #     if os.path.isdir(FLAGS.dataset_dir):
+  #         dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+  #     else:
+  #         dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+  # if not os.path.isdir(dataset_dir):
+  #   raise ValueError('Can not find tfrecord dataset directory {}'. format(dataset_dir))
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
     #######################
