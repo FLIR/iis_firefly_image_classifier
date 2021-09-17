@@ -484,7 +484,7 @@ def main():
 
   # set and check dataset_dir
   # if FLAGS.image_dir:
-  print('image_dir ##########', image_dir)
+  print('image_dir ##########', FLAGS.image_dir)
   dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
           FLAGS.dataset_name,
           FLAGS.dataset_dir,
