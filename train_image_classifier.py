@@ -492,9 +492,13 @@ def main():
   #     print(root, dirs, files)
 
   # ={"additional_framework_parameters":{},"channel_input_dirs":{"train":"/opt/ml/input/data/train"}
-  print('input path#########', os.environ.get('SM_TRAINING_ENV'))
-  # input_path = os.environ.get('SM_TRAINING_ENV')["channel_input_dirs"]["train"]
-  # print('input path#########', os.environ.get('SM_TRAINING_ENV'), input_path)
+
+  input_path = os.environ.get('SM_TRAINING_ENV')
+  print('input path#########', input_path)
+  input_path = input_path["channel_input_dirs"]
+  print('input path#########', input_path)
+  input_path = input_path["channel_input_dirs"]["train"]
+  print('input path#########', input_path)
 
   dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
           FLAGS.dataset_name,
