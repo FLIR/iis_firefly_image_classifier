@@ -492,9 +492,11 @@ def main():
   #     print(root, dirs, files)
 
   # ={"additional_framework_parameters":{},"channel_input_dirs":{"train":"/opt/ml/input/data/train"}
-
+  import json
   input_path = os.environ.get('SM_TRAINING_ENV')
-  print('input path#########', input_path)
+  print('input path#########', input_path, type(input_path))
+  input_path = json.loads(input_path)
+  print('input path#########', input_path, type(input_path))
   input_path = input_path["channel_input_dirs"]
   print('input path#########', input_path)
   input_path = input_path["channel_input_dirs"]["train"]
