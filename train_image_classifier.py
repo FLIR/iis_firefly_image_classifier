@@ -161,9 +161,9 @@ p.add_argument('--dataset_split_name', type=str, default='train', help='The name
 
 p.add_argument('--dataset_dir', type=str, default="", help='The directory where the dataset files are stored.')
 
-p.add_argument('--train_percentage', type=int, default=80, help='What percentage of images to use as a train set.')
+p.add_argument('--train_percentage', type=int, default=90, help='What percentage of images to use as a train set.')
 
-p.add_argument('--validation_percentage', type=int, default=10, help='What percentage of images to use as a validation set.')
+p.add_argument('--validation_percentage', type=int, default=0, help='What percentage of images to use as a validation set.')
 
 p.add_argument('--test_percentage', type=int, default=10, help='What percentage of images to use as a test set.')
 
@@ -449,9 +449,9 @@ def _get_variables_to_train():
           scopes = ['MobilenetV1/Logits', 'BatchNorm']
   elif FLAGS.num_of_trainable_layers == 2:
       if FLAGS.model_name.startswith('inception_v1'):
-          scopes = ['InceptionV1/Logits', 'BatchNorm', 'InceptionV1/Mixed_5c']
+          scopes = ['InceptionV1/Logits', 'InceptionV1/Mixed_5c']
       elif FLAGS.model_name.startswith('mobilenet_v1'):
-          scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_13']
+          scopes = ['MobilenetV1/Logits', 'MobilenetV1/Conv2d_13']
   elif FLAGS.num_of_trainable_layers == 3:
       if FLAGS.model_name.startswith('inception_v1'):
           scopes = ['InceptionV1/Logits', 'BatchNorm', 'InceptionV1/Mixed_5c', 'InceptionV1/Mixed_5b']
