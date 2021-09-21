@@ -36,6 +36,7 @@ from preprocessing import preprocessing_factory
 from freeze_graph import freeze_graph, export_inference_graph
 
 import os
+import json
 import datetime
 import signal
 import time
@@ -150,11 +151,11 @@ p.add_argument('--moving_average_decay', type=float, default=None, help='The dec
 # Dataset Flags #
 #######################
 
-p.add_argument('--image_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAINING'), help='The directory where the input images are saved.')
+p.add_argument('--image_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN'), help='The directory where the input images are saved.')
 
 p.add_argument('--output_graph', type=str, default=os.environ.get('SM_MODEL_DIR'), help='local path where the training job writes the model artificats to.')
 
-p.add_argument('--dataset_name', type=str, default='images', help='The name of the dataset to load.')
+p.add_argument('--dataset_name', type=str, default='images_tfrecord', help='The name of the dataset to load.')
 
 p.add_argument('--dataset_split_name', type=str, default='train', help='The name of the train/test split.')
 
@@ -459,17 +460,24 @@ def _get_variables_to_train():
 
 
 def main():
+  # AWS environment variables
+  aws_env_var = json.loads(os.environ.get('SM_TRAINING_ENV'))
+  project_name = aws_env_var["job_name"]
+  print('project name #######', project_name)
+  # set and check project_dir and experiment_dir.
+  if not FLAGS.project_name:
+    project_dir = os.path.join(FLAGS.project_dir, project_name)
+  else:
+    project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+    # raise ValueError('You must supply a project name with --project_name')
 
   # check required input arguments
-  if not FLAGS.project_name:
-    raise ValueError('You must supply a project name with --project_name')
   if not FLAGS.dataset_name:
     raise ValueError('You must supply a dataset name with --dataset_name')
   if not FLAGS.model_name in model_name_to_variables:
     raise ValueError('Model name not supported name please select one of the following model architecture: mobilenet_v1, mobilenet_v1_075, mobilenet_v1_050, mobilenet_v1_025, inception_v1')
 
-  # set and check project_dir and experiment_dir.
-  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+
   if not FLAGS.experiment_name:
     # list only directories that are names experiment_
       experiment_dir = dataset_utils.create_new_experiment_dir(project_dir)
@@ -482,42 +490,21 @@ def main():
   if not os.path.exists(train_dir):
       os.makedirs(train_dir)
 
-  # set and check dataset_dir
-  # if FLAGS.image_dir:
-  # prefix = '/opt/ml/'
-  #
-  # input_path = prefix + 'input/data'
-  # print('image_dir ##########', FLAGS.image_dir, input_path)
-  # for root, dirs, files in os.walk(input_path):
-  #     print(root, dirs, files)
-
-  # ={"additional_framework_parameters":{},"channel_input_dirs":{"train":"/opt/ml/input/data/train"}
-  import json
-  # input_path = os.environ.get('SM_TRAINING_ENV')
-  # print('input path#########', input_path, type(input_path))
-  input_path = json.loads(os.environ.get('SM_TRAINING_ENV'))
-  # print('input path#########', input_path, type(input_path))
-  # input_path = input_path["channel_input_dirs"]
-  # print('input path#########', input_path)
-  input_path = input_path["channel_input_dirs"]["train"]
-  print('input path#########', input_path)
+  # create dataset
+  # aws_env_var = json.loads(os.environ.get('SM_TRAINING_ENV'))
+  image_dir = aws_env_var["channel_input_dirs"]["train"]
+  print('image directory #########', image_dir, FLAGS.image_dir)
 
   dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
           FLAGS.dataset_name,
           FLAGS.dataset_dir,
-          input_path,
+          image_dir,
           FLAGS.train_percentage,
           FLAGS.validation_percentage,
           FLAGS.test_percentage,
           FLAGS.train_image_size,
           FLAGS.train_image_size)
-  # else:
-  #     if os.path.isdir(FLAGS.dataset_dir):
-  #         dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
-  #     else:
-  #         dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
-  # if not os.path.isdir(dataset_dir):
-  #   raise ValueError('Can not find tfrecord dataset directory {}'. format(dataset_dir))
+
   tf.logging.set_verbosity(tf.logging.INFO)
   with tf.Graph().as_default():
     #######################
