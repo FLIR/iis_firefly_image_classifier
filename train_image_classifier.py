@@ -52,7 +52,7 @@ p.add_argument(
 
 p.add_argument('--project_dir', type=str, default=os.environ.get('SM_OUTPUT_DATA_DIR'), help='Directory where checkpoints and event logs are written to.')
 
-p.add_argument('--project_name', type=str, default='classifier', help= 'Must supply project name examples: flower_classifier, component_classifier')
+p.add_argument('--project_name', type=str, default=None, help= 'Must supply project name examples: flower_classifier, component_classifier')
 
 p.add_argument('--num_clones', type=int, default=1, help='Number of model clones to deploy. Note For '
                             'historical reasons loss from all clones averaged '
@@ -462,11 +462,11 @@ def _get_variables_to_train():
 def main():
   # AWS environment variables
   aws_env_var = json.loads(os.environ.get('SM_TRAINING_ENV'))
-  project_name = aws_env_var["job_name"]
-  print('project name #######', project_name)
+  # project_name = aws_env_var["job_name"]
+  # print('project name #######', project_name)
   # set and check project_dir and experiment_dir.
   if not FLAGS.project_name:
-    project_dir = os.path.join(FLAGS.project_dir, project_name)
+    project_dir = os.path.join(FLAGS.project_dir, aws_env_var["job_name"])
   else:
     project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
     # raise ValueError('You must supply a project name with --project_name')
@@ -492,13 +492,13 @@ def main():
 
   # create dataset
   # aws_env_var = json.loads(os.environ.get('SM_TRAINING_ENV'))
-  image_dir = aws_env_var["channel_input_dirs"]["train"]
-  print('image directory #########', image_dir, FLAGS.image_dir)
+  # image_dir = aws_env_var["channel_input_dirs"]["train"]
+  # print('image directory #########', image_dir, FLAGS.image_dir)
 
   dataset_dir = convert_dataset.convert_img_to_tfrecord(project_dir,
           FLAGS.dataset_name,
           FLAGS.dataset_dir,
-          image_dir,
+          FLAGS.image_dir,
           FLAGS.train_percentage,
           FLAGS.validation_percentage,
           FLAGS.test_percentage,
