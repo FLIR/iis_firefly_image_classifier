@@ -184,7 +184,7 @@ p.add_argument('--max_number_of_steps', type=int, default=100, help='The maximum
 
 p.add_argument('--use_grayscale', type=bool, default=False, help='Whether to convert input images to grayscale.')
 
-p.add_argument('--imbalance_correction', type=bool, default=False, help='apply class weight to loss function .')
+p.add_argument('--imbalance_correction', type=bool, default=True, help='apply class weight to loss function .')
 
 #####################
 # Fine-Tuning Flags #
@@ -201,6 +201,9 @@ p.add_argument('--checkpoint_exclude_scopes',  type=str, default=None,
     'By default, only the Logits layer is excluded')
 
 p.add_argument('--trainable_scopes', type=str, default=None,
+    help='Comma-separated list of scopes to filter the set of variables to train.'
+    'By default, only the Logits layer is trained. None would train all the variables.')
+p.add_argument('--num_of_trainable_layers', type=int, default=1,
     help='Comma-separated list of scopes to filter the set of variables to train.'
     'By default, only the Logits layer is trained. None would train all the variables.')
 
@@ -439,7 +442,7 @@ def _get_variables_to_train():
     A list of variables to train by the optimizer.
   """
   if FLAGS.trainable_scopes is None:
-      print('################', FLAGS.model_name)
+      print('model name ################', FLAGS.model_name)
       if FLAGS.model_name.startswith('inception_v1'):
           scopes = ['InceptionV1/Logits', 'BatchNorm']
       elif FLAGS.model_name.startswith('mobilenet_v1'):
@@ -808,7 +811,7 @@ def main():
 
       if 'should_log' in train_step_kwargs:
         if sess.run(train_step_kwargs['should_log']):
-            print('global step {:d}: loss = {:1.4f} ({:.3f} sec/step)'.format(np_global_step, total_loss, time_elapsed))
+            print('global step {:d}: loss={:1.4f}; ({:.3f} sec/step)'.format(np_global_step, total_loss, time_elapsed))
 
       if 'should_stop' in train_step_kwargs:
         should_stop = sess.run(train_step_kwargs['should_stop'])
