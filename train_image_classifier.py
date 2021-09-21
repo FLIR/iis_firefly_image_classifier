@@ -889,7 +889,17 @@ if __name__ == '__main__':
 
   # The code below generates a frozen graph from the last trained checkpoint and defined graph (export_inference_graph)
   # set and check project_dir and experiment_dir.
-  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  # AWS environment variables
+  aws_env_var = json.loads(os.environ.get('SM_TRAINING_ENV'))
+  # project_name = aws_env_var["job_name"]
+  # print('project name #######', project_name)
+  # set and check project_dir and experiment_dir.
+  if not FLAGS.project_name:
+    project_dir = os.path.join(FLAGS.project_dir, aws_env_var["job_name"])
+  else:
+    project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+    # raise ValueError('You must supply a project name with --project_name')
+  # project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
   if not FLAGS.experiment_name:
     # list only directories that are names experiment_
       # experiment_dir = create_new_experiment_dir(project_dir)
