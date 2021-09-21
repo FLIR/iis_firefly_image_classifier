@@ -202,9 +202,10 @@ p.add_argument('--checkpoint_exclude_scopes',  type=str, default=None,
 
 p.add_argument('--trainable_scopes', type=str, default=None,
     help='Comma-separated list of scopes to filter the set of variables to train.'
-    'By default, only the Logits layer is trained. None would train all the variables.')
+    'By default, only the Logits layer is trained.')
+
 p.add_argument('--num_of_trainable_layers', type=int, default=1,
-    help='Number of trainable layers. By default, only the Logits layer is trained. None would train all the variables.')
+    help='Number of trainable layers. By default, only the Logits layer is trained.')
 
 p.add_argument('--ignore_missing_vars', type=bool, default=True, help='When restoring a checkpoint would ignore missing variables.')
 
@@ -448,19 +449,19 @@ def _get_variables_to_train():
           scopes = ['MobilenetV1/Logits', 'BatchNorm']
   elif FLAGS.num_of_trainable_layers == 2:
       if FLAGS.model_name.startswith('inception_v1'):
-          scopes = ['InceptionV1/Logits', 'BatchNorm']
+          scopes = ['InceptionV1/Logits', 'BatchNorm', 'InceptionV1/Mixed_5c']
       elif FLAGS.model_name.startswith('mobilenet_v1'):
           scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_13']
   elif FLAGS.num_of_trainable_layers == 3:
       if FLAGS.model_name.startswith('inception_v1'):
-          scopes = ['InceptionV1/Logits', 'BatchNorm']
+          scopes = ['InceptionV1/Logits', 'BatchNorm', 'InceptionV1/Mixed_5c', 'InceptionV1/Mixed_5b']
       elif FLAGS.model_name.startswith('mobilenet_v1'):
-          scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_12']
+          scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_13', 'MobilenetV1/Conv2d_12']
   elif FLAGS.num_of_trainable_layers == 4:
       if FLAGS.model_name.startswith('inception_v1'):
-          scopes = ['InceptionV1/Logits', 'BatchNorm']
+          scopes = ['InceptionV1/Logits', 'BatchNorm', 'InceptionV1/Mixed_5c', 'InceptionV1/Mixed_5b', 'InceptionV1/Mixed_4f']
       elif FLAGS.model_name.startswith('mobilenet_v1'):
-          scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_11']
+          scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_13', 'MobilenetV1/Conv2d_12', 'MobilenetV1/Conv2d_11']
   else:
       scopes = [scope.strip() for scope in FLAGS.trainable_scopes.split(',')]
 
