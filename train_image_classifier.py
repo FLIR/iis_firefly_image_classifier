@@ -385,8 +385,10 @@ def _get_init_fn():
           # exclusions = ['InceptionV1/Logits']
       elif FLAGS.model_name == 'mobilenet_v1':
           checkpoint_path = './imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
-          code_dir = json.loads(os.environ.get('SM_MODULE_DIR'))
+          code_dir = os.environ.get('SM_MODULE_DIR')
+          print('SM_MODULE_DIR ################', SM_MODULE_DIR)
           checkpoint_path = os.path.join(code_dir,'/imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt')
+          print('checkpoint_path ##############', checkpoint_path)
           if not os.path.isfile(checkpoint_path):
               url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz')
               download_and_extract_file(checkpoint_path, url)
