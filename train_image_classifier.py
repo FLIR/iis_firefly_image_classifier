@@ -390,9 +390,9 @@ def _get_init_fn():
           checkpoint_path = os.path.join(code_dir,'imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt')
           checkpoint_path = '/opt/ml/code/imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
           print('checkpoint_path ##############', checkpoint_path)
-          if not os.path.isfile(checkpoint_path):
-              url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz')
-              download_and_extract_file(checkpoint_path, url)
+          # if not os.path.isfile(checkpoint_path):
+              # url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz')
+              # download_and_extract_file(checkpoint_path, url)
           # exclusions = ['MobilenetV1/Logits']
       elif FLAGS.model_name == 'mobilenet_v1_075':
           checkpoint_path = './imagenet_checkpoints/mobilenet_v1_0.75_224/mobilenet_v1_0.75_224.ckpt'
@@ -411,7 +411,7 @@ def _get_init_fn():
               download_and_extract_file(checkpoint_path, url)
   else:
       checkpoint_path = FLAGS.checkpoint_path
-
+  checkpoint_path = '/opt/ml/code/imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
   # exclude scope
   if FLAGS.checkpoint_exclude_scopes:
     exclusions = [scope.strip()
