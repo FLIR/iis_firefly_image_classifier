@@ -387,7 +387,8 @@ def _get_init_fn():
           checkpoint_path = './imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
           code_dir = os.environ.get('SM_MODULE_DIR')
           print('SM_MODULE_DIR ################', code_dir)
-          checkpoint_path = os.path.join(code_dir,'/imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt')
+          checkpoint_path = os.path.join(code_dir,'imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt')
+          checkpoint_path = '/opt/ml/code/imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
           print('checkpoint_path ##############', checkpoint_path)
           if not os.path.isfile(checkpoint_path):
               url = os.path.join('http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz')
