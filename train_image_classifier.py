@@ -386,7 +386,7 @@ def _get_init_fn():
       elif FLAGS.model_name == 'mobilenet_v1':
           checkpoint_path = './imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
           code_dir = os.environ.get('SM_MODULE_DIR')
-          print('SM_MODULE_DIR ################', SM_MODULE_DIR)
+          print('SM_MODULE_DIR ################', code_dir)
           checkpoint_path = os.path.join(code_dir,'/imagenet_checkpoints/mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt')
           print('checkpoint_path ##############', checkpoint_path)
           if not os.path.isfile(checkpoint_path):
