@@ -100,7 +100,7 @@ def select_latest_experiment_dir(project_dir):
 
 def main(FLAGS):
   # check required input arguments
-  if not project_name:
+  if not FLAGS.project_name:
     raise ValueError('You must supply a project name with --project_name')
   if not FLAGS.dataset_name:
     raise ValueError('You must supply a dataset name with --dataset_name')
