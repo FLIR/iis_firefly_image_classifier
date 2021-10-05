@@ -27,6 +27,9 @@ slim = tf.contrib.slim
 tf.app.flags.DEFINE_string(
     'project_dir', './project_dir', 'default project folder. all prject folder are stored.')
 
+tf.app.flags.DEFINE_string(
+    'image_dir', os.environ.get('SM_CHANNEL_TRAINING'), 'The directory where the input images are saved.')
+
 tf.app.flags.DEFINE_string('project_name', None, 'Must supply a project name examples: flower_classifier, component_classifier')
 
 tf.app.flags.DEFINE_string('experiment_name', None, 'If None the highest experiment number (The number of experiment folders) is selected.')

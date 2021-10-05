@@ -936,7 +936,7 @@ if __name__ == '__main__':
   import tensorflow_graph_transform
 
   output_graph_path = os.path.join(train_dir, 'optimized.pb')
-  tensorflow_graph_transform.main(output_graph, output_graph_path, 224, 224, 3, 'input', 'MobilenetV1/Predictions/Reshape_1')
+  tensorflow_graph_transform.main(output_graph, output_graph_path, 224, 224, 3, 'input', output_node_names)
 
   from shutil import copy
   finaloutput_dir = os.path.join(experiment_dir, 'firefly')
@@ -958,7 +958,9 @@ if __name__ == '__main__':
   command_input = "mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
   print(output_movidius_graph, output_graph_path)
   print(command_input)
-  subprocess.run(command_input.split())
+  # subprocess.run(command_input.split())
+  os.system(command_input)
+  del FLAGS.image_dir
 
 
   import test_image_classifier
