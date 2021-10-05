@@ -9,4 +9,7 @@ if __name__=="__main__":
     # my_env["PATH"] = "/opt/movidius/virtualenv-python/bin/python"
     command = "/usr/local/bin/mvNCCompile -s 12 -o test_3  optimized.pb  -in=input -on=MobilenetV1/Predictions/Reshape_1"
     # subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=my_env)
-    os.system(command)
+    #os.system(command)
+    os.environ['PYTHONPATH'] = "/opt/movidius/caffe/python" # visible in this process + all children
+    subprocess.check_call(command.split(),
+                      env=dict(os.environ, SQSUB_VAR="visible in this subprocess"))
