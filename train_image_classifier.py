@@ -995,11 +995,16 @@ if __name__ == '__main__':
 
   output_movidius_graph = os.path.join(finaloutput_dir, 'firefly.graph')
   # output_mov_graph = "test_4"
-  command_input = "/usr/local/bin/mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
+  command = "/usr/local/bin/mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
   # print(output_movidius_graph, output_graph_path)
   print('#####################', command_input)
   # subprocess.run(command_input.split())
-  os.system(command_input)
+  # command = "/usr/local/bin/mvNCCompile -s 12 -o test_3  optimized.pb  -in=input -on=MobilenetV1/Predictions/Reshape_1"
+  # subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=my_env)
+  #os.system(command)
+  os.environ['PYTHONPATH'] = "/opt/movidius/caffe/python" # visible in this process + all children
+  subprocess.check_call(command.split(),
+                    env=dict(os.environ, SQSUB_VAR="visible in this subprocess"))
 
 
   # import test_image_classifier
