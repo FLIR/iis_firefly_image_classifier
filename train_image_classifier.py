@@ -997,7 +997,7 @@ if __name__ == '__main__':
   # output_mov_graph = "test_4"
   command = "/usr/local/bin/mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
   # print(output_movidius_graph, output_graph_path)
-  print('#####################', command_input)
+  print('#####################', command)
   # subprocess.run(command_input.split())
   # command = "/usr/local/bin/mvNCCompile -s 12 -o test_3  optimized.pb  -in=input -on=MobilenetV1/Predictions/Reshape_1"
   # subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=my_env)
