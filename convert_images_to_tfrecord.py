@@ -73,30 +73,32 @@ p.add_argument('--image_width', type=int, default=None, help='Target image width
 FLAGS = p.parse_args()
 
 if __name__ == '__main__':
-  # check required input arguments
-  if not FLAGS.project_name:
-    raise ValueError('You must supply a dataset name with --project_name')
-  if not FLAGS.dataset_name:
-    raise ValueError('You must supply a dataset name with --dataset_name')
+        # check required input arguments
+        if not FLAGS.project_name:
+            raise ValueError('You must supply a dataset name with --project_name')
+        if not FLAGS.dataset_name:
+            raise ValueError('You must supply a dataset name with --dataset_name')
 
-  # check dataset name and image directory
-  if FLAGS.dataset_name == 'flowers' and not FLAGS.image_dir:
-    # download flowers dataset
-    image_dir = os.path.join('./image_dir', 'flower_photos')
-    dataset_utils.download_and_uncompress_tarball(FLOWERS_DATA_URL, './image_dir')
-  else:
-    if not FLAGS.image_dir:
-      raise ValueError('You must supply an image directory with --image_dir')
-    image_dir= FLAGS.image_dir
+        # check dataset name and image directory
+        if FLAGS.dataset_name == 'flowers' and not FLAGS.image_dir:
+            # download flowers dataset
+            if not os.path.exists('./image_dir'):
+                os.makedirs('./image_dir')
+            image_dir = os.path.join('./image_dir', 'flower_photos')
+            dataset_utils.download_and_uncompress_tarball(FLOWERS_DATA_URL, './image_dir')
+        else:
+            if not FLAGS.image_dir:
+                raise ValueError('You must supply an image directory with --image_dir')
+            image_dir= FLAGS.image_dir
 
-  # set project_dir and convert images to tfrecord
-  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
-  convert_dataset.convert_img_to_tfrecord(project_dir,
-                          FLAGS.dataset_name,
-                          FLAGS.dataset_dir,
-                          image_dir,
-                          FLAGS.train_percentage,
-                          FLAGS.validation_percentage,
-                          FLAGS.test_percentage,
-                          FLAGS.image_height,
-                          FLAGS.image_width)
+        # set project_dir and convert images to tfrecord
+        project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+        convert_dataset.convert_img_to_tfrecord(project_dir,
+                              FLAGS.dataset_name,
+                              FLAGS.dataset_dir,
+                              image_dir,
+                              FLAGS.train_percentage,
+                              FLAGS.validation_percentage,
+                              FLAGS.test_percentage,
+                              FLAGS.image_height,
+                              FLAGS.image_width)

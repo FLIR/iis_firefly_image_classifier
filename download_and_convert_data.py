@@ -40,6 +40,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+import os
 
 from datasets import download_and_convert_cifar10
 from datasets import download_and_convert_flowers
@@ -73,7 +74,13 @@ tf.flags.DEFINE_string(
 def main(_):
   if not FLAGS.dataset_name:
     raise ValueError('You must supply the dataset name with --dataset_name')
-  if not FLAGS.dataset_dir:
+
+  if os.path.isdir(FLAGS.dataset_dir):
+      dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+  else:
+      dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+
+  if not dataset_dir:
     raise ValueError('You must supply the dataset directory with --dataset_dir')
 
   if FLAGS.dataset_name == 'flowers':

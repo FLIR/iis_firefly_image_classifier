@@ -26,6 +26,7 @@ from tensorflow.python.training import saver as tf_saver
 from tensorflow.core.framework import graph_pb2
 from tensorflow.core.protobuf import saver_pb2
 from tensorflow.core.protobuf.meta_graph_pb2 import MetaGraphDef
+from tensorflow.tools.graph_transforms import TransformGraph
 
 from datasets import dataset_factory
 from datasets import convert_dataset
@@ -49,9 +50,9 @@ p = argparse.ArgumentParser()
 p.add_argument(
     '--master', type=str, default='', help='The address of the TensorFlow master to use.')
 
-p.add_argument('--project_dir', type=str, default='./project_dir/', help='Directory where checkpoints and event logs are written to.')
+p.add_argument('--project_dir', type=str, default=os.environ.get('SM_OUTPUT_DATA_DIR'), help='Directory where checkpoints and event logs are written to.')
 
-p.add_argument('--project_name', type=str, default=None, help= 'Must supply project name examples: flower_classifier, component_classifier')
+p.add_argument('--project_name', type=str, default='test_1', help= 'Must supply project name examples: flower_classifier, component_classifier')
 
 p.add_argument('--num_clones', type=int, default=1, help='Number of model clones to deploy. Note For '
                             'historical reasons loss from all clones averaged '
@@ -150,7 +151,9 @@ p.add_argument('--moving_average_decay', type=float, default=None, help='The dec
 # Dataset Flags #
 #######################
 
-p.add_argument('--image_dir', type=str, default=None, help='The directory where the input images are saved.')
+p.add_argument('--image_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAINING'), help='The directory where the input images are saved.')
+
+p.add_argument('--output_graph', type=str, default=os.environ.get('SM_MODEL_DIR'), help='local path where the training job writes the model artificats to.')
 
 p.add_argument('--dataset_name', type=str, default='imagenet', help='The name of the dataset to load.')
 
@@ -177,7 +180,7 @@ p.add_argument('--batch_size', type=int, default=16, help='The number of samples
 
 p.add_argument('--train_image_size', type=int, default=224, help='Train image size')
 
-p.add_argument('--max_number_of_steps', type=int, default=50000, help='The maximum number of training steps.')
+p.add_argument('--max_number_of_steps', type=int, default=80000, help='The maximum number of training steps.')
 
 p.add_argument('--use_grayscale', type=bool, default=False, help='Whether to convert input images to grayscale.')
 
@@ -229,7 +232,7 @@ p.add_argument('--min_object_covered', type=float, default=0.9, help='The remain
 
 p.add_argument('--random_image_rotation', type=bool, default=True, help='Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled')
 
-p.add_argument('--random_image_flip', type=bool, default=False, help='Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
+p.add_argument('--random_image_flip', type=bool, default=True, help='Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled')
 
 p.add_argument('--roi', type=str, default=None, help='Specifies the coordinates of an ROI for cropping the input images.Expects four integers in the order of roi_y_min, roi_x_min, roi_height, roi_width, image_height, image_width. Only applicable to mobilenet_preprocessing pipeline ')
 
@@ -909,7 +912,10 @@ if __name__ == '__main__':
   restore_op_name = "save/restore_all"
   filename_tensor_name = "save/Const:0"
   output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
-  output_graph = os.path.join(train_dir, output_graph_name)
+  if FLAGS.output_graph:
+      output_graph = os.path.join(FLAGS.output_graph, output_graph_name)
+  else:
+      output_graph = os.path.join(train_dir, output_graph_name)
   clear_devices = True
   initializer_nodes = ""
   variable_names_whitelist = ""
@@ -925,3 +931,39 @@ if __name__ == '__main__':
   variable_names_whitelist, variable_names_blacklist,
   input_meta_graph, input_saved_model_dir,
   saved_model_tags, checkpoint_version)
+
+
+  import tensorflow_graph_transform
+
+  output_graph_path = os.path.join(train_dir, 'optimized.pb')
+  tensorflow_graph_transform.main(output_graph, output_graph_path, 224, 224, 3, 'input', 'MobilenetV1/Predictions/Reshape_1')
+
+  from shutil import copy
+  finaloutput_dir = os.path.join(experiment_dir, 'firefly')
+  if not os.path.exists(finaloutput_dir):
+      os.makedirs(finaloutput_dir)
+
+  if os.path.isdir(FLAGS.dataset_dir):
+      dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+  else:
+      dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+  label_file = os.path.join(dataset_dir, 'labels.txt')
+  copy(label_file, finaloutput_dir)
+
+  import subprocess
+
+
+  output_movidius_graph = os.path.join(finaloutput_dir, 'firefly.graph')
+  # output_mov_graph = "test_4"
+  command_input = "mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
+  print(output_movidius_graph, output_graph_path)
+  print(command_input)
+  subprocess.run(command_input.split())
+
+
+  import test_image_classifier
+  print(FLAGS)
+  test_image_classifier.main(FLAGS)
+  test_dir = os.path.join(experiment_dir, 'test')
+  test_file = os.path.join(test_dir, 'results.txt')
+  copy(test_file, finaloutput_dir)

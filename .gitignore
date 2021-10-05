@@ -1,5 +1,7 @@
 #list of ignored files and directories
 archive/
+test_1/
+python/
 project_dir/
 train_dir/
 image_dir/
