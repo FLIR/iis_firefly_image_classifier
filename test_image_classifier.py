@@ -98,7 +98,7 @@ def select_latest_experiment_dir(project_dir):
 
     return experiment_dir
 
-def main(project_name, project_dir, experiment_name, model_name, checkpoint_path, final_endpoint):
+def main(FLAGS):
   # check required input arguments
   if not project_name:
     raise ValueError('You must supply a project name with --project_name')
