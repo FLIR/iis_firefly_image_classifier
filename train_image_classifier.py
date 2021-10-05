@@ -1001,9 +1001,9 @@ if __name__ == '__main__':
   subprocess.run(command_input.split())
 
 
-  import test_image_classifier
-  print(FLAGS)
-  test_image_classifier.main(FLAGS)
-  test_dir = os.path.join(experiment_dir, 'test')
-  test_file = os.path.join(test_dir, 'results.txt')
-  copy(test_file, finaloutput_dir)
+  # import test_image_classifier
+  # print(FLAGS)
+  # test_image_classifier.main(FLAGS)
+  # test_dir = os.path.join(experiment_dir, 'test')
+  # test_file = os.path.join(test_dir, 'results.txt')
+  # copy(test_file, finaloutput_dir)
