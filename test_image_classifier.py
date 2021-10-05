@@ -220,7 +220,7 @@ def main(FLAGS):
     is_training=False,
     use_grayscale=FLAGS.use_grayscale)
 
-  test_image_size = FLAGS.test_image_size or network_fn.default_image_size
+  test_image_size = network_fn.default_image_size
 
   processed_image = image_preprocessing_fn(image, test_image_size, test_image_size) #,roi=_parse_roi())
 
@@ -295,6 +295,30 @@ def main(FLAGS):
         print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
   # misclassified image
   if FLAGS.print_misclassified_test_images:
+    test_file = os.path.join(test_dir, 'results.txt')
+    with open(test_file, 'w') as f:
+        print("\n\n\n==================== Misclassified Images ====================", file=f)
+        count = 0
+        for image_name, gt_label, pred_label in zip(file_name, output_gt, output_pred):
+              if pred_label != gt_label:
+                  count += 1
+                  print('Image file {} misclassified as {}. (groundtruth label {})'.format(image_name, pred_label, gt_label), file=f)
+        print('\n\nTotal misclassified images {}/{}'.format(str(count), len(file_name)), file=f)
+        print("==============================================================", file=f)
+        y_true = output_gt
+        y_pred = output_pred
+        conf_mat_output = confusion_matrix(y_true, y_pred, labels=np.unique(output_gt))
+        output_acc = accuracy_score(y_true, y_pred)
+        output_precision = precision_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
+        output_recall = recall_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
+        print("\n\n\n==================== Evaluation Result Summary ====================", file=f)
+        print("Accuracy score : {}".format(output_acc),  file=f)
+        print("Precision score : {}".format(output_precision), file=f)
+        print("Recall score: {}".format(output_recall), file=f)
+        # print("F1 score: {}".format(output_f1))
+        print(classification_report(y_true, y_pred, digits=7, labels=np.unique(output_gt)), file=f)
+        print("===================================================================", file=f)
+
     print("\n\n\n==================== Misclassified Images ====================")
     count = 0
     for image_name, gt_label, pred_label in zip(file_name, output_gt, output_pred):
@@ -316,7 +340,6 @@ def main(FLAGS):
     # print("F1 score: {}".format(output_f1))
     print(classification_report(y_true, y_pred, digits=7, labels=np.unique(output_gt)))
     print("===================================================================")
-
     print('Compression Output & Stats Follow')
 
 
