@@ -998,7 +998,8 @@ if __name__ == '__main__':
   command_input = "mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
   print(output_movidius_graph, output_graph_path)
   print(command_input)
-  subprocess.run(command_input.split())
+  # subprocess.run(command_input.split())
+  os.system(command_input)
 
 
   # import test_image_classifier
