@@ -949,10 +949,10 @@ if __name__ == '__main__':
   restore_op_name = "save/restore_all"
   filename_tensor_name = "save/Const:0"
   output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
-  if FLAGS.output_graph:
-      output_graph = os.path.join(FLAGS.output_graph, output_graph_name)
-  else:
-      output_graph = os.path.join(train_dir, output_graph_name)
+  # if FLAGS.output_graph:
+  #     output_graph = os.path.join(FLAGS.output_graph, output_graph_name)
+  # else:
+  output_graph = os.path.join(train_dir, output_graph_name)
   clear_devices = True
   initializer_nodes = ""
   variable_names_whitelist = ""
@@ -968,3 +968,42 @@ if __name__ == '__main__':
   variable_names_whitelist, variable_names_blacklist,
   input_meta_graph, input_saved_model_dir,
   saved_model_tags, checkpoint_version)
+
+
+  import tensorflow_graph_transform
+
+  output_graph_path = os.path.join(train_dir, 'optimized.pb')
+  tensorflow_graph_transform.main(output_graph, output_graph_path, 224, 224, 3, 'input', output_node_names)
+
+  from shutil import copy
+  # output_graph = os.path.join(FLAGS.output_graph, output_graph_name)
+  finaloutput_dir = os.path.join(FLAGS.output_graph, 'firefly')
+
+  # finaloutput_dir = os.path.join(experiment_dir, 'firefly')
+  if not os.path.exists(finaloutput_dir):
+      os.makedirs(finaloutput_dir)
+
+  if os.path.isdir(FLAGS.dataset_dir):
+      dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+  else:
+      dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+  label_file = os.path.join(dataset_dir, 'labels.txt')
+  copy(label_file, finaloutput_dir)
+
+  import subprocess
+
+
+  output_movidius_graph = os.path.join(finaloutput_dir, 'firefly.graph')
+  # output_mov_graph = "test_4"
+  command_input = "mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
+  print(output_movidius_graph, output_graph_path)
+  print(command_input)
+  subprocess.run(command_input.split())
+
+
+  import test_image_classifier
+  print(FLAGS)
+  test_image_classifier.main(FLAGS)
+  test_dir = os.path.join(experiment_dir, 'test')
+  test_file = os.path.join(test_dir, 'results.txt')
+  copy(test_file, finaloutput_dir)

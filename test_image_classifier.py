@@ -98,9 +98,9 @@ def select_latest_experiment_dir(project_dir):
 
     return experiment_dir
 
-def main(_):
+def main(project_name, project_dir, experiment_name, model_name, checkpoint_path, final_endpoint):
   # check required input arguments
-  if not FLAGS.project_name:
+  if not project_name:
     raise ValueError('You must supply a project name with --project_name')
   if not FLAGS.dataset_name:
     raise ValueError('You must supply a dataset name with --dataset_name')
