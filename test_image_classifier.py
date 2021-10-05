@@ -187,7 +187,7 @@ def main(FLAGS):
 #####################################
 # Select the preprocessing function #
 #####################################
-
+  tf.reset_default_graph()
   model_variables = model_name_to_variables.get(FLAGS.model_name)
   if model_variables is None:
       tf.logging.error("Unknown model_name provided `%s`." % FLAGS.model_name)
