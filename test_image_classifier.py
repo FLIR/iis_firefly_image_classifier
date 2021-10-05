@@ -100,13 +100,15 @@ def select_latest_experiment_dir(project_dir):
 
 def main(FLAGS):
   # check required input arguments
-  if not FLAGS.project_name:
-    raise ValueError('You must supply a project name with --project_name')
-  if not FLAGS.dataset_name:
-    raise ValueError('You must supply a dataset name with --dataset_name')
+  # if not FLAGS.project_name:
+  #   raise ValueError('You must supply a project name with --project_name')
+  # if not FLAGS.dataset_name:
+  #   raise ValueError('You must supply a dataset name with --dataset_name')
+
+  project_dir = os.path.join(FLAGS.project_dir, aws_env_var["job_name"])
 
   # set and check project_dir and experiment_dir.
-  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+  # project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
   if not FLAGS.experiment_name:
     # list only directories that are names experiment_
     experiment_dir = select_latest_experiment_dir(project_dir)
