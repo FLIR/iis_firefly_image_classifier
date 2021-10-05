@@ -104,7 +104,8 @@ def main(FLAGS):
   #   raise ValueError('You must supply a project name with --project_name')
   # if not FLAGS.dataset_name:
   #   raise ValueError('You must supply a dataset name with --dataset_name')
-
+  # AWS environment variables
+  aws_env_var = json.loads(os.environ.get('SM_TRAINING_ENV'))
   project_dir = os.path.join(FLAGS.project_dir, aws_env_var["job_name"])
 
   # set and check project_dir and experiment_dir.
