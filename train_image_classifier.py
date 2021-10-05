@@ -996,10 +996,10 @@ if __name__ == '__main__':
   output_movidius_graph = os.path.join(finaloutput_dir, 'firefly.graph')
   # output_mov_graph = "test_4"
   command_input = "mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
-  print(output_movidius_graph, output_graph_path)
-  print(command_input)
+  # print(output_movidius_graph, output_graph_path)
+  print('#####################', command_input)
   # subprocess.run(command_input.split())
-  os.system(command_input)
+  #os.system(command_input)
 
 
   # import test_image_classifier
