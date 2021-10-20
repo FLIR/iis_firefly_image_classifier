@@ -36,12 +36,15 @@ from preprocessing import preprocessing_factory
 from freeze_graph import freeze_graph, export_inference_graph
 
 import os
+import json
 import datetime
 import signal
 import time
 import argparse
 import urllib.request
 import tarfile
+
+slim = contrib_slim
 
 slim = contrib_slim
 
@@ -200,6 +203,9 @@ p.add_argument('--checkpoint_exclude_scopes',  type=str, default=None,
 p.add_argument('--trainable_scopes', type=str, default=None,
     help='Comma-separated list of scopes to filter the set of variables to train.'
     'By default, only the Logits layer is trained. None would train all the variables.')
+
+p.add_argument('--num_of_trainable_layers', type=int, default=1,
+    help='Number of trainable layers. By default, only the Logits layer is trained.')
 
 p.add_argument('--ignore_missing_vars', type=bool, default=True, help='When restoring a checkpoint would ignore missing variables.')
 
@@ -429,18 +435,38 @@ def _get_init_fn():
      ignore_missing_vars=FLAGS.ignore_missing_vars)
 
 
+
+
+
+
+
 def _get_variables_to_train():
   """Returns a list of variables to train.
 
   Returns:
     A list of variables to train by the optimizer.
   """
-  if FLAGS.trainable_scopes is None:
-      print('################', FLAGS.model_name)
+  if FLAGS.trainable_scopes is None or FLAGS.num_of_trainable_layers == 1:
+      print('model name ################', FLAGS.model_name)
       if FLAGS.model_name.startswith('inception_v1'):
           scopes = ['InceptionV1/Logits', 'BatchNorm']
       elif FLAGS.model_name.startswith('mobilenet_v1'):
           scopes = ['MobilenetV1/Logits', 'BatchNorm']
+  elif FLAGS.num_of_trainable_layers == 2:
+      if FLAGS.model_name.startswith('inception_v1'):
+          scopes = ['InceptionV1/Logits', 'InceptionV1/Mixed_5c']
+      elif FLAGS.model_name.startswith('mobilenet_v1'):
+          scopes = ['MobilenetV1/Logits', 'MobilenetV1/Conv2d_13']
+  elif FLAGS.num_of_trainable_layers == 3:
+      if FLAGS.model_name.startswith('inception_v1'):
+          scopes = ['InceptionV1/Logits', 'BatchNorm', 'InceptionV1/Mixed_5c', 'InceptionV1/Mixed_5b']
+      elif FLAGS.model_name.startswith('mobilenet_v1'):
+          scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_13', 'MobilenetV1/Conv2d_12']
+  elif FLAGS.num_of_trainable_layers == 4:
+      if FLAGS.model_name.startswith('inception_v1'):
+          scopes = ['InceptionV1/Logits', 'BatchNorm', 'InceptionV1/Mixed_5c', 'InceptionV1/Mixed_5b', 'InceptionV1/Mixed_4f']
+      elif FLAGS.model_name.startswith('mobilenet_v1'):
+          scopes = ['MobilenetV1/Logits', 'BatchNorm', 'MobilenetV1/Conv2d_13', 'MobilenetV1/Conv2d_12', 'MobilenetV1/Conv2d_11']
   else:
       scopes = [scope.strip() for scope in FLAGS.trainable_scopes.split(',')]
 
@@ -456,6 +482,7 @@ def _get_variables_to_train():
   return list(set(variables_to_train))
 
 
+
 def main():
 
   # check required input arguments
@@ -466,6 +493,7 @@ def main():
   if not FLAGS.model_name in model_name_to_variables:
     raise ValueError('Model name not supported name please select one of the following model architecture: mobilenet_v1, mobilenet_v1_075, mobilenet_v1_050, mobilenet_v1_025, inception_v1')
 
+
   # set and check project_dir and experiment_dir.
   project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
   if not FLAGS.experiment_name:
@@ -475,6 +503,7 @@ def main():
       experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
       if not os.path.exists(experiment_dir):
           raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
+
 
   train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
   if not os.path.exists(train_dir):
@@ -519,6 +548,7 @@ def main():
     ######################
     dataset = dataset_factory.get_dataset(
         FLAGS.dataset_name, FLAGS.dataset_split_name, dataset_dir)
+    FLAGS.num_classes = dataset.num_classes
 
     ######################
     # Select the network #
@@ -876,52 +906,107 @@ def main():
     experiment_file.flush()
 
 if __name__ == '__main__':
-  # tf.app.run()
-  main()
-  # TODO: Fix the mess below.
+    # tf.app.run()
+    main()
+    # TODO: Fix the mess below.
 
-  # The code below generates a frozen graph from the last trained checkpoint and defined graph (export_inference_graph)
-  # set and check project_dir and experiment_dir.
-  project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
-  if not FLAGS.experiment_name:
+
+
+
+
+
+
+
+    # The code below generates a frozen graph from the last trained checkpoint and defined graph (export_inference_graph)
+    # set and check project_dir and experiment_dir.
+    project_dir = os.path.join(FLAGS.project_dir, FLAGS.project_name)
+    if not FLAGS.experiment_name:
     # list only directories that are names experiment_
       # experiment_dir = create_new_experiment_dir(project_dir)
       experiment_dir = dataset_utils.select_latest_experiment_dir(project_dir)
-  else:
+    else:
       experiment_dir = os.path.join(os.path.join(project_dir, 'experiments'), FLAGS.experiment_name)
       if not os.path.exists(experiment_dir):
           raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
-  train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
-  output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
-  if not os.path.isfile(output_file):
+    train_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+    output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
+    if not os.path.isfile(output_file):
       raise ValueError('Graph file not found')
-  # load last checkpoint and generate frozen weighted graph from export_inference_graph
-  from tensorflow.core.protobuf import saver_pb2
-  input_saver = ""
-  input_binary=True
-  checkpoint_path = tf.train.latest_checkpoint(train_dir)
-  print('#######',checkpoint_path)
-  if FLAGS.model_name.startswith('inception_v1'):
-    output_node_names = "InceptionV1/Predictions/Reshape_1"
-  elif FLAGS.model_name.startswith('mobilenet_v1'):
-    output_node_names = "MobilenetV1/Predictions/Reshape_1"
+    # load last checkpoint and generate frozen weighted graph from export_inference_graph
+    from tensorflow.core.protobuf import saver_pb2
+    input_saver = ""
+    input_binary=True
+    checkpoint_path = tf.train.latest_checkpoint(train_dir)
+    print('#######',checkpoint_path)
+    if FLAGS.model_name.startswith('inception_v1'):
+        output_node_names = "InceptionV1/Predictions/Reshape_1"
+    elif FLAGS.model_name.startswith('mobilenet_v1'):
+        output_node_names = "MobilenetV1/Predictions/Reshape_1"
 
-  restore_op_name = "save/restore_all"
-  filename_tensor_name = "save/Const:0"
-  output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
-  output_graph = os.path.join(train_dir, output_graph_name)
-  clear_devices = True
-  initializer_nodes = ""
-  variable_names_whitelist = ""
-  variable_names_blacklist = ""
-  input_meta_graph = ""
-  input_saved_model_dir = ""
-  saved_model_tags = "serve"
-  checkpoint_version = saver_pb2.SaverDef.V2
-  freeze_graph(output_file, input_saver, input_binary,
-  checkpoint_path, output_node_names,
-  restore_op_name, filename_tensor_name,
-  output_graph, clear_devices, initializer_nodes,
-  variable_names_whitelist, variable_names_blacklist,
-  input_meta_graph, input_saved_model_dir,
-  saved_model_tags, checkpoint_version)
+    restore_op_name = "save/restore_all"
+    filename_tensor_name = "save/Const:0"
+    output_graph_name = "{}_{}_{}_frozen.pb".format(FLAGS.project_name, FLAGS.dataset_name, FLAGS.model_name)
+    output_graph = os.path.join(train_dir, output_graph_name)
+    clear_devices = True
+    initializer_nodes = ""
+    variable_names_whitelist = ""
+    variable_names_blacklist = ""
+    input_meta_graph = ""
+    input_saved_model_dir = ""
+    saved_model_tags = "serve"
+    checkpoint_version = saver_pb2.SaverDef.V2
+    freeze_graph(output_file, input_saver, input_binary,
+    checkpoint_path, output_node_names,
+    restore_op_name, filename_tensor_name,
+    output_graph, clear_devices, initializer_nodes,
+    variable_names_whitelist, variable_names_blacklist,
+    input_meta_graph, input_saved_model_dir,
+    saved_model_tags, checkpoint_version)
+
+
+
+    import tensorflow_graph_transform
+
+    output_graph_path = os.path.join(train_dir, 'optimized.pb')
+    tensorflow_graph_transform.main(output_graph, output_graph_path, 224, 224, 3, 'input', output_node_names)
+
+    from shutil import copy
+    # output_graph = os.path.join(FLAGS.output_graph, output_graph_name)
+    finaloutput_dir = os.path.join(experiment_dir, 'firefly')
+
+    # finaloutput_dir = os.path.join(experiment_dir, 'firefly')
+    if not os.path.exists(finaloutput_dir):
+        os.makedirs(finaloutput_dir)
+
+    if os.path.isdir(FLAGS.dataset_dir):
+        dataset_dir = os.path.join(FLAGS.dataset_dir, FLAGS.dataset_name)
+    else:
+        dataset_dir = os.path.join(os.path.join(project_dir, 'datasets'), FLAGS.dataset_name)
+    label_file = os.path.join(dataset_dir, 'labels.txt')
+    copy(label_file, finaloutput_dir)
+
+    import subprocess
+
+
+    output_movidius_graph = os.path.join(finaloutput_dir, 'firefly.graph')
+    # output_mov_graph = "test_4"
+    command = "/usr/local/bin/mvNCCompile -s 12 -o {}  {}  -in=input -on={}".format(output_movidius_graph, output_graph_path, output_node_names)
+    # print(output_movidius_graph, output_graph_path)
+    print('#####################', command)
+    # subprocess.run(command_input.split())
+    # command = "/usr/local/bin/mvNCCompile -s 12 -o test_3  optimized.pb  -in=input -on=MobilenetV1/Predictions/Reshape_1"
+    # subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=my_env)
+    #os.system(command)
+    os.environ['PYTHONPATH'] = "/opt/movidius/caffe/python" # visible in this process + all children
+    subprocess.check_call(command.split(),
+                      env=dict(os.environ, SQSUB_VAR="visible in this subprocess"))
+
+
+    import test_image_classifier
+    FLAGS.print_misclassified_test_images = True
+    FLAGS.dataset_split_name = 'test'
+    print(FLAGS)
+    test_image_classifier.main(FLAGS)
+    test_dir = os.path.join(experiment_dir, 'test')
+    test_file = os.path.join(test_dir, 'results.txt')
+    copy(test_file, finaloutput_dir)

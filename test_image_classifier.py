@@ -26,6 +26,7 @@ slim = tf.contrib.slim
 
 tf.app.flags.DEFINE_string(
     'project_dir', './project_dir', 'default project folder. all prject folder are stored.')
+tf.app.flags.DEFINE_string('image_dir', '', 'The directory where the input images are saved.')
 
 tf.app.flags.DEFINE_string('project_name', None, 'Must supply a project name examples: flower_classifier, component_classifier')
 
@@ -183,7 +184,7 @@ def main(_):
 #####################################
 # Select the preprocessing function #
 #####################################
-
+  tf.reset_default_graph()
   model_variables = model_name_to_variables.get(FLAGS.model_name)
   if model_variables is None:
       tf.logging.error("Unknown model_name provided `%s`." % FLAGS.model_name)
@@ -291,6 +292,30 @@ def main(_):
         print('\n\nPredition results saved to >>>>>> {}'.format(prediction_file))
   # misclassified image
   if FLAGS.print_misclassified_test_images:
+    test_file = os.path.join(test_dir, 'results.txt')
+    with open(test_file, 'w') as f:
+        print("\n\n\n==================== Misclassified Images ====================", file=f)
+        count = 0
+        for image_name, gt_label, pred_label in zip(file_name, output_gt, output_pred):
+              if pred_label != gt_label:
+                  count += 1
+                  print('Image file {} misclassified as {}. (groundtruth label {})'.format(image_name, pred_label, gt_label), file=f)
+        print('\n\nTotal misclassified images {}/{}'.format(str(count), len(file_name)), file=f)
+        print("==============================================================", file=f)
+        y_true = output_gt
+        y_pred = output_pred
+        conf_mat_output = confusion_matrix(y_true, y_pred, labels=np.unique(output_gt))
+        output_acc = accuracy_score(y_true, y_pred)
+        output_precision = precision_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
+        output_recall = recall_score(y_true, y_pred, average='micro', labels=np.unique(output_gt))
+        print("\n\n\n==================== Evaluation Result Summary ====================", file=f)
+        print("Accuracy score : {}".format(output_acc),  file=f)
+        print("Precision score : {}".format(output_precision), file=f)
+        print("Recall score: {}".format(output_recall), file=f)
+        # print("F1 score: {}".format(output_f1))
+        print(classification_report(y_true, y_pred, digits=7, labels=np.unique(output_gt)), file=f)
+        print("===================================================================", file=f)
+
     print("\n\n\n==================== Misclassified Images ====================")
     count = 0
     for image_name, gt_label, pred_label in zip(file_name, output_gt, output_pred):
@@ -312,7 +337,6 @@ def main(_):
     # print("F1 score: {}".format(output_f1))
     print(classification_report(y_true, y_pred, digits=7, labels=np.unique(output_gt)))
     print("===================================================================")
-
     print('Compression Output & Stats Follow')
 
 
