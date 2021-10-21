@@ -111,7 +111,7 @@ def _get_filenames_and_classes(dataset_dir):
   photo_filenames = []
   for directory in directories:
     for filename in os.listdir(directory):
-      if not filename.endswith('.txt'):
+      if filename.endswith('.png') or filename.endswith('.jpeg') or filename.endswith('.jpg'):
           path = os.path.join(directory, filename)
           photo_filenames.append(path)
 
