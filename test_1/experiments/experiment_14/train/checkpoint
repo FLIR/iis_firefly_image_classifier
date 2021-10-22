@@ -1,4 +1,0 @@
-model_checkpoint_path: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_14/train/model.ckpt-520"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_14/train/model.ckpt-0"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_14/train/model.ckpt-519"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_14/train/model.ckpt-520"

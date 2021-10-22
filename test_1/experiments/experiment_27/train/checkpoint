@@ -1,6 +1,0 @@
-model_checkpoint_path: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_27/train/model.ckpt-16315"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_27/train/model.ckpt-14111"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_27/train/model.ckpt-14730"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_27/train/model.ckpt-15349"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_27/train/model.ckpt-15966"
-all_model_checkpoint_paths: "/home/docker/ahmed/projects/iis_firefly_image_classifier/test_1/experiments/experiment_27/train/model.ckpt-16315"
