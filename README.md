@@ -286,6 +286,16 @@ Below command is an example for training the flowers dataset on mobilenet_v1_025
 - `--model_name`: Select the model backbone model architecture mobilenet_v1_025 (default mobilenet_v1)
 - `--trainable_scopes`: Select trainable model layers (default final `logits` layer and `BatchNorm` layers)
 - `--clone_on_cpu`: Set training to use CPU only (default False)
+- `--batch_size`: Set batch size to 64 (default 16)
+- `--apply_image_augmentation`: Enable random image augmentation during preprocessing for training.
+- `--random_image_crop`: Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled.
+- `--min_object_covered`: The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled.
+- `--random_image_rotation`: Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled.
+- `--random_image_flip`: Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled.
+- `--num_of_trainable_layers`: Number of trainable layers. By default, only the Logits layer is trained.
+- `--learning_rate_decay_type`: Specifies how the learning rate is decayed. One of "fixed", "exponential", or "polynomial".
+- `--learning_rate`: Initial learning rate.
+- `--optimizer`: The name of the optimizer, one of "adadelta", "adagrad", "adam","ftrl", "momentum", "sgd" or "rmsprop".
 
 ```bash
 $ python train_image_classifier.py \
@@ -311,17 +321,6 @@ Below command is an example for monitoring and evaluating the training process f
 - `--experiment_name`: Set experiment name directory load trained checkpoints from and save event logfiles to (default script will select the most recent folder, `experiment_#` folder with the highest index )
 - `--model_name`: Set the model architecture to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
 - `--batch_size`: Set batch size to 64 (default 16)
-- `--apply_image_augmentation`: Enable random image augmentation during preprocessing for training.
-- `--random_image_crop`: Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled.
-- `--min_object_covered`: The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled.
-- `--random_image_rotation`: Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled.
-- `--random_image_flip`: Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled.
-- `--trainable_scopes`: Comma-separated list of scopes to filter the set of variables to train.'
-    'By default, only the Logits layer is trained.
-- `--num_of_trainable_layers`: Number of trainable layers. By default, only the Logits layer is trained.
-- `--learning_rate_decay_type`: Specifies how the learning rate is decayed. One of "fixed", "exponential", or "polynomial".
-- `--learning_rate`: Initial learning rate.
-- `--optimizer`: The name of the optimizer, one of "adadelta", "adagrad", "adam","ftrl", "momentum", "sgd" or "rmsprop".
 
 
 
