@@ -125,7 +125,7 @@ This docker container was test using the following system setup
 
 ```bash
 # Pull and run tensorflow-gpu runtime docker environment.
-docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-gpu_runtime:latest
+docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-ncsdk-gpu-runtime:latest
 ```
 
 #### Pull and run Tensorflow docker environment (CPU only training)
@@ -135,13 +135,13 @@ This docker container was tested with the following system setup
 
 ```bash
 # Pull and run tensorflow runtime docker environment.
-docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v /path/on/host:/path/inside/container asigiuk/tf1.13-cpu_runtime:latest
+docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v /path/on/host:/path/inside/container asigiuk/tf1.13-ncsdk-gpu-runtime:latest
 ```
 
 Some helpful notes:
 1. Modify `-v /path/on/host:/path/inside/container` in the above command and replace `/path/on/host` with your host machine target directory path. This will mount your specified target host directory to the docker container home directory `/path/inside/container`.
 2. The docker `-v` or `--volume` flag is used to mount a target directory in your host machine (i.e. `/path/on/host`) to the docker container directory (i.e. `/path/inside/container`).
-3. The docker `-v` or `--volume` flag can also be used to mount a directory from a Windows host machine to a directory in the Linux docker container. You will need to convert the windows string directory path to an equivalent docker format. For example convert `C:\path\on\host` to `/C/path/on/host` and add quotation marks `""` (-v `"/C/path/on/host:/path/inside/container" `) 
+3. The docker `-v` or `--volume` flag can also be used to mount a directory from a Windows host machine to a directory in the Linux docker container. You will need to convert the windows string directory path to an equivalent docker format. For example convert `C:\path\on\host` to `/C/path/on/host` and add quotation marks `""` (-v `"/C/path/on/host:/path/inside/container" `)
 4. You can find more information regarding the `docker run` command [here](https://docs.docker.com/engine/reference/commandline/run/#mount-volume--v---read-only).
 5. You can terminate the docker environment by typing `exit` in your terminal.
 
@@ -311,6 +311,19 @@ Below command is an example for monitoring and evaluating the training process f
 - `--experiment_name`: Set experiment name directory load trained checkpoints from and save event logfiles to (default script will select the most recent folder, `experiment_#` folder with the highest index )
 - `--model_name`: Set the model architecture to mobilenet_v1_025 (default mobilenet_v1). This has to be the same as the training.
 - `--batch_size`: Set batch size to 64 (default 16)
+- `--apply_image_augmentation`: Enable random image augmentation during preprocessing for training.
+- `--random_image_crop`: Enable random cropping of images. Only Enabled if apply_image_augmentation flag is also enabled.
+- `--min_object_covered`: The remaining cropped image must contain at least this fraction of the whole image. Only Enabled if apply_image_augmentation flag is also enabled.
+- `--random_image_rotation`: Enable random image rotation counter-clockwise by 90, 180, 270, or 360 degrees. Only Enabled if apply_image_augmentation flag is also enabled.
+- `--random_image_flip`: Enable random image flip (horizontally). Only Enabled if apply_image_augmentation flag is also enabled.
+- `--trainable_scopes`: Comma-separated list of scopes to filter the set of variables to train.'
+    'By default, only the Logits layer is trained.
+- `--num_of_trainable_layers`: Number of trainable layers. By default, only the Logits layer is trained.
+- `--learning_rate_decay_type`: Specifies how the learning rate is decayed. One of "fixed", "exponential", or "polynomial".
+- `--learning_rate`: Initial learning rate.
+- `--optimizer`: The name of the optimizer, one of "adadelta", "adagrad", "adam","ftrl", "momentum", "sgd" or "rmsprop".
+
+
 
 ```bash
 $ python eval_image_classifier.py \
