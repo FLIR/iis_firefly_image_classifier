@@ -43,6 +43,7 @@ import time
 import argparse
 import urllib.request
 import tarfile
+# from test_image_classifier import main
 
 slim = contrib_slim
 
@@ -192,7 +193,7 @@ p.add_argument('--imbalance_correction', type=bool, default=False, help='apply c
 
 p.add_argument('--feature_extraction', type=bool, default=False, help='Whether or not to synchronize the replicas during training.')
 
-p.add_argument('--checkpoint_path',  type=str, default=None,
+p.add_argument('--checkpoint_path',  type=str, default='',
     help='The path to a checkpoint from which to fine-tune.')
 
 p.add_argument('--checkpoint_exclude_scopes',  type=str, default=None,
@@ -247,6 +248,8 @@ model_name_to_variables = {
   'inception_v1':'InceptionV1'
   }
 FLAGS = p.parse_args()
+
+NUM_CLASSES = 0
 
 def _parse_roi():
     # parse roi
@@ -548,7 +551,7 @@ def main():
     ######################
     dataset = dataset_factory.get_dataset(
         FLAGS.dataset_name, FLAGS.dataset_split_name, dataset_dir)
-    FLAGS.num_classes = dataset.num_classes
+    NUM_CLASSES = dataset.num_classes
 
     ######################
     # Select the network #
@@ -1003,10 +1006,22 @@ if __name__ == '__main__':
 
 
     import test_image_classifier
-    FLAGS.print_misclassified_test_images = True
-    FLAGS.dataset_split_name = 'test'
-    print(FLAGS)
-    test_image_classifier.main(FLAGS)
-    test_dir = os.path.join(experiment_dir, 'test')
-    test_file = os.path.join(test_dir, 'results.txt')
-    copy(test_file, finaloutput_dir)
+    
+    dataset_split_name = 'test'
+    print('############', FLAGS)
+    # test_image_classifier.main(FLAGS)
+
+    test_image_classifier.eval_model( project_dir,
+    									experiment_dir,
+						                dataset_split_name,
+						                FLAGS.dataset_name,
+						                dataset_dir,
+						                FLAGS.model_name,
+						                FLAGS.labels_offset,
+						                NUM_CLASSES,
+						                FLAGS.preprocessing_name,
+						                FLAGS.final_endpoint,
+						                FLAGS.use_grayscale)
+    # test_dir = os.path.join(experiment_dir, 'test')
+    # test_file = os.path.join(test_dir, 'results.txt')
+    # copy(test_file, finaloutput_dir)
