@@ -486,7 +486,7 @@ def _get_variables_to_train():
 
 
 
-def main():
+def main(_):
 
   # check required input arguments
   if not FLAGS.project_name:
@@ -875,38 +875,38 @@ def main():
     print('Started on (UTC): ', start, sep='', file=experiment_file)
     experiment_file.flush()
 
-    slim.learning.train(
-        train_tensor,
-        train_step_fn=train_step_fn,
-        logdir=train_dir,
-        master=FLAGS.master,
-        is_chief=(FLAGS.task == 0),
-        init_fn=_get_init_fn(),
-        summary_op=summary_op,
-        number_of_steps=FLAGS.max_number_of_steps,
-        log_every_n_steps=FLAGS.log_every_n_steps,
-        save_summaries_secs=FLAGS.save_summaries_secs,
-        save_interval_secs=FLAGS.save_interval_secs,
-        sync_optimizer=optimizer if FLAGS.sync_replicas else None,
-        session_config=session_config)
-
-    finish = datetime.datetime.utcnow()
-    # generate and save graph (output file model_name_graph.pb)
-    print('Generate frozen graph')
-    # TODO: Simplify by loading checkpoint+graph and freezing together (no need to save graph)
-    # genrate and save inference graph
-    is_training = False
-    is_video_model = False
-    batch_size = None
-    num_frames = None
-    quantize = False
-    write_text_graphdef = False
-    output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
-    export_inference_graph(FLAGS.dataset_name, dataset_dir,  FLAGS.model_name, FLAGS.labels_offset, is_training, FLAGS.final_endpoint, FLAGS.train_image_size, FLAGS.use_grayscale, is_video_model, batch_size, num_frames, quantize, write_text_graphdef, output_file)
-    # record training session end
-    print('Finished on (UTC): ', finish, sep='', file=experiment_file)
-    print('Elapsed: ', finish-start, sep='', file=experiment_file)
-    experiment_file.flush()
+    # slim.learning.train(
+    #     train_tensor,
+    #     train_step_fn=train_step_fn,
+    #     logdir=train_dir,
+    #     master=FLAGS.master,
+    #     is_chief=(FLAGS.task == 0),
+    #     init_fn=_get_init_fn(),
+    #     summary_op=summary_op,
+    #     number_of_steps=FLAGS.max_number_of_steps,
+    #     log_every_n_steps=FLAGS.log_every_n_steps,
+    #     save_summaries_secs=FLAGS.save_summaries_secs,
+    #     save_interval_secs=FLAGS.save_interval_secs,
+    #     sync_optimizer=optimizer if FLAGS.sync_replicas else None,
+    #     session_config=session_config)
+    #
+    # finish = datetime.datetime.utcnow()
+    # # generate and save graph (output file model_name_graph.pb)
+    # print('Generate frozen graph')
+    # # TODO: Simplify by loading checkpoint+graph and freezing together (no need to save graph)
+    # # genrate and save inference graph
+    # is_training = False
+    # is_video_model = False
+    # batch_size = None
+    # num_frames = None
+    # quantize = False
+    # write_text_graphdef = False
+    # output_file = os.path.join(train_dir, FLAGS.model_name + '_graph.pb')
+    # export_inference_graph(FLAGS.dataset_name, dataset_dir,  FLAGS.model_name, FLAGS.labels_offset, is_training, FLAGS.final_endpoint, FLAGS.train_image_size, FLAGS.use_grayscale, is_video_model, batch_size, num_frames, quantize, write_text_graphdef, output_file)
+    # # record training session end
+    # print('Finished on (UTC): ', finish, sep='', file=experiment_file)
+    # print('Elapsed: ', finish-start, sep='', file=experiment_file)
+    # experiment_file.flush()
 
 if __name__ == '__main__':
     # tf.app.run()
@@ -1006,7 +1006,7 @@ if __name__ == '__main__':
 
 
     import test_image_classifier
-    
+
     dataset_split_name = 'test'
     print('############', FLAGS)
     # test_image_classifier.main(FLAGS)

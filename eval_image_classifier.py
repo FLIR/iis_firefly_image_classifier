@@ -128,6 +128,7 @@ def main():
         raise ValueError('Experiment directory {} does not exist.'.format(experiment_dir))
 
   eval_dir = os.path.join(experiment_dir, FLAGS.dataset_split_name)
+  # eval_dir = os.path.join(experiment_dir, 'validation_1')
   if not os.path.exists(eval_dir):
     os.makedirs(eval_dir)
 
