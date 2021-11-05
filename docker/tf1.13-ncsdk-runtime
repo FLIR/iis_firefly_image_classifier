@@ -1,0 +1,60 @@
+#FROM ubuntu:16.04
+FROM nvcr.io/nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
+
+RUN apt-get update
+RUN apt-get --fix-missing update
+RUN apt-get update
+
+# Install basic apps
+RUN apt-get install -y -q software-properties-common \
+	build-essential lsb-release \
+	cmake sed sudo tar\
+	checkinstall udev \
+	pkg-config g++ \
+  wget git curl nano \
+	zip unzip yasm zlib1g-dev \
+	&& apt-get clean sudo
+
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update
+
+#### Python 2.7
+RUN apt-get install -y python2.7
+RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
+RUN python2.7 get-pip.py --force-reinstall
+RUN pip2 --version
+
+#### Python 3.7
+# python libraries
+RUN apt-get install -y -q  python3.7-dev
+RUN apt-get install -y -q  python3.7
+RUN ln -s python3.7 /usr/bin/python
+
+
+# Install the latest version of pip (https://pip.pypa.io/en/stable/installing/#using-linux-package-managers)
+RUN wget --no-check-certificate  https://bootstrap.pypa.io/get-pip.py
+RUN python get-pip.py --force-reinstall
+RUN pip3 --version
+RUN pip3 install --user tensorflow-gpu==1.13.2 scikit-learn
+
+# Copy over the NCSDK
+RUN git clone --depth 1 --branch v2.05.00.02 http://github.com/Movidius/ncsdk
+
+# Set the current working directory to the cloned ncsdk directory
+WORKDIR "/ncsdk"
+RUN rm requirements_apt.txt
+COPY requirements_apt.txt /ncsdk/
+RUN rm ncsdk.conf
+COPY ncsdk.conf /ncsdk/
+
+# Run the installer
+RUN make install
+#RUN sed 's/#! +usr+bin+env python3/#!/opt/movidius/virtualenv-python/bin/python/' /usr/local/bin/mvNCCompile
+ENV PYTHONPATH "${PYTHONPATH}:/opt/movidius/caffe/python"
+ENV PATH=$PATH:/root/.local/bin
+
+# Install extra packages without root privilege if need
+RUN unlink /usr/bin/python && ln -s python3.7 /usr/bin/python
+#RUN pip3 --version
+#RUN pip3 install tensorflow-gpu==1.13.2 guildai
+RUN echo $LD_LIBRARY_PATH && echo $PATH

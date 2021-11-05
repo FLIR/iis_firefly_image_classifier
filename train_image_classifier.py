@@ -486,7 +486,7 @@ def _get_variables_to_train():
 
 
 
-def main(_):
+def main():
 
   # check required input arguments
   if not FLAGS.project_name:

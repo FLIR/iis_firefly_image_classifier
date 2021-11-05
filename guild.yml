@@ -3,96 +3,44 @@
   operations:
     train:
       description: Retrain a classifier
-      main: train_image_classifier
+      main: train
       output-scalars:
         - 'global step (?P<step>\step): loss = (?P<loss>\value)'
+        - 'global step (?P<step>\step): evaluation accuracy = (?P<accuracy>\value)'
         - experiment_number: 'experiment number: (\value)'
       flags:
-        max_number_of_steps:
-          type: int
-          default: 30000
         batch_size:
           type: int
           default: 32
-          choices: [16, 32, 64]
-        learning_rate:
-          type: float
-          default: 0.01
-        project_dir:
-          type: string
-          default: './project_dir/'
+        num_of_trainable_layers:
+          type: int
+          default: 1
+          choices: [1, 2, 3, 4]
+        max_number_of_steps:
+          type: int
+          default: 500
         project_name:
-          type: string
-          default: ''
-        experiment_name:
-          type: string
-          default: ''
-        dataset_dir:
           type: string
           default: ''
         dataset_name:
           type: string
           default: ''
-        checkpoint_path:
+        image_dir:
           type: string
           default: ''
-        dataset_split_name:
-          type: string
-          default: 'train'
-        optimizer:
-          type: string
-          default: 'adam'
-          choices: [ "adadelta", "adagrad", "adam", "ftrl", "momentum", "sgd", "rmsprop"]
+        learning-rate:
+          type: float
+          default: 0.001
         model_name:
           type: string
           default: 'mobilenet_v1'
-        trainable_scopes:
+          choices: ["mobilenet_v1", "mobilenet_v1_075", "mobilenet_v1_050", "mobilenet_v1_025", "inception_v1"]
+        optimizer:
           type: string
-          default: ''
+          default: "adam"
         min_object_covered:
           type: float
           default: 0.9
-      requires:
-        - file: imagenet_checkpoints
-        - file: project_dir
-
-    eval:
-      description: Evaluate and monitor model performance during training
-      main: eval_image_classifier
-      output-scalars:
-        - experiment_number: 'experiment number: (\value)'
-      flags:
-        batch_size:
-          type: int
-          default: 32
-          choices: [16, 32, 64]
-        project_dir:
-          type: string
-          default: './project_dir/'
-        project_name:
-          type: string
-          default: ''
-        experiment_name:
-          type: string
-          default: ''
-        dataset_dir:
-          type: string
-          default: ''
-        dataset_name:
-          type: string
-          default: ''
-        dataset_split_name:
-          type: string
-          default: 'validation'
-        model_name:
-          type: string
-          default: 'mobilenet_v1'
-        add_image_summaries:
-          type: boolean
-          default: True
-        # experiment_number:
-        #   type: int
-        #   default: 1
       requires:
         - file: imagenet_checkpoints
         - file: project_dir

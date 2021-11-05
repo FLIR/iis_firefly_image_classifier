@@ -79,11 +79,12 @@ In addition, we note the following
 6. [Output](#output)
 7. [Preparing the datasets](#preparing-the-datasets)
 8. [Training, Evaluation, and Testing your Classification Model](#training-evaluation-and-testing-your-classification-model)
-10. [Troubleshooting and Current Known Issues](#troubleshooting-and-current-known-issues)
-11. [Send Us Failure Cases and Feedback!](#send-us-failure-cases-and-feedback)
-12. [Contacts](#citation)
-13. [License](#license)
-14. [References](#References)
+10. [Hyperparameter Tuning](#hyperparameter-tuning)
+11. [Troubleshooting and Current Known Issues](#troubleshooting-and-current-known-issues)
+12. [Send Us Failure Cases and Feedback!](#send-us-failure-cases-and-feedback)
+13. [Contacts](#citation)
+14. [License](#license)
+15. [References](#References)
 
 ## Installation
 In this section, we describe the steps required to setup the training environment in preparation for running the scripts provided in this repository.
@@ -166,6 +167,20 @@ python train_image_classifier.py \
         --dataset_name=<Select a dataset name> \
         --image_dir=</path/to/image_directory>
 ```
+
+## Hyperparameter tuning
+
+Run hyperparameter optimization job
+
+Note: Creating the dataset before starting the hyperparameter batch job can speed up the training time. You can find more information on how to create a dataset in the ` Preparing the datasets` section.
+
+```bash
+guild run train --optimizer gp  --max-trials 5  --maximize accuracy \
+          project_name=<Select a project name>  \
+          dataset_name=<Select a dataset name>
+```
+
+You can find information on Guildai and available optimization flags [HERE](https://my.guild.ai/t/hyperparameter-optimization/161)
 
 ## Outputs
 A trained model (a completed training experiment) is identified by three input arguments
@@ -456,8 +471,6 @@ python export_freeze_inference_graph.py \
       --model_name=mobilenet_v1_025
 ```
 
-<!-- ## Guildai for Hyperparameter search
- -->
 ## Troubleshooting and Current Known Issues
 
 #### Issue with training script on TF 1.15
