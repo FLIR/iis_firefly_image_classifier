@@ -180,6 +180,11 @@ guild run train --optimizer gp  --max-trials 5  --maximize accuracy \
           dataset_name=<Select a dataset name>
 ```
 
+Generate summary report sorted by evaluation accuracy
+```
+guild compare --maximum accuracy
+```
+
 You can find information on Guildai and available optimization flags [HERE](https://my.guild.ai/t/hyperparameter-optimization/161)
 
 ## Outputs
