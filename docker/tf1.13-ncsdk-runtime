@@ -56,5 +56,5 @@ ENV PATH=$PATH:/root/.local/bin
 # Install extra packages without root privilege if need
 RUN unlink /usr/bin/python && ln -s python3.7 /usr/bin/python
 #RUN pip3 --version
-#RUN pip3 install tensorflow-gpu==1.13.2 guildai
+RUN pip3 install tensorflow-gpu==1.13.2 guildai
 RUN echo $LD_LIBRARY_PATH && echo $PATH
