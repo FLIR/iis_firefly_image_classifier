@@ -126,7 +126,7 @@ This docker container was test using the following system setup
 
 ```bash
 # Pull and run tensorflow-gpu runtime docker environment.
-docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ asigiuk/tf1.13-ncsdk-gpu-runtime:latest
+docker run --gpus all --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v path/to/host_target_directory:/home/docker/ workingtaechqie/iis-firefly-image-classifier-tf1.13-gpu:latest
 ```
 
 #### Pull and run Tensorflow docker environment (CPU only training)
@@ -136,7 +136,7 @@ This docker container was tested with the following system setup
 
 ```bash
 # Pull and run tensorflow runtime docker environment.
-docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v /path/on/host:/path/inside/container asigiuk/tf1.13-ncsdk-gpu-runtime:latest
+docker run --rm -it --name tensorflow-env-1  -e DISPLAY=${DISPLAY}  --net=host  --privileged --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864  -v /dev:/dev -v /path/on/host:/path/inside/container workingtaechqie/iis-firefly-image-classifier-tf1.13-gpu:latest
 ```
 
 Some helpful notes:
@@ -509,7 +509,6 @@ Our library is open source and we want to continuously improve it! So please, le
 
 ## Contacts
 This repository is maintained by FLIR-IIS R&D team.
-* Ahmed Sigiuk, Ahmed.Sigiuk@flir.com
 * Di Xu, Di.Xu@flir.com
 * Douglas Chong, Douglas.Chong@flir.com
 
